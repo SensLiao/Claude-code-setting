@@ -1,0 +1,23 @@
+# Normalize all text files to LF inside the repo and on checkout.
+# This keeps install.sh and other bash/node scripts runnable on every machine
+# (a CRLF would inject \r and break bash). Windows-only scripts keep CRLF.
+* text=auto eol=lf
+
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets — never touch line endings.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary

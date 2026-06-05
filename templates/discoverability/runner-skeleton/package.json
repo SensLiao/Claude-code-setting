@@ -1,0 +1,49 @@
+{
+  "$comment": "Skeleton package.json for the L12 Discoverability runner. Copy into packages/discoverability/ (or wherever you host the CLI) and implement src/cli.ts to match the contract in README.md.",
+  "name": "@yourorg/discoverability",
+  "version": "0.0.1",
+  "private": true,
+  "description": "L12 Discoverability runner — SEO + AEO + GEO + ASO audit / gate / report CLI",
+  "type": "module",
+  "main": "dist/cli.js",
+  "bin": {
+    "discoverability": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "discoverability": "node dist/cli.js",
+    "discoverability:audit": "node dist/cli.js audit",
+    "discoverability:audit:seo": "node dist/cli.js audit --module seo",
+    "discoverability:audit:aeo": "node dist/cli.js audit --module aeo",
+    "discoverability:audit:geo": "node dist/cli.js audit --module geo",
+    "discoverability:audit:aso": "node dist/cli.js audit --module aso",
+    "discoverability:gate": "node dist/cli.js gate --fail-on blocker",
+    "discoverability:report": "node dist/cli.js report --format md,json,pdf",
+    "discoverability:explain": "node dist/cli.js explain",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "yaml": "^2.5.0",
+    "zod": "^3.23.0",
+    "execa": "^9.4.0",
+    "fast-xml-parser": "^4.5.0",
+    "undici": "^6.20.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0",
+    "@types/node": "^22.0.0",
+    "lighthouse": "^12.2.0",
+    "@lhci/cli": "^0.14.0",
+    "linkinator": "^6.1.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "comments": {
+    "_dependencies_note": "yaml + zod parse/validate discoverability.config.yaml. execa wraps Lighthouse / vendor scripts. fast-xml-parser handles sitemap.xml + RSS. undici is the modern fetch for sitemap/canonical/robots probing.",
+    "_devDeps_note": "lighthouse + @lhci/cli are spawned by execa, not imported directly. linkinator is used by web-seo runner for URL reachability sweeps across sitemap.xml.",
+    "_python_note": "If you wire in the geo-seo-claude vendor adapter (AEO citability/llms.txt), Python 3.12+ deps live alongside in tools/vendor/geo-seo-claude/requirements.txt — install separately in CI.",
+    "_ruby_note": "If you use fastlane for ASO metadata sync, Ruby + fastlane are managed by a separate Gemfile."
+  }
+}

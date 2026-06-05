@@ -1,0 +1,132 @@
+{
+  "engine_version": "1.0",
+  "orchestrator": "qa",
+  "domain_runtime_version": "qa-0.1.0",
+  "preset_name": "graph-smoke",
+  "mode": "graph-smoke",
+  "_note": "Internal coverage-test preset — exercises all 4 node types (single + fanout + pipeline + deterministic). NEVER user-triggered. Used to prove qa-orchestrator.js correctness before per-mode rollout.",
+  "_doc_ref": "QA-PHASE-B-BLUEPRINT.md §8 + §22 R4/R13 + ORCHESTRATION-MIGRATION-PLAN.md §1.11 #14",
+  "context": {
+    "_skill_fills": [
+      "risk_snapshot (per R4 Option A)",
+      "release_tag",
+      "run_id",
+      "critical_release_paths",
+      "policy"
+    ]
+  },
+  "phases": [
+    {
+      "name": "LayerSelect",
+      "type": "single",
+      "model": "balanced",
+      "resolved_model": "sonnet",
+      "agentType": "qa-risk-classifier",
+      "prompt_ref": "layer-select.v1",
+      "schema_ref": "LAYER_SELECT_SCHEMA.v1",
+      "stall_ms": 180000,
+      "timeout_policy": "default_short_classification"
+    },
+    {
+      "name": "StaticBaseline",
+      "type": "single",
+      "model": "cheap_fast",
+      "resolved_model": "haiku",
+      "agentType": "code-reviewer",
+      "prompt_ref": "static-baseline.v1",
+      "schema_ref": "STATIC_BASELINE_SCHEMA.v1",
+      "stall_ms": 600000,
+      "timeout_policy": "static_baseline_external_commands"
+    },
+    {
+      "name": "StaticGate",
+      "type": "deterministic",
+      "op": "run_static_baseline_policy"
+    },
+    {
+      "name": "UnitOrComponent",
+      "type": "fanout",
+      "items_from": "state.LayerSelect.changed_surfaces",
+      "_smoke_pin_width": 2,
+      "_smoke_pin_note": "FIXED × 2 per §1.11 #14",
+      "model": "cheap_fast",
+      "resolved_model": "haiku",
+      "agentType": "code-reviewer",
+      "prompt_ref": "component-test.v1",
+      "schema_ref": "COMPONENT_TEST_SCHEMA.v1",
+      "stall_ms": 600000,
+      "timeout_policy": "component_test_external_commands"
+    },
+    {
+      "name": "E2E",
+      "type": "pipeline",
+      "items_from": "state.LayerSelect.critical_scenarios",
+      "_smoke_pin_items": 1,
+      "_smoke_pin_note": "pipeline × 1 scenario × 1 stage for graph-smoke",
+      "stages": [
+        {
+          "type": "single",
+          "model": "balanced",
+          "resolved_model": "sonnet",
+          "agentType": "e2e-runner",
+          "prompt_ref": "e2e-scenario.v1",
+          "schema_ref": "E2E_SCENARIO_SCHEMA.v1",
+          "stall_ms": 900000,
+          "timeout_policy": "long_running_external_test"
+        }
+      ]
+    },
+    {
+      "name": "Gate",
+      "type": "deterministic",
+      "op": "qa_gate_policy"
+    },
+    {
+      "name": "EvidenceBundle",
+      "type": "single",
+      "model": "balanced",
+      "resolved_model": "sonnet",
+      "agentType": "qa-evidence-validator",
+      "prompt_ref": "evidence-bundle.v1",
+      "schema_ref": "EVIDENCE_BUNDLE_SCHEMA.v1",
+      "stall_ms": 300000,
+      "timeout_policy": "evidence_aggregation",
+      "post_invariants": [
+        "ensure_evidence_bundle_layers",
+        "map_null_outputs_to_missing"
+      ]
+    }
+  ],
+  "prompts": {},
+  "schemas": {},
+  "ops_allowed": {
+    "deterministic": [
+      "run_static_baseline_policy",
+      "qa_gate_policy"
+    ],
+    "predicates": [
+      "no_layers_active",
+      "evidence_bundle_incomplete",
+      "fanout_item_dropped"
+    ],
+    "invariants": [
+      "ensure_evidence_bundle_layers",
+      "map_null_outputs_to_missing"
+    ]
+  },
+  "_estimate": {
+    "token_estimate_low": 180000,
+    "token_estimate_high": 280000,
+    "hard_budget_cap": 300000,
+    "wallclock_estimate_minutes": 4,
+    "_r13_note": "Reconciled per reviewer R13: previous 200-400k vs cap 300k was permanent-abort. Tightened to 180-280k / cap 300k.",
+    "evidence_layers": [
+      ".qa/evidence/<tag>/02-layer-selection.yaml",
+      ".qa/evidence/<tag>/static.yaml",
+      ".qa/evidence/<tag>/component.yaml",
+      ".qa/evidence/<tag>/e2e.yaml",
+      ".qa/evidence/<tag>/qa_evidence_bundle.yaml",
+      ".qa/evidence/<tag>/workflow-state.yaml"
+    ]
+  }
+}

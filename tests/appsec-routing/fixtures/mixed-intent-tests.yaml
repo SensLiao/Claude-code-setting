@@ -1,0 +1,72 @@
+# AppSec Routing — Mixed Intent Test Fixtures
+# Tests that verify routing handles realistic combinations correctly
+
+schema_version: "1.0"
+category: mixed_intent
+description: |
+  Real-world prompts often combine multiple intents. This file tests that
+  multi-skill routing works correctly without ambiguity / over-activation /
+  safety regression.
+
+tests:
+  - id: MIX-001
+    prompt: "Payment processing + active pentest before launch."
+    expected_routing_sequence:
+      - security-compliance-payment (PCI SAQ + scope first)
+      - pentest-scope-and-roe (ROE for pentest)
+      - (user explicit invocation) authorized-pentest-validation
+    must_not_activate:
+      - authorized-pentest-validation (auto from payment request)
+    rationale: PCI 11.4 annual pentest exists, but dual-gate still mandatory.
+
+  - id: MIX-002
+    prompt: "GenAI chatbot for Chinese users; data goes to OpenAI US."
+    expected_skills_parallel:
+      - security-app-llm (LLM Top 10 + ASI01-10)
+      - security-compliance-cn-data (PIPL + cross-border)
+    expected_decision_points:
+      - cn_data path: B (SCC) or A (CAC assessment) depending on user count + sensitivity
+      - llm: GenAI 算法备案 in China (CAC Interim Measures)
+    must_not_skip:
+      - Sensitive PI cross-border check (cannot use <100k exemption)
+      - GenAI registration (algorithm + 大模型 if applicable)
+
+  - id: MIX-003
+    prompt: "File upload feature in our multi-tenant SaaS."
+    expected_skills_parallel:
+      - security-app-file-upload (12-step upload defense)
+      - security-app-multitenant (tenant boundary on upload + storage)
+    expected_synergy: |
+      Uploads MUST be tenant-isolated in storage; signed URL TTL + tenant scope;
+      file path / metadata never leak across tenants.
+
+  - id: MIX-004
+    prompt: "iOS app accepts payment via Stripe SDK."
+    expected_skills_parallel:
+      - security-app-mobile (MASVS-CRYPTO + AUTH + STORAGE)
+      - security-compliance-payment (likely SAQ A via Stripe SDK; verify with QSA)
+    expected_synergy: |
+      mobile skill ensures Stripe SDK token stored in Keychain w/ proper accessControl;
+      payment skill ensures SAQ A scope claim is valid for in-app payment.
+
+  - id: MIX-005
+    prompt: "Public-facing pages have private content leaking to search engines."
+    expected_routing_sequence:
+      - discoverability-orchestrator (detect indexed private content)
+      - appsec-security-orchestrator (access control issue — fix at source)
+    expected_handoff:
+      - discoverability-orchestrator → appsec-security-orchestrator (when leak = access control bug, not crawler policy)
+    rationale: robots.txt / noindex is NOT access control.
+
+  - id: MIX-006
+    prompt: "Confirmed incident — credential leak from a third-party vendor."
+    expected_routing_sequence:
+      - security-response-incident-response (declare IR + IC + initial report)
+      - security-platform-secrets (rotate ALL affected credentials)
+      - security-response-recovery (after containment + eradication)
+    expected_legal_clock:
+      - PIPL Art. 57 if Chinese PI affected (immediate notification)
+      - GDPR Art. 33 if EU PI affected (72h notification)
+    must_not_skip:
+      - history audit (gitleaks --redact on git history)
+      - vendor coordination

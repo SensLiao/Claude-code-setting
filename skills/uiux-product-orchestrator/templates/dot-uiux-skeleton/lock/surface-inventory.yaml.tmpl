@@ -1,0 +1,13 @@
+schema_version: 1.0
+release_tag: REPLACE_WITH_RELEASE_TAG
+surfaces:
+  - id: REPLACE_WITH_SURFACE_ID
+    surface_type: marketing   # marketing | dashboard | settings | auth | onboarding | error | empty | payment | admin
+    route: "/"
+    breakpoints: [320, 768, 1024, 1440]
+    states: [default, loading, error, empty]
+    a11y_critical: true
+    design_pass_skill: null
+    evidence_path: null
+    audit_status: pending   # pending | designed | audited-pass | audited-fail
+    data_classes: []   # for AppSec handoff: [credentials, session, PII, email, payment]

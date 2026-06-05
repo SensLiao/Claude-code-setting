@@ -1,0 +1,116 @@
+{
+  "$schema": "ops.manifest.v1",
+  "orchestrator": "qa",
+  "shared_runtime_version": "1.0.0",
+  "domain_runtime_version": "qa-0.1.0",
+  "_note": "Metadata only. Real op functions are inlined in ~/.claude/workflows/qa-orchestrator.js because workflow body cannot import. Deterministic ops are PURE-CODE ONLY per ORCHESTRATION-MIGRATION-PLAN.md §F.13 #1 lesson — no external commands, no FS, no network. Any QA layer that runs tsc/eslint/playwright/lighthouse/axe/etc. is an AGENT node, NOT a deterministic op.",
+  "_doc_ref": "QA-PHASE-B-BLUEPRINT.md §6 + §22.5 R7/R9 + ORCHESTRATION-MIGRATION-PLAN.md §1.11 #11 + §F.13 #1",
+
+  "registries": {
+    "deterministic": {
+      "run_static_baseline_policy": {
+        "_aka": "StaticGate",
+        "description": "Classify pre-collected static baseline stdout (tsc + eslint + prettier + npm audit + git-secrets — already run by upstream StaticBaseline AGENT node) against floor policy. Pure-code threshold check on parsed counts.",
+        "inputs_consumed": ["state.StaticBaseline.command_evidence", "state.StaticBaseline.tsc_errors", "state.StaticBaseline.eslint_findings", "state.StaticBaseline.npm_audit_critical_count", "state.StaticBaseline.git_secrets_hits", "ctx.policy.static_floor"],
+        "outputs": ["static_decision", "failed_checks", "advisory_warnings"],
+        "called_inside": "deterministic node 'StaticGate' (every mode)"
+      },
+      "qa_gate_policy": {
+        "_aka": "Gate",
+        "description": "Compute PASS/WARN/BLOCK release decision. BLOCK if: critical_release_path has 0 evidence OR any layer marked FAIL OR Hard Rule §2 violated OR dispatch_failures non-empty OR floor_rule_status.triggered==true AND mandated layers absent OR null_outputs mapped to MISSING are present. WARN if any CONDITIONAL_PASS. PASS otherwise.",
+        "inputs_consumed": ["state.LayerSelect", "state.StaticGate", "state.UnitOrComponent", "state.ComponentOrContract", "state.E2E", "state.FlakyTriage", "state.FlakyQuarantineCheck", "state.VisualGate", "state.A11yGate", "state.PerfGate", "ctx.policy", "ctx.critical_release_paths", "ctx.risk_snapshot"],
+        "outputs": ["decision", "blocking_layers", "warned_layers", "critical_path_coverage", "floor_triggered_action"],
+        "called_inside": "deterministic node 'Gate' (every mode)"
+      },
+      "compute_critical_path_coverage": {
+        "description": "For each path in ctx.critical_release_paths (auth / payment / checkout / signup / data-export / admin / billing), check whether at least 1 layer's evidence references the path. Returns uncovered_paths list.",
+        "inputs_consumed": ["state.*.evidence_paths", "ctx.critical_release_paths"],
+        "outputs": ["covered_paths", "uncovered_paths", "coverage_pct"],
+        "called_inside": "post_invariant on Gate output"
+      },
+      "flaky_quarantine_decision": {
+        "_aka": "FlakyQuarantineCheck",
+        "description": "Apply Floor Rule §3.6: refuse quarantine for any test in critical_release_paths set even if 8 required fields are supplied. Returns admissible_quarantines vs rejected_critical_path list.",
+        "inputs_consumed": ["state.FlakyTriage.tests", "ctx.critical_release_paths"],
+        "outputs": ["admissible_quarantines", "rejected_critical_path"],
+        "called_inside": "deterministic node 'FlakyQuarantineCheck' (release-readiness + commercial-cert only)"
+      },
+      "visual_gate_policy": {
+        "_aka": "VisualGate (R9 NEW)",
+        "_r9_note": "Upstream VisualAudit AGENT node runs Playwright/Storybook snapshot diff. This deterministic op classifies parsed diff counts against threshold policy.",
+        "description": "Threshold classification over VisualAudit parsed diff evidence (per-surface pixel-diff counts vs threshold). Pure-code.",
+        "inputs_consumed": ["state.VisualAudit.surfaces[].pixel_diff_count", "state.VisualAudit.surfaces[].baseline_present", "ctx.policy.visual_floor"],
+        "outputs": ["visual_decision", "regressed_surfaces", "missing_baselines"],
+        "called_inside": "deterministic node 'VisualGate' (commercial-cert only)"
+      },
+      "a11y_gate_policy": {
+        "_aka": "A11yGate (R9 NEW)",
+        "_r9_note": "Upstream A11yAudit AGENT node runs axe-core / Lighthouse a11y / pa11y. This deterministic op classifies parsed violation counts against WCAG threshold.",
+        "description": "Threshold classification over A11yAudit parsed evidence (critical/serious/moderate/minor counts vs threshold). Pure-code.",
+        "inputs_consumed": ["state.A11yAudit.violations[].impact", "state.A11yAudit.surfaces", "ctx.policy.a11y_floor"],
+        "outputs": ["a11y_decision", "violating_surfaces", "violation_summary"],
+        "called_inside": "deterministic node 'A11yGate' (commercial-cert only)"
+      },
+      "perf_gate_policy": {
+        "_aka": "PerfGate (R9 NEW)",
+        "_r9_note": "Upstream PerfAudit AGENT node runs Lighthouse CI / bundle analyzer / k6-light. This deterministic op classifies parsed metrics against threshold policy.",
+        "description": "Threshold classification over PerfAudit parsed metrics (LCP / INP / CLS / TBT / bundle size vs threshold). Pure-code.",
+        "inputs_consumed": ["state.PerfAudit.metrics", "ctx.policy.perf_floor"],
+        "outputs": ["perf_decision", "regressed_metrics"],
+        "called_inside": "deterministic node 'PerfGate' (commercial-cert only)"
+      }
+    },
+
+    "predicates": {
+      "no_layers_active": {
+        "description": "Returns true if state.LayerSelect.selected_layers is empty (Skill should not have launched). Used as skip_if to short-circuit downstream nodes.",
+        "returns": "boolean",
+        "called_as": "precondition guard via skip_if on UnitOrComponent / E2E"
+      },
+      "critical_path_not_covered": {
+        "description": "Returns true if compute_critical_path_coverage outputs uncovered_paths non-empty AND ctx.policy.require_full_coverage == true.",
+        "returns": "boolean",
+        "called_as": "precondition guard inside Gate (forces decision=BLOCK)"
+      },
+      "evidence_bundle_incomplete": {
+        "description": "Returns true if any required evidence layer is missing from .qa/evidence/<tag>/ (per qa-sdk evidence.validate-presence expected list).",
+        "returns": "boolean",
+        "called_as": "precondition guard inside EvidenceBundle (forces structured error instead of PASS)"
+      },
+      "no_flaky_signal": {
+        "description": "Returns true if no E2E or Component test produced retry-pass / CI-only-fail signal. Used as skip_if on FlakyTriage to skip cleanly when there is nothing to triage.",
+        "returns": "boolean",
+        "called_as": "skip_if on FlakyTriage"
+      },
+      "fanout_item_dropped": {
+        "_r7_note": "Reviewer R7 — null/skipped/dropped agent output in parallel/pipeline must NOT be silently filtered.",
+        "description": "Returns true if any fanout/pipeline item in state.<NodeName>.results[] is null OR has status 'STALL_EXCEEDED' OR 'BUDGET_DROPPED'.",
+        "returns": "boolean",
+        "called_as": "precondition guard inside Gate / EvidenceBundle — triggers map_null_outputs_to_missing invariant"
+      }
+    },
+
+    "invariants": {
+      "critical_release_paths_have_owner": {
+        "_doc_ref": "enterprise-qa-testing SKILL.md §3.6 Floor Rules + §9 Flaky Governance accountability requirement",
+        "description": "Post-invariant on FlakyTriage output. For every test in critical_release_paths quarantined, force admissible=false (Floor Rule §3.6 — critical paths cannot be quarantined). Mutates output, NEVER silently drops.",
+        "inputs_consumed": ["output (FlakyTriage)", "ctx.critical_release_paths"],
+        "outputs": "mutated FlakyTriage output with rejected_critical_path filled",
+        "called_inside": "post_invariants on FlakyTriage node"
+      },
+      "ensure_evidence_bundle_layers": {
+        "description": "Post-invariant on EvidenceBundle output. Force per_layer_decisions to include every layer in state.LayerSelect.selected_layers; auto-mark missing layers as decision=MISSING for downstream Gate visibility.",
+        "inputs_consumed": ["output (EvidenceBundle)", "state.LayerSelect.selected_layers"],
+        "outputs": "mutated EvidenceBundle output",
+        "called_inside": "post_invariants on EvidenceBundle node"
+      },
+      "map_null_outputs_to_missing": {
+        "_r7_note": "Reviewer R7 NEW — converts null/dropped/timed-out fanout or pipeline items to structured MISSING records before Gate consumes. Prevents .filter(Boolean) silent fanout shrink.",
+        "description": "For every phase in {UnitOrComponent, ComponentOrContract, E2E, VisualAudit, A11yAudit, PerfAudit}: scan state.<phase>.results[]; for each null/undefined or item with status in {STALL_EXCEEDED, BUDGET_DROPPED, AGENT_ERROR}, emit {phase, item_id_or_index, status: 'DISPATCH_FAILED_OR_SKIPPED', decision: 'MISSING', blocks_release: true} into state.dispatch_failures[]. EvidenceBundle MUST write dispatch_failures.yaml as separate evidence layer. Gate MUST count MISSING toward BLOCK.",
+        "inputs_consumed": ["state.<all fanout/pipeline phases>.results"],
+        "outputs": "state.dispatch_failures[] populated; per-item MISSING decisions made visible to Gate",
+        "called_inside": "post_invariants on EvidenceBundle node (final tail)"
+      }
+    }
+  }
+}

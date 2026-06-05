@@ -1,0 +1,98 @@
+{
+  "engine_version": "1.0",
+  "orchestrator": "qa",
+  "domain_runtime_version": "qa-0.1.0",
+  "preset_name": "smoke",
+  "mode": "smoke",
+  "_note": "Internal harness validation only. NEVER user-triggered. Mode-selection is trivial (smoke is its own internal mode). Coverage: single + fanout + deterministic (no pipeline — graph-smoke covers that).",
+  "_doc_ref": "QA-PHASE-B-BLUEPRINT.md §1 smoke + §22 R4/R13 + ORCHESTRATION-MIGRATION-PLAN.md §1.11 #14",
+  "context": {
+    "_skill_fills": [
+      "risk_snapshot (per R4 Option A — Skill main thread invokes qa-risk-classifier before launch)",
+      "release_tag",
+      "run_id",
+      "critical_release_paths",
+      "policy"
+    ]
+  },
+  "phases": [
+    {
+      "name": "StaticBaseline",
+      "type": "single",
+      "model": "cheap_fast",
+      "resolved_model": "haiku",
+      "agentType": "code-reviewer",
+      "prompt_ref": "static-baseline.v1",
+      "schema_ref": "STATIC_BASELINE_SCHEMA.v1",
+      "stall_ms": 600000,
+      "timeout_policy": "static_baseline_external_commands"
+    },
+    {
+      "name": "StaticGate",
+      "type": "deterministic",
+      "op": "run_static_baseline_policy"
+    },
+    {
+      "name": "UnitOrComponent",
+      "type": "fanout",
+      "items_from": "state.LayerSelect.changed_surfaces",
+      "_smoke_pin_width": 2,
+      "_smoke_pin_note": "FIXED × 2 per §1.11 #14",
+      "model": "cheap_fast",
+      "resolved_model": "haiku",
+      "agentType": "code-reviewer",
+      "prompt_ref": "component-test.v1",
+      "schema_ref": "COMPONENT_TEST_SCHEMA.v1",
+      "stall_ms": 600000,
+      "timeout_policy": "component_test_external_commands"
+    },
+    {
+      "name": "Gate",
+      "type": "deterministic",
+      "op": "qa_gate_policy"
+    },
+    {
+      "name": "EvidenceBundle",
+      "type": "single",
+      "model": "cheap_fast",
+      "resolved_model": "haiku",
+      "agentType": "qa-evidence-validator",
+      "prompt_ref": "evidence-bundle.v1",
+      "schema_ref": "EVIDENCE_BUNDLE_SCHEMA.v1",
+      "stall_ms": 300000,
+      "post_invariants": [
+        "ensure_evidence_bundle_layers",
+        "map_null_outputs_to_missing"
+      ]
+    }
+  ],
+  "prompts": {},
+  "schemas": {},
+  "ops_allowed": {
+    "deterministic": [
+      "run_static_baseline_policy",
+      "qa_gate_policy"
+    ],
+    "predicates": [
+      "no_layers_active",
+      "evidence_bundle_incomplete",
+      "fanout_item_dropped"
+    ],
+    "invariants": [
+      "ensure_evidence_bundle_layers",
+      "map_null_outputs_to_missing"
+    ]
+  },
+  "_estimate": {
+    "token_estimate_low": 100000,
+    "token_estimate_high": 200000,
+    "hard_budget_cap": 250000,
+    "wallclock_estimate_minutes": 3,
+    "evidence_layers": [
+      ".qa/evidence/<tag>/static.yaml",
+      ".qa/evidence/<tag>/component.yaml",
+      ".qa/evidence/<tag>/qa_evidence_bundle.yaml",
+      ".qa/evidence/<tag>/workflow-state.yaml"
+    ]
+  }
+}

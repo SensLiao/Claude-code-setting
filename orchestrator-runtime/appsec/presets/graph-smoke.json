@@ -1,0 +1,82 @@
+{
+  "engine_version": "1.0",
+  "orchestrator": "appsec",
+  "phases": [
+    {
+      "name": "Scope",
+      "type": "single",
+      "model": "cheap_fast",
+      "agentType": "appsec-risk-classifier",
+      "prompt_ref": "scope.v1",
+      "schema_ref": "SCOPE_SCHEMA.v1"
+    },
+    {
+      "name": "Plan",
+      "type": "single",
+      "model": "cheap_fast",
+      "agentType": "appsec-risk-classifier",
+      "prompt_ref": "plan.v1",
+      "schema_ref": "PLAN_SCHEMA.v1",
+      "post_invariants": ["ensure_csf_coverage"]
+    },
+    {
+      "name": "Find",
+      "type": "fanout",
+      "items_from": "ctx.finders",
+      "model": "cheap_fast",
+      "agentType": "appsec-reviewer",
+      "prompt_ref": "find.v1",
+      "schema_ref": "FIND_SCHEMA.v1"
+    },
+    {
+      "name": "Normalize",
+      "type": "single",
+      "model": "cheap_fast",
+      "agentType": "appsec-finding-triager",
+      "prompt_ref": "normalize.v1",
+      "schema_ref": "NORMALIZE_SCHEMA.v1",
+      "skip_if": "no_candidates",
+      "skip_default": { "findings": [] }
+    },
+    {
+      "name": "Dedup",
+      "type": "deterministic",
+      "op": "fingerprint_cluster"
+    },
+    {
+      "name": "Verify",
+      "type": "pipeline",
+      "items_from": "state.Dedup.eligible_clusters",
+      "stages": [
+        {
+          "type": "fanout",
+          "model": "cheap_fast",
+          "agentType": "appsec-finding-triager",
+          "prompt_ref": "verify.v1",
+          "schema_ref": "VOTE_SCHEMA.v1",
+          "vote_count_by_severity": { "info": 1, "low": 1, "medium": 1, "high": 1, "critical": 1 }
+        }
+      ]
+    },
+    {
+      "name": "Gate",
+      "type": "deterministic",
+      "op": "appsec_gate_policy"
+    },
+    {
+      "name": "Synthesize",
+      "type": "single",
+      "model": "cheap_fast",
+      "agentType": "appsec-evidence-validator",
+      "prompt_ref": "synthesize.v1",
+      "schema_ref": "SYNTH_SCHEMA.v1"
+    }
+  ],
+  "prompts": {},
+  "schemas": {},
+  "ops_allowed": {
+    "deterministic": ["fingerprint_cluster", "appsec_gate_policy", "compute_recall"],
+    "predicates": ["no_candidates", "no_accepted"],
+    "invariants": ["ensure_csf_coverage", "prune_below_floor"]
+  }
+}

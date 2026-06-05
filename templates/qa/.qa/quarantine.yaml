@@ -1,0 +1,3 @@
+# Quarantine ledger — every entry requires 8 fields (qa-quarantine-accountability hook enforces this on commit).
+# Use: qa-sdk quarantine.add --test <name> --owner <id> --issue <url> --expiry <YYYY-MM-DD> --repro "<cmd>" --unblock "<cond>"
+quarantine: []

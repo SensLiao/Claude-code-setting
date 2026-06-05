@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/A11Y_AUDIT_SCHEMA.v1",
+  "title": "Accessibility (a11y) Audit Output",
+  "description": "Output of A11yAudit agent (commercial-cert only, R9 NEW). Runs axe-core / Lighthouse a11y / pa11y across changed surfaces. Consumed by deterministic A11yGate op.",
+  "_canonical_threshold_policy": {
+    "_doc": "DOUBLE-WRITE anchor (slice qa-a11y-perf, 2026-06-05). These are the canonical a11y gate floors that MUST be mirrored into ctx.policy.a11y_floor when enterprise-qa-testing launches the commercial-cert workflow. Field names match exactly what qa-orchestrator.js `a11y_gate_policy` reads (floor.max_critical / floor.max_serious). Baked default ALSO lives in presets/commercial-cert.json context.policy.a11y_floor. Authoring this here keeps schema + gate-policy in lockstep so the workflow mode actually blocks. ADDITIVE / non-enforced JSON-Schema field (descriptive only — does not constrain agent output).",
+    "target_wcag_version": "2.2",
+    "target_level": "AA",
+    "max_critical": 0,
+    "max_serious": 0,
+    "_decision_semantics": "critical_count > max_critical => BLOCK; serious_count > max_serious => WARN; else PASS. moderate/minor are advisory (reported, never auto-block). axe-core automated pass alone is NOT a full AA pass — only ~57% of WCAG 2.2 success criteria are machine-detectable; the remaining ~43% require the manual checks enumerated in qa-a11y-compliance SKILL.md."
+  },
+  "type": "object",
+  "required": ["command_evidence", "surfaces", "violations"],
+  "properties": {
+    "command_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["cmd", "exit_code"],
+        "properties": {
+          "cmd": { "type": "string" },
+          "stdout": { "type": "string" },
+          "stderr": { "type": "string" },
+          "exit_code": { "type": "integer" }
+        }
+      }
+    },
+    "tool": { "type": "string", "enum": ["axe-core", "lighthouse-a11y", "pa11y", "playwright-axe"] },
+    "wcag_version": { "type": "string", "enum": ["2.0", "2.1", "2.2"], "description": "Canonical target is 2.2 (see _canonical_threshold_policy)." },
+    "wcag_level": { "type": "string", "enum": ["A", "AA", "AAA"], "description": "Canonical commercial-cert target level is AA (see _canonical_threshold_policy.target_level)." },
+    "surfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "violation_count"],
+        "properties": {
+          "path": { "type": "string" },
+          "violation_count": { "type": "integer", "minimum": 0 },
+          "critical_count": { "type": "integer", "minimum": 0 },
+          "serious_count": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule_id", "impact", "surface"],
+        "properties": {
+          "rule_id": { "type": "string", "description": "e.g. color-contrast, label-required" },
+          "impact": { "type": "string", "enum": ["critical", "serious", "moderate", "minor"] },
+          "surface": { "type": "string" },
+          "selector": { "type": "string" },
+          "help_url": { "type": "string" },
+          "snippet": { "type": "string" }
+        }
+      }
+    },
+    "violating_surfaces_count": { "type": "integer", "minimum": 0 },
+    "decision_hint": { "type": "string", "enum": ["PASS", "WARN", "FAIL"] }
+  }
+}

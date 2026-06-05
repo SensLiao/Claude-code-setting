@@ -1,0 +1,529 @@
+{
+  "$schema": "../schemas/harness.registry.schema.json",
+  "schema_version": "2.0.0",
+  "generated_date": "2026-05-25",
+  "generated_by": "harness drift normalization Wave 2 Agent A2 (PR-1)",
+  "description": "Comprehensive structured registry of the ~/.claude/ harness control surface: 5 primary orchestrators, 1 downstream gate (L12), subsystem agents/hooks/SDKs/evidence-roots/schemas/handoff-schemas/decision-semantics, and the safety-critical name freeze list. v2.0.0 declares AppSec v3.0 GSD-lite execution engine + L12 v1.2 tag-scoped evidence + per-project hook install pattern (D3 canonical).",
+
+  "primary_orchestrators": [
+    {
+      "name": "claude-env-bootstrap",
+      "tier": "primary",
+      "trigger_mode": "manual-first",
+      "disable_model_invocation": true,
+      "version": "n/a",
+      "role": "Project Bootstrap Orchestrator",
+      "agents": [],
+      "hooks": {
+        "global_live": ["detect-bootstrap-needed.js"],
+        "project_installed": []
+      },
+      "hook_scope": "global (SessionStart detection only); user must explicitly invoke /claude-env-bootstrap to apply",
+      "sdk": null,
+      "downstream_gates": [],
+      "evidence_root": null,
+      "notes": "Has side effects (writes files, copies skills, modifies CLAUDE.md). disable_model_invocation: true means model cannot auto-invoke."
+    },
+    {
+      "name": "gsd-pipeline-orchestrator",
+      "tier": "primary",
+      "trigger_mode": "auto",
+      "disable_model_invocation": false,
+      "version": "current",
+      "role": "GSD Delivery Orchestrator",
+      "agents": [
+        "gsd-planner",
+        "gsd-executor",
+        "gsd-verifier",
+        "gsd-code-reviewer",
+        "gsd-ui-auditor",
+        "gsd-security-auditor",
+        "gsd-nyquist-auditor",
+        "gsd-eval-auditor"
+      ],
+      "hooks": {
+        "global_live": [
+          "gsd-prompt-guard.js",
+          "gsd-read-guard.js",
+          "gsd-workflow-guard.js",
+          "gsd-validate-commit.sh",
+          "gsd-context-monitor.js",
+          "gsd-read-injection-scanner.js",
+          "gsd-phase-boundary.sh",
+          "gsd-check-update.js",
+          "gsd-session-state.sh",
+          "gsd-statusline.js"
+        ],
+        "project_installed": []
+      },
+      "hook_scope": "global (settings.json)",
+      "sdk": null,
+      "downstream_gates": [],
+      "evidence_root": ".planning/<milestone>/<phase>/",
+      "notes": "Default entry for non-trivial work. Dispatches phase commands (spec / discuss / plan / execute / verify / ship)."
+    },
+    {
+      "name": "uiux-product-orchestrator",
+      "tier": "primary",
+      "trigger_mode": "auto",
+      "disable_model_invocation": false,
+      "version": "current",
+      "role": "UIUX Product Orchestrator",
+      "agents": [
+        "uiux-gsd-contract-validator"
+      ],
+      "hooks": {
+        "global_live": [],
+        "project_installed": [
+          "uiux-gsd-plan-guard.js",
+          "uiux-style-mutex-guard.js",
+          "uiux-release-guard.js"
+        ]
+      },
+      "hook_scope": "project-installed via `uiux-sdk init` (config-gated by `<project>/.uiux/config.json`)",
+      "sdk": "scripts/uiux-sdk.sh",
+      "downstream_gates": ["discoverability-orchestrator"],
+      "evidence_root": ".uiux/evidence/<tag>/",
+      "notes": "Routes through foundation -> discovery -> exploration -> source import -> L3 style lock (exclusive) -> production -> platform overlay -> audit -> design system -> assets. Downstream L12 release gate."
+    },
+    {
+      "name": "enterprise-qa-testing",
+      "tier": "primary",
+      "trigger_mode": "auto",
+      "disable_model_invocation": false,
+      "version": "current",
+      "role": "Enterprise QA / SDET Orchestrator",
+      "agents": [
+        "qa-risk-classifier",
+        "qa-evidence-validator",
+        "qa-flaky-triager"
+      ],
+      "hooks": {
+        "global_live": [],
+        "project_installed": [
+          "qa-block-update-snapshots.js",
+          "qa-quarantine-accountability.js",
+          "qa-floor-rule-prompt.js",
+          "qa-detect-internal-mock.js",
+          "qa-evidence-required.js",
+          "qa-bundle-write-guard.js",
+          "qa-mark-stale.js"
+        ]
+      },
+      "hook_scope": "project-installed via `qa-sdk init` (config-gated by `<project>/.qa/config.json`)",
+      "sdk": "scripts/qa-sdk.sh",
+      "downstream_gates": [],
+      "evidence_root": ".qa/evidence/<tag>/",
+      "notes": "9-layer test matrix decision tree. Includes AppSec routing for backend/API/auth changes via three_mainline_handoff."
+    },
+    {
+      "name": "appsec-security-orchestrator",
+      "tier": "primary",
+      "trigger_mode": "auto when triggers present (backend / API / auth / user-data / file-upload / payment / admin / production)",
+      "disable_model_invocation": false,
+      "version": "3.0.0",
+      "role": "AppSec Orchestrator (v3.0 GSD-lite execution engine + NIST CSF 2.0 + ASVS 5.0)",
+      "agents": [
+        "appsec-reviewer",
+        "appsec-risk-classifier",
+        "appsec-finding-triager",
+        "appsec-evidence-validator",
+        "security-remediation-engineer",
+        "dast-baseline-engineer",
+        "pentest-scope-planner",
+        "authorized-pentest-validator"
+      ],
+      "hooks": {
+        "global_live": [],
+        "project_installed": [
+          "appsec-active-scan-guard.js",
+          "appsec-secret-access-guard.js",
+          "appsec-finding-schema-prewrite.js",
+          "appsec-pentest-authorization.js",
+          "appsec-finding-schema-postverify.js",
+          "appsec-secret-redaction.js",
+          "appsec-evidence-required.js"
+        ]
+      },
+      "hook_scope": "project-installed via `appsec-sdk init` (config-gated by `<project>/.appsec/config.json`)",
+      "sdk": "scripts/appsec-sdk.sh",
+      "downstream_gates": [],
+      "evidence_root": ".appsec/evidence/<tag>/",
+      "deprecated_evidence_alias": ".planning/security/",
+      "evidence_migration_command": "appsec-sdk migrate-evidence",
+      "standards_versions": {
+        "OWASP_ASVS": "5.0",
+        "OWASP_WSTG": "latest (passive only)",
+        "OWASP_Top_10": "2025",
+        "OWASP_API_Top_10": "2023",
+        "NIST_CSF": "2.0",
+        "NIST_SSDF_SP_800-218": "1.1",
+        "CIS_Controls": "v8.1"
+      },
+      "capability_layers": ["governance", "app", "platform", "operations", "response", "compliance"],
+      "csf_functions": ["GV Govern", "ID Identify", "PR Protect", "DE Detect", "RS Respond", "RC Recover"],
+      "notes": "Defensive only. Active testing gated by pentest-scope-and-roe (ROE governance, allowed-tools: Read; ROE document written by pentest-scope-planner agent) + authorized-pentest-validation (manual hard gate, disable_model_invocation: true)."
+    }
+  ],
+
+  "downstream_gates": [
+    {
+      "name": "discoverability-orchestrator",
+      "tier": "downstream_gate",
+      "parent_orchestrator": "uiux-product-orchestrator",
+      "trigger_mode": "auto",
+      "disable_model_invocation": false,
+      "version": "1.2.0",
+      "role": "L12 Discoverability Release Gate (SEO/AEO/Local-SEO/ASO)",
+      "narrow_skills": ["web-seo", "web-aeo", "web-local-seo", "app-aso"],
+      "agents": [
+        "disc-scope-classifier",
+        "disc-evidence-validator",
+        "disc-remediation-planner"
+      ],
+      "hooks": {
+        "global_live": [],
+        "project_installed": [
+          "disc-session-context.js",
+          "disc-robots-sitemap-guard.js",
+          "disc-deploy-gate.js",
+          "disc-mark-stale.js",
+          "disc-evidence-required.js"
+        ]
+      },
+      "hook_scope": "project-installed via `python -m discoverability_sdk init` (config-gated by `<project>/discoverability.config.yaml`)",
+      "sdk": "skills/discoverability-orchestrator/scripts/discoverability-sdk.py",
+      "sdk_commands": [
+        "init",
+        "classify",
+        "audit",
+        "evidence.append",
+        "evidence.validate",
+        "gate.check",
+        "report",
+        "mark-stale",
+        "explain",
+        "status"
+      ],
+      "evidence_root": "evidence/discoverability/<tag>/",
+      "evidence_layout": {
+        "channels": "evidence/discoverability/<tag>/{seo,ai-search,local,aso}.json",
+        "gate": "evidence/discoverability/<tag>/gate-result.yaml"
+      },
+      "forbidden_paths": [
+        "flat evidence/discoverability/<channel>/ (no <tag> dimension)",
+        "<domain> placeholder",
+        "gate-result.json extension (must be .yaml)",
+        "aeo.json filename (must be ai-search.json)",
+        "geo.json filename (must be local.json)"
+      ],
+      "workflow_steps": [
+        "1. read discoverability.config.yaml",
+        "2. dispatch disc-scope-classifier",
+        "3. SDK init",
+        "4. dispatch 4 narrow skills (web-seo / web-aeo / web-local-seo / app-aso)",
+        "5. evidence.append",
+        "6. dispatch disc-evidence-validator",
+        "7. dispatch disc-remediation-planner",
+        "8. gate.check + handoff (AppSec / QA / GSD)"
+      ],
+      "notes": "v1.2 = GSD-lite harness. Tag-scoped evidence. Self-dispatches 4 narrow skills + 3 disc-* agents + discoverability-sdk; writes evidence/discoverability/<tag>/gate-result.yaml as release gate."
+    }
+  ],
+
+  "manual_first_skills": [
+    {
+      "name": "claude-env-bootstrap",
+      "reason": "Has side effects (writes files, copies skills, modifies CLAUDE.md). User must invoke via /claude-env-bootstrap.",
+      "disable_model_invocation": true
+    },
+    {
+      "name": "pentest-scope-and-roe",
+      "reason": "ROE governance skill. Visible (allowed-tools: Read only); does not auto-write. ROE document is written by pentest-scope-planner agent in Step 3.",
+      "disable_model_invocation": false,
+      "writer_agent": "pentest-scope-planner"
+    },
+    {
+      "name": "authorized-pentest-validation",
+      "reason": "Active security validation. Hard gate via disable_model_invocation: true. Requires complete ROE + 11-item checklist (validated as 13 internal fields by orchestrator v3 §20.7) + explicit user sign-off.",
+      "disable_model_invocation": true
+    }
+  ],
+
+  "agents": {
+    "l12": {
+      "members": [
+        "disc-scope-classifier",
+        "disc-evidence-validator",
+        "disc-remediation-planner"
+      ],
+      "owner": "discoverability-orchestrator",
+      "location": "~/.claude/agents/disc-*.md"
+    },
+    "qa": {
+      "members": [
+        "qa-risk-classifier",
+        "qa-evidence-validator",
+        "qa-flaky-triager"
+      ],
+      "owner": "enterprise-qa-testing",
+      "location": "~/.claude/agents/qa-*.md"
+    },
+    "uiux": {
+      "members": [
+        "uiux-gsd-contract-validator"
+      ],
+      "owner": "uiux-product-orchestrator",
+      "location": "~/.claude/agents/uiux-*.md"
+    },
+    "appsec": {
+      "members": [
+        "appsec-reviewer",
+        "appsec-risk-classifier",
+        "appsec-finding-triager",
+        "appsec-evidence-validator",
+        "security-remediation-engineer",
+        "dast-baseline-engineer",
+        "pentest-scope-planner",
+        "authorized-pentest-validator"
+      ],
+      "owner": "appsec-security-orchestrator",
+      "location": "~/.claude/agents/{appsec-,security-,dast-,pentest-,authorized-}*.md"
+    },
+    "gsd": {
+      "members": [
+        "gsd-planner",
+        "gsd-executor",
+        "gsd-verifier",
+        "gsd-code-reviewer",
+        "gsd-ui-auditor",
+        "gsd-security-auditor",
+        "gsd-nyquist-auditor",
+        "gsd-eval-auditor"
+      ],
+      "owner": "gsd-pipeline-orchestrator",
+      "location": "~/.claude/agents/gsd-*.md"
+    }
+  },
+
+  "hooks": {
+    "global_live": {
+      "owner": "gsd + general",
+      "scope": "registered in ~/.claude/settings.json; fire on every session",
+      "entries": [
+        "detect-bootstrap-needed.js",
+        "gsd-prompt-guard.js",
+        "gsd-read-guard.js",
+        "gsd-workflow-guard.js",
+        "gsd-validate-commit.sh",
+        "gsd-context-monitor.js",
+        "gsd-read-injection-scanner.js",
+        "gsd-phase-boundary.sh",
+        "gsd-check-update.js",
+        "gsd-session-state.sh",
+        "gsd-statusline.js"
+      ]
+    },
+    "project_installed": {
+      "scope": "config-gated; installed per-project via SDK init; no effect on fresh projects",
+      "appsec": {
+        "config_gate": "<project>/.appsec/config.json",
+        "snippet_path": "skills/appsec-security-orchestrator/templates/dot-appsec-skeleton/settings.json.snippet",
+        "install_command": "appsec-sdk init",
+        "hooks": [
+          "appsec-active-scan-guard.js",
+          "appsec-secret-access-guard.js",
+          "appsec-finding-schema-prewrite.js",
+          "appsec-pentest-authorization.js",
+          "appsec-finding-schema-postverify.js",
+          "appsec-secret-redaction.js",
+          "appsec-evidence-required.js"
+        ]
+      },
+      "qa": {
+        "config_gate": "<project>/.qa/config.json",
+        "snippet_path": "templates/qa/settings.project.json",
+        "install_command": "qa-sdk init",
+        "hooks": [
+          "qa-block-update-snapshots.js",
+          "qa-quarantine-accountability.js",
+          "qa-floor-rule-prompt.js",
+          "qa-detect-internal-mock.js",
+          "qa-evidence-required.js"
+        ]
+      },
+      "uiux": {
+        "config_gate": "<project>/.uiux/config.json",
+        "snippet_path": "skills/uiux-product-orchestrator/templates/dot-uiux-skeleton/settings.uiux-hooks.snippet.json",
+        "install_command": "uiux-sdk init",
+        "hooks": [
+          "uiux-gsd-plan-guard.js",
+          "uiux-style-mutex-guard.js",
+          "uiux-release-guard.js"
+        ]
+      },
+      "discoverability": {
+        "config_gate": "<project>/discoverability.config.yaml",
+        "snippet_path": "templates/discoverability/settings-snippet.json",
+        "install_command": "python -m discoverability_sdk init",
+        "hooks": [
+          "disc-session-context.js",
+          "disc-robots-sitemap-guard.js",
+          "disc-deploy-gate.js",
+          "disc-mark-stale.js",
+          "disc-evidence-required.js"
+        ]
+      }
+    },
+    "library_modules": [
+      "_appsec-common.js",
+      "_qa-common.js",
+      "_uiux-common.js",
+      "_disc-common.js"
+    ],
+    "dormant_opt_in": [
+      {
+        "name": "gsd-update-banner.js",
+        "reason": "GSD statusline registered, banner suppressed by design"
+      }
+    ]
+  },
+
+  "sdks": {
+    "appsec": {
+      "path": "scripts/appsec-sdk.sh",
+      "lang": "bash",
+      "commands": [
+        "init",
+        "set-active",
+        "evidence.append",
+        "evidence.list",
+        "evidence.validate-presence",
+        "finding.add",
+        "gate.check",
+        "redact",
+        "roe.verify",
+        "csf.coverage",
+        "overlay.activate",
+        "migrate-evidence"
+      ],
+      "evidence_root": ".appsec/evidence/<tag>/",
+      "legacy_alias": ".planning/security/"
+    },
+    "qa": {
+      "path": "scripts/qa-sdk.sh",
+      "lang": "bash",
+      "evidence_root": ".qa/evidence/<tag>/"
+    },
+    "uiux": {
+      "path": "scripts/uiux-sdk.sh",
+      "lang": "bash",
+      "evidence_root": ".uiux/evidence/<tag>/"
+    },
+    "discoverability": {
+      "path": "skills/discoverability-orchestrator/scripts/discoverability-sdk.py",
+      "lang": "python",
+      "commands": [
+        "init",
+        "classify",
+        "audit",
+        "evidence.append",
+        "evidence.validate",
+        "gate.check",
+        "report",
+        "mark-stale",
+        "explain",
+        "status"
+      ],
+      "evidence_root": "evidence/discoverability/<tag>/"
+    }
+  },
+
+  "evidence_roots": {
+    "gsd": ".planning/<milestone>/<phase>/",
+    "discoverability": "evidence/discoverability/<tag>/",
+    "appsec": {
+      "canonical": ".appsec/evidence/<tag>/",
+      "deprecated_alias": ".planning/security/",
+      "migration_command": "appsec-sdk migrate-evidence"
+    },
+    "qa": ".qa/evidence/<tag>/",
+    "uiux": ".uiux/evidence/<tag>/"
+  },
+
+  "schemas": {
+    "appsec_finding": "../schemas/appsec-finding.schema.json",
+    "appsec_evidence": "../schemas/appsec-evidence.schema.yaml",
+    "qa_evidence": "../schemas/qa-evidence.schema.yaml",
+    "uiux_evidence": "../schemas/uiux-evidence.schema.yaml",
+    "discoverability_evidence": "../schemas/discoverability-evidence.schema.yaml",
+    "gate_result": "../schemas/gate-result.schema.yaml",
+    "harness_registry": "../schemas/harness.registry.schema.json",
+    "hook_registry": "../schemas/hook-registry.schema.json",
+    "note": "Schema files are owned by Wave 2 Agent A3 (PR-4). References here are forward declarations; harness lint will assert existence."
+  },
+
+  "handoff_schemas": {
+    "default": "../schemas/handoff.schema.yaml",
+    "uiux_to_qa": "../schemas/handoff.schema.yaml",
+    "uiux_to_appsec": "../schemas/handoff.schema.yaml",
+    "qa_to_appsec": "../schemas/handoff.schema.yaml",
+    "appsec_to_pentest_scope": "../schemas/handoff.schema.yaml",
+    "pentest_scope_to_authorized_validation": "../schemas/handoff.schema.yaml",
+    "uiux_to_discoverability": "../schemas/handoff.schema.yaml",
+    "gsd_to_uiux": "../schemas/handoff.schema.yaml",
+    "gsd_to_qa": "../schemas/handoff.schema.yaml",
+    "note": "All handoffs use unified handoff.schema.yaml. Owned by Wave 2 Agent A3 (PR-4)."
+  },
+
+  "decision_semantics": {
+    "gate_vocabulary": {
+      "PASS": {"release": "allowed", "meaning": "clean pass"},
+      "WARN": {"release": "allowed", "meaning": "must be in evidence bundle"},
+      "CONDITIONAL_PASS": {"release": "allowed only with explicit risk acceptance reference", "meaning": "approved with documented exception"},
+      "FAIL": {"release": "blocked", "meaning": "release blocked"},
+      "BLOCKED": {"release": "blocked", "meaning": "evidence or process missing"},
+      "STALE": {"release": "blocked", "meaning": "evidence outdated, re-run required"},
+      "STRATEGY_READY": {"release": "n/a", "meaning": "plan or design phase only (not a release decision)"}
+    },
+    "per_subsystem_verdicts": {
+      "appsec": ["PASS", "WARN", "CONDITIONAL_PASS", "FAIL", "BLOCKED", "STALE"],
+      "qa": ["PASS", "WARN", "FAIL", "BLOCKED", "STALE"],
+      "uiux": ["PASS", "WARN", "FAIL", "STRATEGY_READY"],
+      "discoverability": ["PASS", "WARN", "FAIL", "BLOCKED", "STALE"],
+      "gsd": ["PASS", "FAIL"]
+    },
+    "notes": "Canonical vocabulary from CANONICALS.md §3. Subsystem verdict sets are subsets of full vocabulary; QA omits CONDITIONAL_PASS by design (risk acceptance lives in AppSec layer)."
+  },
+
+  "name_freeze": [
+    {"name": "pentest-scope-and-roe", "type": "skill", "category": "appsec_safety_gate"},
+    {"name": "authorized-pentest-validation", "type": "skill", "category": "appsec_safety_gate"},
+    {"name": "dast-baseline-scanning", "type": "skill", "category": "appsec_safety_gate"},
+    {"name": "discoverability-orchestrator", "type": "skill", "category": "l12"},
+    {"name": "web-seo", "type": "skill", "category": "l12"},
+    {"name": "web-aeo", "type": "skill", "category": "l12"},
+    {"name": "web-local-seo", "type": "skill", "category": "l12"},
+    {"name": "app-aso", "type": "skill", "category": "l12"},
+    {"name": "disc-scope-classifier", "type": "agent", "category": "l12"},
+    {"name": "disc-evidence-validator", "type": "agent", "category": "l12"},
+    {"name": "disc-remediation-planner", "type": "agent", "category": "l12"},
+    {"name": "disc-deploy-gate.js", "type": "hook", "category": "l12"},
+    {"name": "disc-evidence-required.js", "type": "hook", "category": "l12"},
+    {"name": "disc-mark-stale.js", "type": "hook", "category": "l12"},
+    {"name": "disc-robots-sitemap-guard.js", "type": "hook", "category": "l12"},
+    {"name": "disc-session-context.js", "type": "hook", "category": "l12"}
+  ],
+
+  "see_also": [
+    "skills.manifest.json",
+    "skill-routing-policy.json",
+    "skill-overrides.recommended.json",
+    "hook-registry.json",
+    "../docs/CANONICALS.md",
+    "../docs/ORCHESTRATOR-MAP.md",
+    "../docs/L12-DISCOVERABILITY.md",
+    "../SKILLS-INDEX.md",
+    "../CLAUDE.md"
+  ]
+}

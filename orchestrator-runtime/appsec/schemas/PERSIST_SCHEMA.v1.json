@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "PERSIST_SCHEMA.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "persisted_phases",
+    "evidence_paths",
+    "sdk_path_used",
+    "errors"
+  ],
+  "properties": {
+    "persisted_phases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "evidence_paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sdk_path_used": {
+      "type": "string"
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

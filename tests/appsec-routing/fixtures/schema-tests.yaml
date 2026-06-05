@@ -1,0 +1,99 @@
+# AppSec Routing — Schema Test Fixtures
+# Tests that verify output schema conformance (ASVS 5.0, Finding Schema, CSF 2.0)
+
+schema_version: "1.0"
+category: schema
+description: |
+  Tests that verify outputs conform to the Standardized Finding Schema and
+  use ASVS 5.0 version-pinned identifiers + NIST CSF 2.0 function tags.
+
+tests:
+  - id: SCH-001
+    prompt: "Produce an AppSec finding for XSS in src/components/UserBio.tsx:42"
+    expected_schema_source: appsec-security-orchestrator §9
+    required_fields:
+      - schema_version
+      - id
+      - source
+      - detector
+      - severity
+      - confidence
+      - asvs_mapping
+      - csf_function
+      - cwe
+      - affected
+      - computed_risk
+      - remediation
+      - owner
+      - sla_due
+      - status
+      - verification_status
+      - test_commands
+    forbidden_formats:
+      - ASVS 4.x V2/V3/V4/V5 style (use v5.0.0-X.Y.Z)
+    expected_asvs_format: v5.0.0-{chapter}.{sub}
+
+  - id: SCH-002
+    prompt: "Generate AppSec Release Evidence for v1.2.3 release."
+    expected_template: appsec-security-orchestrator §13
+    must_cover_csf_2_functions:
+      - GV Govern
+      - ID Identify
+      - PR Protect
+      - DE Detect
+      - RS Respond
+      - RC Recover
+    must_cover_asvs_5_chapters:
+      - V1 Encoding / Sanitization
+      - V2 Validation / Business Logic
+      - V3 Web Frontend
+      - V4 API and Web Service
+      - V5 File Handling
+      - V6 Authentication
+      - V7 Session Management
+      - V8 Authorization
+      - V9 Self-contained Tokens
+      - V10 OAuth and OIDC
+      - V11 Cryptography
+      - V12 Secure Communication
+      - V13 Configuration
+      - V14 Data Protection
+      - V15 Secure Coding
+      - V16 Security Logging and Error Handling
+      - V17 WebRTC (if applicable)
+    must_include_section: §15 Recovery Specifics (RTO/RPO/backup/restore/BCP)
+
+  - id: SCH-003
+    prompt: "Map this finding to OWASP standards."
+    expected_mapping_format:
+      asvs: v5.0.0-{chapter}.{sub}
+      cwe: CWE-{N}
+      owasp_top10: A{0n}:2021
+      api_top10: API{n} (if API)
+      csf_2_function: GV|ID|PR|DE|RS|RC
+    forbidden:
+      - ASVS V2.X (4.x style without v5.0.0- prefix)
+      - Non-pinned references
+
+  - id: SCH-004
+    prompt: "Write a vulnerability report for SQL injection in /api/users."
+    expected_template: appsec-security-orchestrator/templates/vuln-report.md
+    required_sections:
+      - Summary
+      - Risk Rating (two-stage)
+      - Standards Mapping (v5.0.0-X.Y.Z)
+      - Details (Affected / Preconditions / Reproduction / Evidence)
+      - Root Cause Analysis
+      - Remediation (Immediate / Permanent / Regression Test)
+      - Ownership & Timeline
+      - Risk Acceptance (if applicable)
+
+  - id: SCH-005
+    prompt: "Generate a remediation summary for the fix."
+    expected_skill: security-remediation
+    schema_source: appsec-security-orchestrator §9 (canonical — NOT forked)
+    required_evidence:
+      - RED test stdout (vuln reproduces)
+      - GREEN test stdout (fix verified)
+      - Boundary test stdout (related vectors blocked)
+      - SECURITY.md update entry

@@ -1,0 +1,337 @@
+# project-types.yaml
+# L12 Discoverability — 8 种 project type 的判断特征
+#
+# 用途:
+#   - discoverability-orchestrator Step 1 (classify-project) 的决策依据
+#   - 让 AI 把 ambiguous 项目结构映射到 8 种已知类型
+#   - 与 activation-rules.yaml 的 key 一一对应
+#
+# Schema 与 templates/discoverability/discoverability.config.yaml 一致
+# (canonical source of truth)。`project.type` 字段必须取自下面的 8 个 key。
+#
+# 字段:
+#   description    : 一句话定义
+#   public_surfaces: 该类型典型的公开 surface
+#   channels       : 用户从哪些渠道找到产品
+#   typical_pages  : 站点结构常见页面
+#   examples       : 知名实例（用于 AI prompt 匹配）
+#   key_signals    : 自动判断时的强信号
+#   anti_signals   : 与此类型矛盾的信号
+#   notes          : 容易判断错的边界情况
+
+_schema_version: "1.0.0"
+version: 1
+schema_version: "2026-05-25"
+
+# ============================================================
+content_site:
+  description: >
+    以公开文字 / 图文 / 视频内容为核心产品的站点；
+    商业模式通常是广告 / 订阅 / affiliate / 流量变现。
+  public_surfaces:
+    - 公开 web 站点
+    - RSS / newsletter
+    - 偶尔有 mobile 阅读 app（边界情况，仍按本分类）
+  channels:
+    - Google / Bing search organic
+    - Social media (X / LinkedIn / Reddit / 微博 / 知乎)
+    - AI search (ChatGPT / Claude / Perplexity)
+    - Direct (bookmark / newsletter)
+  typical_pages:
+    - homepage (latest posts)
+    - article detail page
+    - category / tag archive
+    - author profile
+    - about / contact
+    - search
+  examples:
+    - 个人技术博客 (Dan Abramov / Lee Robinson 个站)
+    - 媒体站 (The Verge / TechCrunch / 36kr 文章版)
+    - newsletter web 版 (Substack pub)
+    - 文档型 wiki / 知识库 (公开 Notion)
+  key_signals:
+    - 80%+ 路由是 article / blog post detail
+    - 无 transaction / 无购物车 / 无 booking
+    - 无 sign-in 也能消费 80% 内容
+    - 主导航以 category / tag 为主
+  anti_signals:
+    - 有结算流程 → ecommerce
+    - 有"立即预约 / 立即下单到店" → local_service
+    - 有 product pricing tier → b2b_saas_marketing
+  notes: |
+    边界: 媒体站 + 付费墙 仍属 content_site, 不视为 ecommerce.
+    个人作品集 portfolio 也按 content_site 处理 (除非有商品).
+
+# ============================================================
+ecommerce:
+  description: >
+    通过线上销售商品 / 数字产品 / 服务 SKU 的站点；
+    必须包含商品列表 + 购物车 / 结算流程 (含一步购买).
+  public_surfaces:
+    - 公开 web 商店
+    - 可能配套 mobile app（如配套则改 web_app_plus_mobile_app）
+    - 第三方平台 listing (Amazon / Etsy / 淘宝同步, 不在本 skill scope)
+  channels:
+    - Google / Bing search organic + paid
+    - Google Shopping
+    - Social commerce (Instagram / TikTok shop)
+    - AI search 比价场景 (新生)
+    - Affiliate / influencer
+    - Email / SMS retention
+  typical_pages:
+    - homepage (产品 / 促销)
+    - category listing
+    - product detail page (PDP)
+    - cart / checkout
+    - account / order history
+    - search + filters
+  examples:
+    - Shopify 独立站
+    - DTC 品牌站 (Allbirds / Glossier / 完美日记)
+    - 海淘 / 跨境电商
+  key_signals:
+    - 存在 PDP + add-to-cart + checkout
+    - 有库存 / SKU 概念
+    - Product schema 适用
+    - URL 有 /products/ /collections/ /cart/ /checkout/
+  anti_signals:
+    - 无库存概念, 全是预约 → local_service
+    - 卖的是 SaaS 订阅且无 SKU → b2b_saas_marketing
+  notes: |
+    边界:
+    - 卖 SaaS 订阅 + 实体周边商品 → 主体仍是 b2b_saas_marketing,
+      除非周边商品收入超过 SaaS, 否则不视为 ecommerce
+    - 完全 dropshipping 无线下门店 → web-local-seo 关闭
+
+# ============================================================
+local_service:
+  description: >
+    主要业务依赖物理位置 / 服务半径 / 上门 / 到店的本地服务商；
+    用户决策路径强依赖地理位置 + Google Maps / 评价.
+  public_surfaces:
+    - 公开 web 站点 (含服务区域、营业时间)
+    - Google Business Profile / Apple Business Connect / Baidu 商家
+    - Yelp / 大众点评 / TripAdvisor 等本地点评平台
+  channels:
+    - '"near me" search (Google)'
+    - Google Maps / Apple Maps 直接导航
+    - 本地评价平台 (Yelp / 大众点评)
+    - 推荐 / 口碑
+    - 本地 paid ads
+  typical_pages:
+    - homepage (服务 + 地址 + 营业时间)
+    - services / 服务详情
+    - location pages (多门店时一城市一页)
+    - book / contact / 预约表单
+    - 客户评价
+    - about / staff
+  examples:
+    - 律师事务所 / 会计 / 医疗诊所
+    - 牙医 / 美容院 / 健身房
+    - 餐厅 / 咖啡厅 / bar
+    - 修车 / 装修 / 上门维修 / 上门服务
+  key_signals:
+    - 网站显著位置有"地址 / 营业时间 / 电话"
+    - 有"book / 预约 / 立即到店"CTA
+    - service area 表述明确 (city / radius)
+    - 多门店项目有 location list 页面
+  anti_signals:
+    - 全国包邮的电商 → ecommerce
+    - 全 SaaS 无线下 → b2b_saas_marketing
+  notes: |
+    边界:
+    - 连锁加盟体系: 每个分店一个 Profile, 但本 skill 处理时
+      可作为 brand-level + multi-location 一并跑 web-local-seo
+    - 服务半径型 (无门店但只服务某区域): web-local-seo 激活,
+      但 GBP 设置走 service-area-business 而非 brick-and-mortar
+
+# ============================================================
+b2b_saas_marketing:
+  description: >
+    B2B SaaS / 开发者工具 / 企业软件的 marketing site,
+    可能还包含 product docs / changelog / blog.
+    主要为产品本身导流, 不包含产品内部 UI.
+  public_surfaces:
+    - marketing 站 (homepage / pricing / features)
+    - docs / API reference
+    - blog / case study / customer story
+    - changelog / status page
+  channels:
+    - Google organic (high-intent keywords)
+    - AI search (技术评估期高频)
+    - Tech communities (Hacker News / Reddit / dev.to)
+    - LinkedIn / Twitter 内容营销
+    - Paid (LinkedIn / Google ads / B2B 平台)
+  typical_pages:
+    - homepage (value prop + social proof)
+    - features / use cases
+    - pricing
+    - docs / API reference
+    - blog
+    - customers / case studies
+    - about / careers
+  examples:
+    - Linear / Notion / Figma marketing site
+    - Vercel / Supabase / Stripe (含 docs)
+    - Datadog / Segment / Twilio
+  key_signals:
+    - 有清晰 pricing tier
+    - 有 docs / API 入口
+    - 主导航包含 product / pricing / docs / blog
+    - 主流量来自决策性关键词 (vs. X / alternatives / pricing)
+  anti_signals:
+    - 主要变现靠 ads → content_site
+    - 主要靠商品销售 → ecommerce
+  notes: |
+    边界:
+    - 同时有 product app + marketing site: 若问题集中在 marketing,
+      仍按本分类; 若问题包含 app store presence → web_app_plus_mobile_app
+    - 单纯 API 平台 + 重 docs: 若 docs 是核心产品 → api_with_public_docs
+
+# ============================================================
+api_with_public_docs:
+  description: >
+    API 平台 / SDK / developer tool, 主体产品是 API + 文档,
+    用户(开发者)主要通过搜索文档与示例发现产品.
+  public_surfaces:
+    - 公开 docs (API reference / guides / tutorials)
+    - SDK 源码 / GitHub repo
+    - 可能有 minimal marketing landing
+  channels:
+    - Google "how to X with Y" type search
+    - AI search ("how do I use OpenAI API")
+    - GitHub search / awesome lists
+    - Hacker News / dev community
+    - Stack Overflow tag
+  typical_pages:
+    - docs landing (quickstart)
+    - API reference (endpoint 列表)
+    - guides / tutorials
+    - SDK pages per language
+    - changelog
+    - status / uptime page
+  examples:
+    - Stripe docs / Twilio docs
+    - OpenAI API docs / Anthropic API docs
+    - Mintlify-hosted dev tool docs
+    - 各类 developer SDK 站
+  key_signals:
+    - URL 多见 /docs/ /api-reference/ /reference/
+    - 80% 内容是技术文档而非 marketing
+    - 主要 traffic 是 developer 长尾搜索
+    - llms.txt / sitemaps 友好
+  anti_signals:
+    - marketing 重 / pricing tier 显著 → b2b_saas_marketing
+    - 无 docs, 仅 product 内部 SDK → 不在本 skill scope
+  notes: |
+    边界:
+    - 含 marketing 站 + 重 docs: 若 docs 是主入口 → api_with_public_docs;
+      若 marketing 是主入口 → b2b_saas_marketing.
+      可同时激活 web-aeo 高强度配置.
+
+# ============================================================
+pure_backend_api_no_public_surface:
+  description: >
+    无 public web surface 的后端 API / 内部服务;
+    通常用于已注册客户调用, 或纯 internal admin.
+  public_surfaces:
+    - (无 — 本质上不应该被搜索引擎找到)
+  channels:
+    - 客户已知 endpoint / 通过私有 docs
+    - 内部团队
+  typical_pages:
+    - (无 public 页面)
+    - 可能有 /health /status 内部端点
+  examples:
+    - 私有 microservice cluster
+    - 内部 admin / dashboard (无 public route)
+    - 仅 B2B 已签约客户调用的 partner API
+    - 纯后端 microservice / queue worker
+  key_signals:
+    - 无 marketing 站
+    - 无 docs 公开
+    - 主要返回 JSON / gRPC, 无 HTML
+    - 部署在内网或 VPN-only
+  anti_signals:
+    - 有任意公开 docs / marketing → 对应类型
+  notes: |
+    全部 4 个 narrow skill 禁用. robots.txt: Disallow all 作为爬虫礼貌阻断.
+    # Security / authorization concerns → appsec-security-orchestrator
+
+# ============================================================
+mobile_app:
+  description: >
+    主体是 iOS / Android mobile app, 可能仅有简陋 landing page
+    用于 download. 主要可发现性渠道是 App Store / Google Play.
+  public_surfaces:
+    - App Store listing (iOS)
+    - Google Play listing (Android)
+    - 可能有 download landing page
+  channels:
+    - App Store search + Featured + Today
+    - Google Play search + Recommended
+    - 应用商店内推荐 / Top charts
+    - 社交媒体 / influencer
+    - 系统级 "share extensions"
+  typical_pages:
+    - (web 端) optional download landing page
+    - (app 端) onboarding / 主功能 / settings
+  examples:
+    - 纯游戏 app (含手游 / 休闲游戏)
+    - 工具类 app (没有 SaaS web 镜像)
+    - 社交 app 早期阶段
+  key_signals:
+    - 主要产品 surface 是 native app
+    - 无对应的 web SaaS product (vs Notion / Linear)
+    - 商业模式: app 内购 / 订阅 / 广告
+  anti_signals:
+    - 有 web 端产品功能 → web_app_plus_mobile_app
+  notes: |
+    边界:
+    - 有 minimal landing page: web-seo 设 optional (依 has_web_landing 字段)
+    - 提供 location-based service (外卖 / 打车 / 同城配送):
+      默认 `web-local-seo: disabled`。conditional_local 触发条件是
+      `project.physical_locations > 0 || len(project.service_areas) > 0`
+      (见 activation-rules.yaml `conditional_local_logic`)。
+      纯外卖/打车 app 这两个字段通常为 0 / 空，因此 Local SEO 不激活。
+      只有当 app 配套实体合作门店列表 (physical_locations > 0)
+      或明确服务区域 (service_areas 非空) 时才升级为 conditional_local
+      并实际激活 web-local-seo。
+    - app 内 web view 不视为 web surface
+
+# ============================================================
+web_app_plus_mobile_app:
+  description: >
+    既有完整 web 产品（含 SaaS 功能）, 又有 iOS/Android app
+    作为补充端的产品. web 和 app 都需独立可发现性优化.
+  public_surfaces:
+    - marketing site
+    - web app
+    - docs (可能)
+    - App Store + Google Play listings
+  channels:
+    - Google organic (web 端获客主)
+    - AI search (评估期)
+    - App Store / Google Play (app 端获客)
+    - 跨设备同步带来的口碑
+  typical_pages:
+    - 全 marketing + product pages
+    - 全 docs (如适用)
+    - app store listings (per platform)
+  examples:
+    - Notion (web 主 + app 辅)
+    - Linear (web 主 + app 辅)
+    - Figma (web 主 + app 辅)
+    - Slack / Discord / Spotify (双端独立可用)
+  key_signals:
+    - 同时拥有 marketing site + 独立 app
+    - app 不是 PWA wrapper, 是 native
+    - 用户可能从任一端进入
+  anti_signals:
+    - 无 mobile app → b2b_saas_marketing / content_site
+    - 无 web 产品 → mobile_app
+  notes: |
+    边界:
+    - 4 域可能全开 (web-seo / web-aeo required, app-aso required,
+      web-local-seo 按业务性质 conditional_local — 同 mobile_app 规则)
+    - evidence 必须 4 域分开输出, 不混合

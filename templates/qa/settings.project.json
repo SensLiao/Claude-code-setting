@@ -1,0 +1,125 @@
+{
+  "_comment": "QA-enabled project settings template. Preferred install = `bash ~/.claude/scripts/qa-sdk.sh init` (copies hooks project-local + merges this). Manual fallback: copy the qa-*.js + _qa-common.js + governed-gate-workflow-guard.js hooks into <project>/.claude/hooks/ and merge `hooks` into <project>/.claude/settings.json. Hook paths use ${CLAUDE_PROJECT_DIR} (portable; no per-machine HOME edit needed). Hooks gate by .qa/config.json presence — safe to keep enabled in non-QA branches.",
+  "permissions": {
+    "allow": [
+      "Bash(bash */.claude/scripts/qa-sdk.sh*)",
+      "Bash(npx vitest run *)",
+      "Bash(npx playwright test *)",
+      "Bash(git diff --cached *)",
+      "Bash(git show *)",
+      "Bash(git diff --cached --name-only)"
+    ],
+    "ask": [
+      "Bash(npx playwright test --update-snapshots *)",
+      "Bash(npx vitest -u *)",
+      "Bash(npx jest -u *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-block-update-snapshots.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-quarantine-accountability.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "_purpose": "D1 verdict write-guard: block direct non-SDK writes to .qa/evidence/<tag>/ verdict files (qa_evidence_bundle / gate-result / release-decision). Matcher MUST include MultiEdit (HOOK-BYPASS-MATRIX).",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-bundle-write-guard.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Workflow",
+        "_purpose": "Governed Gate Mode (CLAUDE.md §3.7) + workflow-spec launch gate. governed-gate-workflow-guard blocks inline model-authored Dynamic Workflows / ultracode during an active gate (governed_gate_mode in .qa/config.json: off|active-gate|always, default active-gate); qa-preview-gate validates spec_hash + sentinel + commercial-cert budget for deterministic qa-orchestrator launches.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/governed-gate-workflow-guard.js\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-preview-gate.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-floor-rule-prompt.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-detect-internal-mock.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "_purpose": "D2 stale-marker: after a QA-relevant source/config/test edit, mark .qa/evidence/<tag>/ STALE if a bundle for the active tag exists (freshness window from .qa/config.json evidence_freshness_hours, default 24h).",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-mark-stale.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "_purpose": "D2 stale-marker on deploy commands (same hook, Bash matcher).",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-mark-stale.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-evidence-required.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

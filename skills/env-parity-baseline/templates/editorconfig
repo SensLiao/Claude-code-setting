@@ -1,0 +1,49 @@
+# === env-parity-baseline: .editorconfig ===
+# https://editorconfig.org/
+# 编辑器一致性：缩进 / charset / 行尾符 / final newline / trailing whitespace
+# 与 .gitattributes 配合：git 控制存储，editorconfig 控制编辑器
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# ---- Markdown：双空格换行不能 trim ----
+[*.md]
+trim_trailing_whitespace = false
+
+# ---- Makefile：必须用 tab ----
+[Makefile]
+indent_style = tab
+
+[makefile]
+indent_style = tab
+
+# ---- Python / Go：4 空格 ----
+[*.{py,go}]
+indent_size = 4
+
+# ---- Rust / Java / Kotlin / C/C++：4 空格 ----
+[*.{rs,java,kt,kts,scala,cpp,cxx,cc,c,h,hpp,hh,hxx}]
+indent_size = 4
+
+# ---- Windows 脚本：CRLF ----
+[*.{bat,cmd,ps1}]
+end_of_line = crlf
+
+# ---- YAML / JSON / TOML：2 空格（保持默认显式声明）----
+[*.{yml,yaml,json,jsonc,toml}]
+indent_size = 2
+
+# ---- HTML / CSS / Web：2 空格 ----
+[*.{html,htm,css,scss,sass,less,vue,svelte,astro}]
+indent_size = 2
+
+# ---- TS / JS / TSX / JSX：2 空格 ----
+[*.{ts,tsx,js,jsx,mjs,cjs}]
+indent_size = 2

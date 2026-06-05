@@ -1,0 +1,27 @@
+{
+  "_comment": "Project-level UIUX config. See SKILL.md §2 / references/gsd-bridge-contract.md. Rename to config.json after editing.",
+  "schema_version": "1.0",
+  "uiux_enforcement": "strict",
+  "project_type": "saas-dashboard",
+  "_project_type_enum": [
+    "saas-dashboard",
+    "marketing-site",
+    "luxury-brand-landing",
+    "editorial-content",
+    "mobile-native",
+    "internal-tool",
+    "research-only"
+  ],
+  "allowed_l3_styles": ["taste", "luxury", "minimalist", "soft"],
+  "_allowed_l3_notes": "Whitelist L3 candidates for THIS project. brutalist/gpt-tasteskill remain user-invocable globally but won't pass mutex unless listed here.",
+  "strict_mode": "strict",
+  "_strict_mode_notes": "strict (default) = hooks hard-block. lax = hooks warn only.",
+  "platform_overlay": ["web"],
+  "_platform_overlay_enum": ["web", "ios", "android", "macos", "windows"],
+  "handoff": {
+    "qa_visual_regression_required": true,
+    "appsec_frontend_review_required": false
+  },
+  "release_tag_pattern": "v\\d+\\.\\d+\\.\\d+|pr-\\d+|manual-[0-9]{8}",
+  "_release_tag_pattern_notes": "Used by sdk init to reject malformed tags."
+}

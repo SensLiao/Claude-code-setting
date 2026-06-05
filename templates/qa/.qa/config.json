@@ -1,0 +1,15 @@
+{
+  "_comment": "Copy to <project>/.qa/config.json. Set qa_enforcement=strict before merging to main.",
+  "version": "1.0",
+  "qa_enforcement": "strict",
+  "default_mode": "execution",
+  "release_tag_pattern": "v\\d+\\.\\d+\\.\\d+|pr-\\d+|manual-[0-9]{8}",
+  "ci_artifact_root": "ci-artifacts/",
+  "appsec_handoff_required": true,
+  "floor_rule_overrides": [],
+  "stop_gate": {
+    "block_on_missing_bundle": true,
+    "block_on_failed_decision": true,
+    "allow_conditional_pass": true
+  }
+}

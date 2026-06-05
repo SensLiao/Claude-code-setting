@@ -1,0 +1,103 @@
+{
+  "engine_version": "1.0",
+  "orchestrator": "appsec",
+  "phases": [
+    {
+      "name": "Scope",
+      "type": "single",
+      "model": "strongest_available",
+      "agentType": "appsec-risk-classifier",
+      "prompt_ref": "scope.v1",
+      "schema_ref": "SCOPE_SCHEMA.v1"
+    },
+    {
+      "name": "Plan",
+      "type": "single",
+      "model": "strongest_available",
+      "agentType": "appsec-risk-classifier",
+      "prompt_ref": "plan.v1",
+      "schema_ref": "PLAN_SCHEMA.v1",
+      "post_invariants": [
+        "ensure_csf_coverage"
+      ]
+    },
+    {
+      "name": "Map",
+      "type": "single",
+      "model": "strongest_available",
+      "agentType": "appsec-finding-triager",
+      "prompt_ref": "map.v1",
+      "schema_ref": "MAP_SCHEMA.v1",
+      "skip_if": "no_accepted",
+      "skip_default": {
+        "findings": []
+      }
+    },
+    {
+      "name": "Gate",
+      "type": "deterministic",
+      "op": "appsec_gate_policy"
+    },
+    {
+      "name": "Synthesize",
+      "type": "single",
+      "model": "strongest_available",
+      "agentType": "appsec-evidence-validator",
+      "prompt_ref": "synthesize.v1",
+      "schema_ref": "SYNTH_SCHEMA.v1"
+    },
+    {
+      "name": "PersistIncidentResponse",
+      "type": "single",
+      "model": "balanced",
+      "agentType": "appsec-evidence-validator",
+      "prompt_ref": "persist-evidence.v1",
+      "schema_ref": "PERSIST_SCHEMA.v1",
+      "sdk": {
+        "command": "appsec-sdk evidence.append",
+        "layer": "incident-response"
+      }
+    },
+    {
+      "name": "PersistRecovery",
+      "type": "single",
+      "model": "balanced",
+      "agentType": "appsec-evidence-validator",
+      "prompt_ref": "persist-evidence.v1",
+      "schema_ref": "PERSIST_SCHEMA.v1",
+      "sdk": {
+        "command": "appsec-sdk evidence.append",
+        "layer": "recovery"
+      }
+    },
+    {
+      "name": "PersistEvidence",
+      "type": "single",
+      "model": "balanced",
+      "agentType": "appsec-evidence-validator",
+      "prompt_ref": "persist-evidence.v1",
+      "schema_ref": "PERSIST_SCHEMA.v1",
+      "sdk": {
+        "command": "appsec-sdk evidence.append",
+        "layer": "workflow-state"
+      }
+    }
+  ],
+  "prompts": {},
+  "schemas": {},
+  "ops_allowed": {
+    "deterministic": [
+      "fingerprint_cluster",
+      "appsec_gate_policy",
+      "compute_recall"
+    ],
+    "predicates": [
+      "no_candidates",
+      "no_accepted"
+    ],
+    "invariants": [
+      "ensure_csf_coverage",
+      "prune_below_floor"
+    ]
+  }
+}

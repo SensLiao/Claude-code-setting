@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "PLAN_SCHEMA.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "selected_finders",
+    "required_csf_functions"
+  ],
+  "properties": {
+    "selected_finders": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "required_csf_functions": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "Govern",
+          "Identify",
+          "Protect",
+          "Detect",
+          "Respond",
+          "Recover"
+        ]
+      },
+      "minItems": 1
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/CONTRACT_TEST_SCHEMA.v1",
+  "title": "Per-Contract API/Event Test Output",
+  "description": "Output of a single Contract subset of ComponentOrContract fanout item. One per changed API contract.",
+  "type": "object",
+  "required": ["api_or_event", "schema_source", "command_evidence", "decision"],
+  "properties": {
+    "api_or_event": {
+      "type": "object",
+      "required": ["identifier", "kind"],
+      "properties": {
+        "identifier": { "type": "string", "description": "e.g. POST /api/checkout or event:order.created" },
+        "kind": { "type": "string", "enum": ["rest", "graphql", "rpc", "event", "websocket"] }
+      }
+    },
+    "schema_source": {
+      "type": "object",
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["openapi", "graphql-sdl", "pact", "asyncapi", "protobuf", "json-schema"] },
+        "path": { "type": "string" }
+      }
+    },
+    "command_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["cmd", "exit_code"],
+        "properties": {
+          "cmd": { "type": "string" },
+          "stdout": { "type": "string" },
+          "stderr": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "duration_ms": { "type": "integer" }
+        }
+      }
+    },
+    "drift_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "location"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["added", "removed", "type-changed", "required-changed", "enum-shrunk", "incompatible"] },
+          "location": { "type": "string" },
+          "before": { "type": "string" },
+          "after": { "type": "string" }
+        }
+      }
+    },
+    "breaking_changes": { "type": "integer", "minimum": 0 },
+    "decision": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "BLOCKED", "CONDITIONAL_PASS", "MISSING"]
+    },
+    "artifacts": { "type": "array", "items": { "type": "string" } }
+  }
+}

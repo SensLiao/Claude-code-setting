@@ -1,0 +1,311 @@
+{
+  "schema_version": "1.0",
+  "domain": "qa",
+  "shared_runtime_version": "1.0.0",
+  "domain_runtime_version": "qa-0.1.0",
+  "compatible_shared_versions": ["1.0.x"],
+  "spec_hash_algo": "sha256",
+  "_purpose": "Capability inventory for QA Path B preflight. Skill runs preflight-check.sh BEFORE Workflow launch. Missing capability => abort with structured error => 0 tokens.",
+  "_doc_ref": "ORCHESTRATION-MIGRATION-PLAN.md §1.10 + §B + §1.11 corrections (2026-05-28 r2 incl. reviewer round R1-R15 + D1-D4 lock); QA-PHASE-B-BLUEPRINT.md §7 + §22 + §23",
+
+  "agents": {
+    "qa-risk-classifier": {
+      "required": true,
+      "role": "Risk classification (Impact x Likelihood + Floor Rules) + QA layer selection. Invoked by Skill main thread BEFORE preview (per R4 Option A) AND as Workflow first phase LayerSelect.",
+      "required_tools": ["Read", "Grep", "Glob", "Bash"],
+      "preferred_model_tier": "balanced",
+      "_file_hint": "~/.claude/agents/qa-risk-classifier.md (verified frontmatter name: qa-risk-classifier)"
+    },
+    "qa-evidence-validator": {
+      "required": true,
+      "role": "Evidence bundle validation + release decision + persistence via qa-sdk. EvidenceBundle node executor.",
+      "required_tools": ["Read", "Grep", "Glob", "Bash"],
+      "preferred_model_tier": "balanced",
+      "preload_embedded_skill_contracts": ["qa-evidence-bundle"],
+      "_file_hint": "~/.claude/agents/qa-evidence-validator.md"
+    },
+    "qa-flaky-triager": {
+      "required": false,
+      "_required_when": "mode in {release-readiness, commercial-cert} AND flaky_signal present",
+      "role": "8-category flaky classification + accountable quarantine + critical-path refusal. FlakyTriage node executor.",
+      "required_tools": ["Read", "Grep", "Glob", "Bash"],
+      "preferred_model_tier": "balanced",
+      "preload_embedded_skill_contracts": ["qa-flaky-governance"],
+      "_file_hint": "~/.claude/agents/qa-flaky-triager.md"
+    },
+    "e2e-runner": {
+      "required": false,
+      "_required_when": "E2E layer in selected_layers (mode >= focused-qa-gate)",
+      "role": "Playwright / Vercel Agent Browser E2E scenario execution + artifact capture. E2E pipeline stage executor.",
+      "required_tools": ["Read", "Write", "Edit", "Bash", "Grep", "Glob"],
+      "preferred_model_tier": "balanced",
+      "preload_embedded_skill_contracts": ["qa-e2e-coverage-gate"],
+      "_file_hint": "~/.claude/agents/e2e-runner.md",
+      "_node_fingerprint_extras": ["scenario_id", "target_url", "viewport(w,h,dpr)", "branch_sha", "screenshot_baseline_dir_hash", "playwright_config_hash", "e2e_runner_version"]
+    },
+    "code-reviewer": {
+      "required": false,
+      "_required_when": "internal harness presets (smoke / graph-smoke) only — production modes route to dedicated runners (qa-*-runner) after R2 roadmap completion 2026-05-29.",
+      "role": "Multi-purpose execute-and-persist fallback (preloads relevant skill contract via prompt). RETAINED for internal harness smoke/graph-smoke presets where dedicated runner overhead is not justified.",
+      "required_tools": ["Read", "Grep", "Glob", "Bash"],
+      "preferred_model_tier": "cheap_fast",
+      "preload_embedded_skill_contracts": ["qa-static-baseline", "qa-component-behavior", "qa-contract-api", "qa-visual-regression", "qa-a11y-compliance", "qa-performance-reliability"],
+      "_file_hint": "~/.claude/agents/code-reviewer.md",
+      "_d1_lock_note": "D1 short-term reuse retired by B.1.f (2026-05-29). Production modes (quick-check / focused-qa-gate / release-readiness / commercial-cert) now dispatch to dedicated runners: qa-static-baseline-runner / qa-component-runner / qa-contract-runner / qa-visual-runner / qa-a11y-runner / qa-perf-runner. code-reviewer remains registered for internal harness presets only."
+    },
+    "qa-static-baseline-runner": {
+      "required": false,
+      "_required_when": "Static layer in selected_layers AND mode in {quick-check, focused-qa-gate, release-readiness, commercial-cert}",
+      "role": "Static Baseline execution worker — runs tsc + ESLint + Prettier + npm audit + git-secrets + OpenAPI lint. Emits STATIC_BASELINE_SCHEMA.v1 with command_evidence[] mandatory. Replaces code-reviewer D1 reuse for StaticBaseline phase.",
+      "required_tools": ["Read", "Bash", "Grep", "Glob"],
+      "preferred_model_tier": "balanced",
+      "preload_embedded_skill_contracts": ["qa-static-baseline"],
+      "_file_hint": "~/.claude/agents/qa-static-baseline-runner.md"
+    },
+    "qa-component-runner": {
+      "required": false,
+      "_required_when": "Component layer in selected_layers AND mode in {quick-check, focused-qa-gate, release-readiness, commercial-cert}",
+      "role": "Component-behavior execution worker (per-surface dispatch). Runs existing Vitest / Jest / RTL / Cypress component / Storybook test-runner. Emits COMPONENT_TEST_SCHEMA.v1.",
+      "required_tools": ["Read", "Bash", "Grep", "Glob"],
+      "preferred_model_tier": "balanced",
+      "preload_embedded_skill_contracts": ["qa-component-behavior"],
+      "_file_hint": "~/.claude/agents/qa-component-runner.md"
+    },
+    "qa-contract-runner": {
+      "required": false,
+      "_required_when": "Contract layer in selected_layers AND mode in {focused-qa-gate, release-readiness, commercial-cert}",
+      "role": "Contract-API execution worker (per-contract dispatch). Runs openapi-cli / spectral / graphql-inspector / pact verify / asyncapi diff / buf breaking. Emits CONTRACT_TEST_SCHEMA.v1 with breaking_changes accurate count.",
+      "required_tools": ["Read", "Bash", "Grep", "Glob"],
+      "preferred_model_tier": "balanced",
+      "preload_embedded_skill_contracts": ["qa-contract-api"],
+      "_file_hint": "~/.claude/agents/qa-contract-runner.md"
+    },
+    "qa-visual-runner": {
+      "required": false,
+      "_required_when": "Visual layer in selected_layers AND mode == commercial-cert",
+      "role": "Visual-regression execution worker (per-surface × viewport × theme dispatch). Runs Playwright toHaveScreenshot / Storybook visual / Chromatic CLI. Emits VISUAL_AUDIT_SCHEMA.v1 with decision_hint (deterministic VisualGate makes final).",
+      "required_tools": ["Read", "Bash", "Grep", "Glob"],
+      "preferred_model_tier": "balanced",
+      "preload_embedded_skill_contracts": ["qa-visual-regression"],
+      "_file_hint": "~/.claude/agents/qa-visual-runner.md",
+      "_node_fingerprint_extras": ["surface_id", "viewport(w,h,dpr)", "theme", "baseline_hash", "playwright_config_hash"]
+    },
+    "qa-a11y-runner": {
+      "required": false,
+      "_required_when": "A11y layer in selected_layers AND mode == commercial-cert",
+      "role": "Accessibility execution worker. Runs axe-core / Lighthouse a11y / pa11y / playwright-axe. Emits A11Y_AUDIT_SCHEMA.v1 with decision_hint (deterministic A11yGate makes final).",
+      "required_tools": ["Read", "Bash", "Grep", "Glob"],
+      "preferred_model_tier": "balanced",
+      "preload_embedded_skill_contracts": ["qa-a11y-compliance"],
+      "_file_hint": "~/.claude/agents/qa-a11y-runner.md"
+    },
+    "qa-perf-runner": {
+      "required": false,
+      "_required_when": "Perf layer in selected_layers AND mode == commercial-cert",
+      "role": "Performance-reliability execution worker. Runs Lighthouse CI / playwright-perf / k6 / bundle-analyzer / web-vitals. Emits PERF_AUDIT_SCHEMA.v1 with decision_hint (deterministic PerfGate makes final).",
+      "required_tools": ["Read", "Bash", "Grep", "Glob"],
+      "preferred_model_tier": "balanced",
+      "preload_embedded_skill_contracts": ["qa-performance-reliability"],
+      "_file_hint": "~/.claude/agents/qa-perf-runner.md"
+    },
+    "tdd-guide": {
+      "required": false,
+      "_required_when": "mode == release-readiness AND Unit-TDD layer in selected_layers",
+      "role": "TDD bridge — generates / runs unit tests for newly-added critical functions.",
+      "required_tools": ["Read", "Write", "Edit", "Bash", "Grep"],
+      "preferred_model_tier": "balanced",
+      "preload_embedded_skill_contracts": ["qa-test-design-tdd-bridge"],
+      "_file_hint": "~/.claude/agents/tdd-guide.md"
+    }
+  },
+
+  "skills": {
+    "_note": "Loadable SKILL.md packages. Per D3 lock: embedded contracts live in embedded_skill_contracts below, NOT here. Currently no QA narrow skill ships as standalone ~/.claude/skills/qa-*/SKILL.md.",
+    "_resolver": "resolve-capabilities.js resolve-skills"
+  },
+
+  "embedded_skill_contracts": {
+    "_note": "Per D3 lock + R3 reviewer correction — contracts referenced by anchor in parent SKILL.md, NOT separate files. Preflight verifies anchor existence via grep (resolve-capabilities.js resolve-embedded-skill-contracts). All anchors live in enterprise-qa-testing/SKILL.md children: block AND/OR body headings.",
+    "_parent_skill": "~/.claude/skills/enterprise-qa-testing/SKILL.md",
+    "_resolver": "resolve-capabilities.js resolve-embedded-skill-contracts",
+    "qa-static-baseline":              { "required_when": "Static layer selected", "dispatched_by_agent": "qa-static-baseline-runner (production); code-reviewer (smoke/graph-smoke harness only)" },
+    "qa-test-design-tdd-bridge":       { "required_when": "Unit-TDD layer selected", "dispatched_by_agent": "tdd-guide" },
+    "qa-component-behavior":           { "required_when": "Component layer selected", "dispatched_by_agent": "qa-component-runner (production); code-reviewer (smoke/graph-smoke harness only)" },
+    "qa-integration-service-virtualization": { "required_when": "Integration layer selected", "dispatched_by_agent": "qa-component-runner (production); code-reviewer (smoke/graph-smoke harness only)" },
+    "qa-contract-api":                 { "required_when": "Contract layer selected", "dispatched_by_agent": "qa-contract-runner (production); code-reviewer (smoke/graph-smoke harness only)" },
+    "qa-e2e-coverage-gate":            { "required_when": "E2E layer selected", "dispatched_by_agent": "e2e-runner" },
+    "qa-visual-regression":            { "required_when": "Visual layer selected (commercial-cert)", "dispatched_by_agent": "qa-visual-runner" },
+    "qa-a11y-compliance":              { "required_when": "a11y layer selected (commercial-cert)", "dispatched_by_agent": "qa-a11y-runner" },
+    "qa-performance-reliability":      { "required_when": "Perf layer selected (commercial-cert)", "dispatched_by_agent": "qa-perf-runner" },
+    "qa-test-data-environment":        { "required_when": "Test data prep required", "dispatched_by_agent": "qa-component-runner or e2e-runner (mode dependent)" },
+    "qa-flaky-governance":             { "required_when": "FlakyTriage rule-check (release-readiness + commercial-cert)", "dispatched_by_agent": "qa-flaky-triager" },
+    "qa-smoke-release-safety":         { "required_when": "Smoke layer selected (release-readiness + commercial-cert)", "dispatched_by_agent": "qa-component-runner (production); code-reviewer (smoke/graph-smoke harness only)" },
+    "qa-evidence-bundle":              { "required": true, "required_when": "always (EvidenceBundle node)", "dispatched_by_agent": "qa-evidence-validator" }
+  },
+
+  "_doc_hook_classes": {
+    "_purpose": "§1.11 correction #8 + reviewer R12 — quick-check mode should not require every safety hook installed; release-readiness / commercial-cert must.",
+    "launch_gate":      "Always block. Without it the entire safety contract breaks. Example: qa-preview-gate.",
+    "safety_guard":     "Block in {release-readiness, commercial-cert}; warn elsewhere. Example: qa-block-update-snapshots, qa-detect-internal-mock.",
+    "evidence_quality": "Warn in {quick-check, focused-qa-gate}; block in {release-readiness, commercial-cert}. Example: qa-evidence-required, qa-quarantine-accountability, qa-floor-rule-prompt."
+  },
+  "hooks": {
+    "qa-preview-gate": {
+      "_status": "NEW per Phase B.1.c",
+      "event": "PreToolUse",
+      "matcher": "Workflow",
+      "required_when": "execution_mode == 'workflow-spec'",
+      "hook_class": "launch_gate",
+      "install_scope": "project",
+      "path": "~/.claude/hooks/qa-preview-gate.js",
+      "install_target": "<project>/.claude/settings.json",
+      "enforcement": {
+        "quick-check":       "block",
+        "focused-qa-gate":   "block",
+        "release-readiness": "block",
+        "commercial-cert":   "block"
+      }
+    },
+    "governed-gate-workflow-guard": {
+      "_status": "NEW 2026-05-29 — Governed Gate Mode (CLAUDE.md §3.7, post-4.8)",
+      "event": "PreToolUse",
+      "matcher": "Workflow",
+      "required_when": "always (NO-OP unless cwd is a governed .appsec/.qa project)",
+      "hook_class": "launch_gate",
+      "install_scope": "project_or_user",
+      "path": "~/.claude/hooks/governed-gate-workflow-guard.js",
+      "install_target": "<project>/.claude/settings.json",
+      "_purpose": "Blocks inline model-authored Workflow `script` (Dynamic Workflow / ultracode auto-orchestration) when a QA gate is active; allows deterministic qa-orchestrator scriptPath/name launches. Closes the hole qa-preview-gate leaves: inline scripts have no name/scriptPath so the preview-gate waves them through. governed_gate_mode in .qa/config.json: off|active-gate|always (default active-gate).",
+      "enforcement": {
+        "quick-check":       "active-gate",
+        "focused-qa-gate":   "active-gate",
+        "release-readiness": "active-gate",
+        "commercial-cert":   "active-gate"
+      }
+    },
+    "qa-block-update-snapshots": {
+      "_status": "existing — verified ~/.claude/hooks/qa-block-update-snapshots.js",
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "hook_class": "safety_guard",
+      "install_scope": "project_or_user",
+      "path": "~/.claude/hooks/qa-block-update-snapshots.js",
+      "enforcement": {
+        "quick-check":       "warn",
+        "focused-qa-gate":   "warn",
+        "release-readiness": "block",
+        "commercial-cert":   "block"
+      }
+    },
+    "qa-floor-rule-prompt": {
+      "_status": "existing",
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "hook_class": "evidence_quality",
+      "install_scope": "project_or_user",
+      "path": "~/.claude/hooks/qa-floor-rule-prompt.js",
+      "enforcement": {
+        "quick-check":       "warn",
+        "focused-qa-gate":   "warn",
+        "release-readiness": "warn",
+        "commercial-cert":   "warn"
+      }
+    },
+    "qa-detect-internal-mock": {
+      "_status": "existing",
+      "event": "PostToolUse",
+      "matcher": "Write|Edit",
+      "hook_class": "evidence_quality",
+      "install_scope": "project_or_user",
+      "path": "~/.claude/hooks/qa-detect-internal-mock.js",
+      "enforcement": {
+        "quick-check":       "warn",
+        "focused-qa-gate":   "warn",
+        "release-readiness": "block",
+        "commercial-cert":   "block"
+      }
+    },
+    "qa-quarantine-accountability": {
+      "_status": "existing",
+      "event": "PreToolUse",
+      "matcher": "Write|Edit",
+      "hook_class": "safety_guard",
+      "install_scope": "project_or_user",
+      "path": "~/.claude/hooks/qa-quarantine-accountability.js",
+      "_note": "Gates git commit only — always block when triggered regardless of mode.",
+      "enforcement": {
+        "quick-check":       "block",
+        "focused-qa-gate":   "block",
+        "release-readiness": "block",
+        "commercial-cert":   "block"
+      }
+    },
+    "qa-evidence-required": {
+      "_status": "existing",
+      "event": "Stop",
+      "matcher": "*",
+      "hook_class": "evidence_quality",
+      "install_scope": "project_or_user",
+      "path": "~/.claude/hooks/qa-evidence-required.js",
+      "_runtime_guard": "Reviewer R11 — replaces unreliable QA_WORKFLOW_RUNNING env guard. Skill main thread writes <project>/.qa/state/running/<run_id>.json BEFORE Workflow launch; removes after EvidenceBundle persistence completes. Hook reads sentinel — if present + atime within 30 min, skips 'missing bundle' block.",
+      "running_sentinel_path_pattern": "<project>/.qa/state/running/<run_id>.json",
+      "running_sentinel_stale_minutes": 30,
+      "enforcement": {
+        "quick-check":       "warn",
+        "focused-qa-gate":   "warn",
+        "release-readiness": "block",
+        "commercial-cert":   "block"
+      }
+    }
+  },
+
+  "sdk": {
+    "qa-sdk": {
+      "path": "~/.claude/scripts/qa-sdk.sh",
+      "required": true,
+      "commands": [
+        "init",
+        "set-active",
+        "evidence.append",
+        "evidence.list",
+        "evidence.validate-presence",
+        "gate.check",
+        "finding.add",
+        "quarantine.add",
+        "approve.snapshot"
+      ],
+      "smoke_command": "bash ~/.claude/scripts/qa-sdk.sh 2>&1 | head -1",
+      "_workflow_state_layer_note": "D4 lock + R10 wording-discipline — qa-sdk evidence.append <tag> workflow-state accepts arbitrary safe-name layer. workflow-state.yaml is a Skill-level provenance / planning snapshot (Option B single-file accumulator), NOT Workflow native cross-session resume cache. Native resume is same-session only. Document this in enterprise-qa-testing SKILL.md §17 during B.1.e."
+    }
+  },
+
+  "model_aliases": ["cheap_fast", "balanced", "strongest_available", "inherit"],
+
+  "hashNode_contract": {
+    "_doc_ref": "QA-PHASE-B-BLUEPRINT.md §22.5 R15 hashNode contract revision",
+    "spec_hash_inputs": [
+      "orchestrator",
+      "engine_version",
+      "phases (refs only — prompt_ref / schema_ref / agentType / model_alias / resolved_model / op / stall_ms)",
+      "ops_allowed",
+      "model_policy_version"
+    ],
+    "node_fingerprint_inputs": [
+      "prior_chain_fingerprint",
+      "phase.name",
+      "phase.type",
+      "phase.model_alias",
+      "phase.resolved_model",
+      "spec.model_policy_version",
+      "phase.agentType",
+      "phase.prompt_ref",
+      "sha256(spec.prompts[phase.prompt_ref])",
+      "sha256(spec.schemas[phase.schema_ref])",
+      "sha256(registry.agents[agentType].contract)",
+      "sha256(concat embedded_skill_contracts referenced by this node)",
+      "phase.op (deterministic only)",
+      "phase.stall_ms",
+      "node-specific upstream ctx (RawAudit changed_files_hash; E2E branch_sha + viewport + baseline_dir_hash; Component surface_path_hash)"
+    ]
+  }
+}

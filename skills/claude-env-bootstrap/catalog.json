@@ -1,0 +1,454 @@
+{
+  "version": "2.0.0",
+  "updated": "2026-05-25",
+  "schema_ref": "templates/SCAN-VECTOR-SCHEMA.md",
+  "mutex_groups": {
+    "l3-style": "At most one of taste-skill / luxury / brutalist-skill can be installed."
+  },
+  "skills": {
+    "gsd-new-project": {
+      "domain": "gsd",
+      "kind": "core",
+      "selector": {"all_of": [{"signal": "workflow_state", "contains": "fresh-init"}]},
+      "priority": "high"
+    },
+    "gsd-spec-phase": {
+      "domain": "gsd",
+      "kind": "core",
+      "selector": {"all_of": [{"signal": "workflow_state", "contains_any": ["fresh-init", "gsd-active", "planning-present"]}]},
+      "priority": "high"
+    },
+    "gsd-discuss-phase": {
+      "domain": "gsd",
+      "kind": "core",
+      "selector": {"all_of": [{"signal": "workflow_state", "contains_any": ["fresh-init", "gsd-active", "planning-present"]}]},
+      "priority": "high"
+    },
+    "gsd-plan-phase": {
+      "domain": "gsd",
+      "kind": "core",
+      "selector": {"all_of": [{"signal": "workflow_state", "contains_any": ["fresh-init", "gsd-active", "planning-present"]}]},
+      "priority": "high"
+    },
+    "gsd-execute-phase": {
+      "domain": "gsd",
+      "kind": "core",
+      "selector": {"all_of": [{"signal": "workflow_state", "contains_any": ["fresh-init", "gsd-active", "planning-present"]}]},
+      "priority": "high"
+    },
+    "gsd-verify-work": {
+      "domain": "gsd",
+      "kind": "core",
+      "selector": {"all_of": [{"signal": "workflow_state", "contains_any": ["fresh-init", "gsd-active"]}]},
+      "priority": "high"
+    },
+    "gsd-ship": {
+      "domain": "gsd",
+      "kind": "core",
+      "selector": {
+        "all_of": [
+          {"signal": "workflow_state", "contains_any": ["fresh-init", "gsd-active"]},
+          {"not": {"signal": "surface", "equals_exact": ["research"]}}
+        ]
+      },
+      "priority": "medium"
+    },
+    "gsd-resume-work": {
+      "domain": "gsd",
+      "kind": "core",
+      "selector": {"all_of": [{"signal": "workflow_state", "contains_any": ["fresh-init", "gsd-active", "planning-present"]}]},
+      "priority": "medium"
+    },
+    "gsd-progress": {
+      "domain": "gsd",
+      "kind": "core",
+      "selector": {"all_of": [{"signal": "workflow_state", "contains_any": ["fresh-init", "gsd-active"]}]},
+      "priority": "low"
+    },
+    "gsd-debug": {
+      "domain": "gsd",
+      "kind": "core",
+      "selector": {
+        "all_of": [
+          {"signal": "workflow_state", "contains_any": ["fresh-init", "gsd-active"]},
+          {"not": {"signal": "surface", "equals_exact": ["lib"]}}
+        ]
+      },
+      "priority": "low"
+    },
+
+    "ux-principles": {
+      "domain": "uiux",
+      "kind": "core",
+      "selector": {"all_of": [{"signal": "ui_present", "equals": true}]},
+      "priority": "high"
+    },
+    "uiux-product-orchestrator": {
+      "domain": "uiux",
+      "kind": "orchestrator",
+      "selector": {"all_of": [{"signal": "ui_present", "equals": true}]},
+      "priority": "high"
+    },
+    "taste-skill": {
+      "domain": "uiux",
+      "kind": "l3-style",
+      "selector": {
+        "all_of": [
+          {"signal": "ui_present", "equals": true},
+          {"signal": "style_intent", "in": ["taste", "undecided", "none"]}
+        ]
+      },
+      "mutex_group": "l3-style",
+      "default_within_mutex": true,
+      "priority": "medium"
+    },
+    "luxury": {
+      "domain": "uiux",
+      "kind": "l3-style",
+      "selector": {
+        "all_of": [
+          {"signal": "ui_present", "equals": true},
+          {"signal": "style_intent", "equals": "luxury"}
+        ]
+      },
+      "mutex_group": "l3-style",
+      "priority": "medium"
+    },
+    "prototyping-ui-directions": {
+      "domain": "uiux",
+      "kind": "workflow",
+      "selector": {
+        "all_of": [
+          {"signal": "ui_present", "equals": true},
+          {"any_of": [
+            {"signal": "style_intent", "equals": "undecided"},
+            {"signal": "workflow_state", "contains": "design-folder-present"}
+          ]}
+        ]
+      },
+      "priority": "medium"
+    },
+    "anchor-prototype-wave": {
+      "domain": "uiux",
+      "kind": "workflow",
+      "selector": {
+        "all_of": [
+          {"signal": "ui_present", "equals": true},
+          {"signal": "surface", "contains": "design-prototype"}
+        ]
+      },
+      "priority": "low"
+    },
+
+    "enterprise-qa-testing": {
+      "domain": "qa",
+      "kind": "orchestrator",
+      "selector": {
+        "any_of": [
+          {"signal": "_derived.needs_release_gate", "equals": true},
+          {"signal": "risk_surface", "contains_any": ["auth", "payment", "admin", "public-api", "financial", "pii"]},
+          {"signal": "surface", "contains_any": ["public-web", "mobile-app"]}
+        ]
+      },
+      "rules_addon": ["testing-policy.md"],
+      "priority": "high"
+    },
+
+    "appsec-security-orchestrator": {
+      "domain": "appsec",
+      "kind": "orchestrator",
+      "selector": {
+        "any_of": [
+          {"signal": "risk_surface", "contains_any": ["auth", "payment", "multitenant", "file-upload", "websocket", "llm-agentic", "admin", "public-api", "financial", "pii"]},
+          {"signal": "surface", "contains": "public-web"},
+          {"signal": "secrets_origin", "in": ["github-secrets", "k8s-secret", "cloud-sm", "vault"]}
+        ]
+      },
+      "rules_addon": ["security-appsec.md"],
+      "template_addon": ["planning/SECURITY.md", "planning/threat-model-STRIDE.md", "planning/risk-register.md"],
+      "agent_addon": ["appsec-reviewer"],
+      "priority": "high"
+    },
+    "security-governance-threat-modeling": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "all_of": [
+          {"any_of": [
+            {"signal": "risk_surface", "contains_any": ["auth", "payment", "multitenant", "admin", "financial"]},
+            {"signal": "_derived.is_saas", "equals": true}
+          ]}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "template_addon": ["planning/threat-model-STRIDE.md"],
+      "priority": "high"
+    },
+    "security-remediation": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {"all_of": [{"signal": "risk_surface", "contains_any": ["auth", "payment", "multitenant", "file-upload", "websocket", "llm-agentic", "admin", "public-api", "financial", "pii"]}]},
+      "requires": ["appsec-security-orchestrator"],
+      "agent_addon": ["security-remediation-engineer"],
+      "template_addon": ["planning/vuln-report.md"],
+      "priority": "high"
+    },
+    "dast-baseline-scanning": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "all_of": [
+          {"signal": "surface", "contains_any": ["public-web", "internal-web"]},
+          {"signal": "deploy_target", "contains_any": ["vercel", "netlify", "k8s", "docker-compose", "vm-systemd", "serverless"]}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "agent_addon": ["dast-baseline-engineer"],
+      "priority": "medium"
+    },
+    "security-app-mobile": {
+      "domain": "appsec",
+      "kind": "overlay",
+      "selector": {
+        "any_of": [
+          {"signal": "mobile_native_signal", "equals": true},
+          {"signal": "distribution", "contains_any": ["app-store", "play-store"]}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "high"
+    },
+    "security-app-llm": {
+      "domain": "appsec",
+      "kind": "overlay",
+      "selector": {
+        "all_of": [
+          {"signal": "llm_provider", "contains_any": ["anthropic", "openai", "google", "mixed"]},
+          {"signal": "ai_pattern", "in": ["chat", "agentic", "rag"]}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "high"
+    },
+    "security-app-multitenant": {
+      "domain": "appsec",
+      "kind": "overlay",
+      "selector": {
+        "any_of": [
+          {"signal": "multitenant_signal", "equals": true},
+          {"signal": "risk_surface", "contains": "multitenant"}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "high"
+    },
+    "security-app-websocket": {
+      "domain": "appsec",
+      "kind": "overlay",
+      "selector": {"all_of": [{"signal": "risk_surface", "contains": "websocket"}]},
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "medium"
+    },
+    "security-app-file-upload": {
+      "domain": "appsec",
+      "kind": "overlay",
+      "selector": {"all_of": [{"signal": "risk_surface", "contains": "file-upload"}]},
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "medium"
+    },
+    "security-platform-secrets": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "secrets_origin", "in": ["github-secrets", "k8s-secret", "cloud-sm", "vault"]},
+          {"signal": "env_baseline_gaps", "contains": "secret-in-dockerfile"}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "high"
+    },
+    "security-platform-iac-cloud": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {"all_of": [{"signal": "deploy_target", "contains_any": ["k8s", "serverless", "cloudflare-workers"]}]},
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "medium"
+    },
+    "security-response-incident-response": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "all_of": [
+          {"signal": "surface", "contains": "public-web"},
+          {"any_of": [
+            {"signal": "risk_surface", "contains_any": ["payment", "admin", "financial", "pii"]},
+            {"signal": "_derived.is_saas", "equals": true}
+          ]}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "template_addon": ["planning/incident-response-initial.md"],
+      "priority": "medium"
+    },
+    "security-response-recovery": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "all_of": [
+          {"signal": "data_layer", "contains_any": ["sql-db", "nosql", "blob-storage"]},
+          {"signal": "surface", "contains_any": ["public-web", "internal-web"]}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "medium"
+    },
+    "security-compliance-payment": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "payment_signal", "equals": true},
+          {"signal": "_derived.needs_compliance_payment", "equals": true}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "high"
+    },
+    "security-compliance-cn-data": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "cn_data_signal", "equals": true},
+          {"signal": "_derived.needs_compliance_cn", "equals": true}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "high"
+    },
+    "pentest-scope-and-roe": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {"never": true, "note": "Only installed when user explicitly answers Q-pentest = 是 in ASK step"},
+      "manual_only_question": "Q-pentest",
+      "requires": ["appsec-security-orchestrator"],
+      "agent_addon": ["pentest-scope-planner"],
+      "template_addon": ["planning/PENTEST-ROE.md"],
+      "priority": "low"
+    },
+    "authorized-pentest-validation": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {"never": true, "note": "Manual-only. Requires pentest-scope-and-roe + completed ROE before user can invoke."},
+      "manual_only_question": "Q-pentest",
+      "requires": ["pentest-scope-and-roe"],
+      "agent_addon": ["authorized-pentest-validator"],
+      "priority": "low"
+    },
+
+    "discoverability-orchestrator": {
+      "domain": "discoverability",
+      "kind": "orchestrator",
+      "selector": {
+        "any_of": [
+          {"signal": "_derived.needs_release_gate", "equals": true},
+          {"signal": "surface", "contains_any": ["public-web", "docs-site"]},
+          {"signal": "distribution", "contains_any": ["app-store", "play-store"]}
+        ]
+      },
+      "rules_addon": ["discoverability-l12.md"],
+      "template_addon": ["discoverability/"],
+      "priority": "high"
+    },
+    "web-seo": {
+      "domain": "discoverability",
+      "kind": "narrow",
+      "selector": {
+        "all_of": [
+          {"signal": "surface", "contains": "public-web"},
+          {"any_of": [
+            {"signal": "content_type", "contains_any": ["marketing-site", "docs-site", "content-app"]},
+            {"signal": "_derived.is_consumer_web", "equals": true}
+          ]}
+        ]
+      },
+      "requires": ["discoverability-orchestrator"],
+      "priority": "high"
+    },
+    "web-aeo": {
+      "domain": "discoverability",
+      "kind": "narrow",
+      "selector": {
+        "all_of": [
+          {"signal": "surface", "contains": "public-web"},
+          {"any_of": [
+            {"signal": "ai_referenceable", "equals": true},
+            {"signal": "content_type", "contains_any": ["docs-site", "content-app"]}
+          ]}
+        ]
+      },
+      "requires": ["discoverability-orchestrator"],
+      "priority": "medium"
+    },
+    "web-local-seo": {
+      "domain": "discoverability",
+      "kind": "narrow",
+      "selector": {"all_of": [{"signal": "local_seo_signal", "equals": true}]},
+      "requires": ["discoverability-orchestrator"],
+      "priority": "medium"
+    },
+    "app-aso": {
+      "domain": "discoverability",
+      "kind": "narrow",
+      "selector": {"all_of": [{"signal": "distribution", "contains_any": ["app-store", "play-store"]}]},
+      "requires": ["discoverability-orchestrator"],
+      "priority": "high"
+    },
+
+    "env-parity-baseline": {
+      "domain": "platform",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "env_baseline_gaps", "exists": true, "non_empty": true},
+          {"signal": "deploy_target", "contains_any": ["k8s", "docker-compose", "vm-systemd", "serverless"]}
+        ]
+      },
+      "priority": "medium"
+    },
+    "claude-api": {
+      "domain": "platform",
+      "kind": "narrow",
+      "selector": {"all_of": [{"signal": "llm_provider", "contains": "anthropic"}]},
+      "priority": "high"
+    },
+    "vercel:nextjs": {
+      "domain": "platform",
+      "kind": "overlay",
+      "selector": {
+        "all_of": [
+          {"signal": "framework", "contains": "next"},
+          {"signal": "deploy_target", "contains": "vercel"}
+        ]
+      },
+      "priority": "medium"
+    },
+    "typescript-reviewer": {
+      "domain": "language",
+      "kind": "reviewer",
+      "selector": {"all_of": [{"signal": "lang", "contains_any": ["ts", "js"]}]},
+      "priority": "medium"
+    },
+    "python-reviewer": {
+      "domain": "language",
+      "kind": "reviewer",
+      "selector": {"all_of": [{"signal": "lang", "contains": "py"}]},
+      "priority": "medium"
+    }
+  },
+
+  "_extension_hint": {
+    "note": "This catalog covers 5 main lines + AppSec v3.0 + L12. To add more skills (brand assets / meeting-analyzer / language-specific reviewers / vercel:* overlays / etc.), append entries below following the same schema. Selectors must reference signals defined in templates/SCAN-VECTOR-SCHEMA.md. Adding entries without updating SKILL.md anti-patterns or SCAN section is OK; adding new signal dimensions requires SCHEMA update."
+  }
+}

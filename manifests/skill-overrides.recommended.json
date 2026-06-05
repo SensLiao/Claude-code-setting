@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0.0",
+  "generated_date": "2026-05-23",
+  "description": "Recommended `skillOverrides` patch for ~/.claude/settings.json. Each entry sets visibility for a skill. Apply selectively. Do NOT auto-apply this file — it is a recommendation for the user to merge into settings.json via /claude-env-bootstrap or manual edit.",
+
+  "visibility_legend": {
+    "on": "Name + description in Claude context; appears in / menu. (default)",
+    "name-only": "Name only in Claude context; appears in / menu.",
+    "user-invocable-only": "Hidden from Claude context; appears in / menu (user can invoke).",
+    "off": "Hidden from Claude context; hidden from / menu."
+  },
+
+  "recommended_overrides": {
+    "claude-env-bootstrap": "user-invocable-only",
+    "authorized-pentest-validation": "user-invocable-only",
+    "pentest-scope-and-roe": "on",
+    "anchor-prototype-wave": "user-invocable-only",
+    "brutalist-skill": "user-invocable-only",
+    "output-skill": "user-invocable-only",
+    "codex-dispatch": "name-only",
+    "skill-creator": "name-only"
+  },
+
+  "rationale": {
+    "claude-env-bootstrap": "Bootstrap has side effects (writes files, copies skills, modifies CLAUDE.md). v1.1 design: manual-first via /claude-env-bootstrap. Do not let Claude auto-fire on phrases like 'orchestrator' or 'project setup'.",
+    "authorized-pentest-validation": "Active security validation MUST NEVER auto-trigger. Hard gate via disable-model-invocation:true at SKILL.md level AND user-invocable-only at settings.json level — defense in depth.",
+    "pentest-scope-and-roe": "Stays visible (on). This is the governance gate that proactively reminds Claude to confirm ROE before any active testing — hiding it would defeat its purpose. Allowed-tools: Read only.",
+    "anchor-prototype-wave": "Multi-surface production wave with parallel subagents. Expensive; user should explicitly trigger.",
+    "brutalist_style": "brutalist-skill: experimental L3 style — requires explicit user opt-in by name.",
+    "name_only_collection": "codex-dispatch / skill-creator: useful but description should not autoload to avoid drift; user-typed name still triggers."
+  },
+
+  "merge_strategy": {
+    "preferred": "Use /claude-env-bootstrap to merge these into ~/.claude/settings.json `skillOverrides` block.",
+    "manual": "Open ~/.claude/settings.json, locate top-level `skillOverrides`, merge entries from this file. Do NOT replace the entire block — additive merge only.",
+    "rollback": "Pre-edit backup of settings.json is at ~/.claude/_backup-20260523-v4/settings.json. To revert this overrides patch: copy that file back."
+  },
+
+  "see_also": [
+    "skills.manifest.json",
+    "skill-routing-policy.json",
+    "../docs/ORCHESTRATOR-MAP.md"
+  ]
+}

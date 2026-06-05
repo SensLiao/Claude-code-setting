@@ -1,0 +1,30 @@
+# --- Node ---
+node_modules/
+dist/
+.pnpm-store/
+
+# --- Python venv used by geo-seo-claude vendor adapter ---
+.venv-discoverability/
+__pycache__/
+*.pyc
+
+# --- TypeScript build cache ---
+*.tsbuildinfo
+
+# --- Test / coverage output ---
+coverage/
+
+# --- Evidence output ---
+# Pick ONE of the two strategies below:
+#
+# Strategy A (default): only persist evidence as a CI artifact, not in git.
+#   Uncomment the next line to ignore all generated evidence locally.
+# evidence/discoverability/
+#
+# Strategy B: commit evidence to git for historical diffability across releases.
+#   Leave the line above commented and keep evidence/ tracked. Useful for
+#   `git log -p evidence/discoverability/` regression analysis.
+
+# --- Vendor scratch dirs ---
+tools/vendor/geo-seo-claude/__pycache__/
+tools/vendor/geo-seo-claude/*.tmp

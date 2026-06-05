@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/GATE_DECISION_SCHEMA.v1",
+  "title": "Gate Decision Output (deterministic op)",
+  "description": "Documented schema for Gate / StaticGate / VisualGate / A11yGate / PerfGate deterministic-op outputs. Reference only — deterministic ops are not agent-validated against ajv. Used for documentation and downstream consumer typing.",
+  "type": "object",
+  "required": ["decision"],
+  "properties": {
+    "decision": { "type": "string", "enum": ["PASS", "WARN", "BLOCK"] },
+    "blocking_layers": { "type": "array", "items": { "type": "string" } },
+    "warned_layers": { "type": "array", "items": { "type": "string" } },
+    "critical_path_coverage": {
+      "type": "object",
+      "properties": {
+        "covered_paths": { "type": "array", "items": { "type": "string" } },
+        "uncovered_paths": { "type": "array", "items": { "type": "string" } },
+        "coverage_pct": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "missing_owners": { "type": "array", "items": { "type": "string" } },
+    "floor_triggered": { "type": "boolean" },
+    "floor_action": { "type": "string" },
+    "advisory_warnings": { "type": "array", "items": { "type": "string" } },
+    "failed_checks": { "type": "array", "items": { "type": "string" } }
+  }
+}

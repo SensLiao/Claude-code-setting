@@ -1,0 +1,153 @@
+{
+  "engine_version": "1.0",
+  "orchestrator": "appsec",
+  "phases": [
+    {
+      "name": "Scope",
+      "type": "single",
+      "model": "strongest_available",
+      "agentType": "appsec-risk-classifier",
+      "prompt_ref": "scope.v1",
+      "schema_ref": "SCOPE_SCHEMA.v1"
+    },
+    {
+      "name": "Plan",
+      "type": "single",
+      "model": "strongest_available",
+      "agentType": "appsec-risk-classifier",
+      "prompt_ref": "plan.v1",
+      "schema_ref": "PLAN_SCHEMA.v1",
+      "post_invariants": [
+        "ensure_csf_coverage"
+      ]
+    },
+    {
+      "name": "Find",
+      "type": "fanout",
+      "items_from": "state.Plan.selected_finders",
+      "model": "balanced",
+      "agentType": "appsec-reviewer",
+      "prompt_ref": "find.v1",
+      "schema_ref": "FIND_SCHEMA.v1"
+    },
+    {
+      "name": "Normalize",
+      "type": "single",
+      "model": "balanced",
+      "agentType": "appsec-finding-triager",
+      "prompt_ref": "normalize.v1",
+      "schema_ref": "NORMALIZE_SCHEMA.v1",
+      "skip_if": "no_candidates",
+      "skip_default": {
+        "findings": []
+      }
+    },
+    {
+      "name": "Dedup",
+      "type": "deterministic",
+      "op": "fingerprint_cluster",
+      "post_invariants": [
+        "prune_below_floor"
+      ]
+    },
+    {
+      "name": "Verify",
+      "type": "pipeline",
+      "items_from": "state.Dedup.eligible_clusters",
+      "stages": [
+        {
+          "type": "fanout",
+          "model": "balanced",
+          "agentType": "appsec-finding-triager",
+          "prompt_ref": "verify.v1",
+          "schema_ref": "VOTE_SCHEMA.v1",
+          "vote_count_by_severity": {
+            "low": 1,
+            "medium": 3,
+            "high": 5,
+            "critical": 5
+          }
+        },
+        {
+          "type": "fanout",
+          "model": "balanced",
+          "agentType": "appsec-reviewer",
+          "prompt_ref": "verify.v1",
+          "schema_ref": "VOTE_SCHEMA.v1",
+          "vote_count_by_severity": {
+            "low": 1,
+            "medium": 1,
+            "high": 1,
+            "critical": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "Map",
+      "type": "single",
+      "model": "strongest_available",
+      "agentType": "appsec-finding-triager",
+      "prompt_ref": "map.v1",
+      "schema_ref": "MAP_SCHEMA.v1",
+      "skip_if": "no_accepted",
+      "skip_default": {
+        "findings": []
+      }
+    },
+    {
+      "name": "Gate",
+      "type": "deterministic",
+      "op": "appsec_gate_policy"
+    },
+    {
+      "name": "Synthesize",
+      "type": "single",
+      "model": "strongest_available",
+      "agentType": "appsec-evidence-validator",
+      "prompt_ref": "synthesize.v1",
+      "schema_ref": "SYNTH_SCHEMA.v1"
+    },
+    {
+      "name": "PersistEvidence",
+      "type": "single",
+      "model": "balanced",
+      "agentType": "appsec-evidence-validator",
+      "prompt_ref": "persist-evidence.v1",
+      "schema_ref": "PERSIST_SCHEMA.v1",
+      "sdk": {
+        "command": "appsec-sdk evidence.append",
+        "layer": "workflow-state"
+      }
+    },
+    {
+      "name": "PersistPaymentOverlay",
+      "type": "single",
+      "model": "balanced",
+      "agentType": "appsec-evidence-validator",
+      "prompt_ref": "persist-evidence.v1",
+      "schema_ref": "PERSIST_SCHEMA.v1",
+      "sdk": {
+        "command": "appsec-sdk overlay.activate",
+        "layer": "overlay-payment"
+      }
+    }
+  ],
+  "prompts": {},
+  "schemas": {},
+  "ops_allowed": {
+    "deterministic": [
+      "fingerprint_cluster",
+      "appsec_gate_policy",
+      "compute_recall"
+    ],
+    "predicates": [
+      "no_candidates",
+      "no_accepted"
+    ],
+    "invariants": [
+      "ensure_csf_coverage",
+      "prune_below_floor"
+    ]
+  }
+}

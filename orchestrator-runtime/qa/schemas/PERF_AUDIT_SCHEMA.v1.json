@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/PERF_AUDIT_SCHEMA.v1",
+  "title": "Performance Audit Output",
+  "description": "Output of PerfAudit agent node (commercial-cert only, R9 NEW). Runs Lighthouse CI / bundle analyzer / k6-light. Consumed by deterministic PerfGate op.",
+  "_canonical_threshold_policy": {
+    "_doc": "DOUBLE-WRITE anchor (slice qa-a11y-perf, 2026-06-05). Canonical Core Web Vitals gate floors that MUST be mirrored into ctx.policy.perf_floor when enterprise-qa-testing launches the commercial-cert workflow. Field names match exactly what qa-orchestrator.js `perf_gate_policy` reads (floor.max_lcp_ms / max_inp_ms / max_cls / max_tbt_ms / max_bundle_size_bytes). Baked default ALSO lives in presets/commercial-cert.json context.policy.perf_floor. CRITICAL: qa-orchestrator.js perf_gate_policy defaults any UNSET floor field to Infinity (never blocks) — so leaving perf_floor unset = silent non-enforcement. Authoring this here + baking the preset default closes that hole. ADDITIVE / non-enforced JSON-Schema field (descriptive only).",
+    "_cwv_note": "Thresholds are the Google Core Web Vitals 'good' boundaries. INP (Interaction to Next Paint) REPLACED FID (First Input Delay) as a Core Web Vital on 2024-03-12; there is no FID field in this schema.",
+    "max_lcp_ms": 2500,
+    "max_inp_ms": 200,
+    "max_cls": 0.1,
+    "max_tbt_ms": 200,
+    "_decision_semantics": "lcp_ms or inp_ms over threshold => BLOCK (CWV core); cls/tbt/bundle over threshold => WARN. max_bundle_size_bytes is intentionally NOT baked globally (route/app dependent — set per project in ctx.policy.perf_floor.max_bundle_size_bytes; unset => not gated)."
+  },
+  "type": "object",
+  "required": ["command_evidence", "metrics"],
+  "properties": {
+    "command_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["cmd", "exit_code"],
+        "properties": {
+          "cmd": { "type": "string" },
+          "stdout": { "type": "string" },
+          "stderr": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "duration_ms": { "type": "integer" }
+        }
+      }
+    },
+    "tool": { "type": "string", "enum": ["lighthouse-ci", "playwright-perf", "k6", "bundle-analyzer", "web-vitals"] },
+    "target_url": { "type": "string" },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "lcp_ms": { "type": "number", "description": "Largest Contentful Paint" },
+        "inp_ms": { "type": "number", "description": "Interaction to Next Paint" },
+        "cls": { "type": "number", "description": "Cumulative Layout Shift" },
+        "fcp_ms": { "type": "number", "description": "First Contentful Paint" },
+        "tbt_ms": { "type": "number", "description": "Total Blocking Time" },
+        "ttfb_ms": { "type": "number", "description": "Time To First Byte" },
+        "speed_index": { "type": "number" },
+        "lighthouse_perf_score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "bundle_size_bytes": { "type": "integer" },
+        "bundle_size_delta_pct": { "type": "number" }
+      }
+    },
+    "regressed_metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["metric", "current", "threshold"],
+        "properties": {
+          "metric": { "type": "string" },
+          "current": { "type": "number" },
+          "threshold": { "type": "number" },
+          "delta_pct_vs_baseline": { "type": "number" }
+        }
+      }
+    },
+    "decision_hint": { "type": "string", "enum": ["PASS", "WARN", "FAIL"], "description": "Agent's draft assessment; deterministic PerfGate makes final decision" }
+  }
+}

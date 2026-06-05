@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/LAYER_SELECT_SCHEMA.v1",
+  "title": "QA Layer Selection Output",
+  "description": "Output of LayerSelect node. Decides which of the 9 QA layers + 3 cross-cutting to dispatch based on risk_snapshot + changed surfaces. Consumed by downstream agent fanout nodes.",
+  "type": "object",
+  "required": ["selected_layers", "changed_surfaces", "rationale_per_layer"],
+  "properties": {
+    "selected_layers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["Static", "Unit-TDD", "Component", "Integration", "Contract", "E2E", "Visual", "A11y", "Perf", "Smoke", "TestData", "FlakyGovernance"]
+      },
+      "uniqueItems": true
+    },
+    "rationale_per_layer": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["why_selected"],
+        "properties": {
+          "why_selected": { "type": "string" },
+          "evidence_refs": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "skipped_layers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["layer", "reason_evidence"],
+        "properties": {
+          "layer": { "type": "string" },
+          "reason_evidence": { "type": "string", "description": "Falsifiable evidence per enterprise-qa-testing §10 Evidence-Gated Skip Rules" }
+        }
+      }
+    },
+    "changed_surfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "kind"],
+        "properties": {
+          "path": { "type": "string" },
+          "kind": { "type": "string", "enum": ["component", "api-contract", "page", "service", "schema", "config", "test", "other"] },
+          "diff_summary": { "type": "string" }
+        }
+      }
+    },
+    "critical_scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["scenario_id", "journey"],
+        "properties": {
+          "scenario_id": { "type": "string" },
+          "journey": { "type": "string", "description": "e.g. login-to-checkout" },
+          "critical_path_category": { "type": "string" }
+        }
+      }
+    }
+  }
+}

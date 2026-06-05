@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://claude.local/orchestrator-runtime/shared/orchestrator-spec.v1.json",
+  "title": "Cross-orchestrator Spec Vocabulary v1",
+  "description": "Shared spec schema for AppSec / QA / UIUX / GSD orchestrator workflow bases. Skill emits a spec matching this schema; the domain workflow base interprets it. CAVEAT-applied: additionalProperties:false everywhere, type-specific required fields, strict path-safe patterns.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["engine_version", "orchestrator", "phases", "prompts", "schemas"],
+  "properties": {
+    "engine_version": { "const": "1.0" },
+    "orchestrator": { "enum": ["appsec", "qa", "uiux", "gsd"] },
+    "domain_runtime_version": {
+      "description": "Per-orchestrator runtime version (e.g. qa-0.1.0, appsec-1.0.0). Bumped when domain registry/preset shape changes incompatibly. ORCHESTRATION-MIGRATION-PLAN.md §1.11 #16.",
+      "type": "string",
+      "pattern": "^[a-z]+-[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "preset_name": {
+      "description": "Identifier matching preset filename stem (e.g. graph-smoke, quick-check, focused-qa-gate). Optional self-describing field for preset templates.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "mode": {
+      "description": "Mode label that triggers this preset's selection. Optional self-describing field for preset templates.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "context": {
+      "description": "Skill main thread fills runtime-only fields like risk_snapshot (per R4 Option A), release_tag, run_id, critical_release_paths, policy. Workflow body MAY read these into ctx.<field>.",
+      "type": "object"
+    },
+    "_estimate": {
+      "description": "Self-describing budget/wallclock/evidence metadata. Preview renderer reads these; Workflow body ignores. Optional.",
+      "type": "object",
+      "properties": {
+        "token_estimate_low": { "type": "integer", "minimum": 0 },
+        "token_estimate_high": { "type": "integer", "minimum": 0 },
+        "hard_budget_cap": { "type": "integer", "minimum": 0 },
+        "wallclock_estimate_minutes": { "type": "number", "minimum": 0 },
+        "evidence_layers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "model_policy_version": {
+      "description": "§1.11 correction #2 (2026-05-28). Skill writes sha256: prefixed snapshot of resolved override map + default mapping. Workflow body includes this in node_fingerprint so any policy-mapping change invalidates resume cache.",
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "phases": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/Node" }
+    },
+    "prompts": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "schemas": {
+      "type": "object",
+      "additionalProperties": { "type": "object" }
+    },
+    "ops_allowed": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deterministic": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" } },
+        "predicates": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" } },
+        "invariants": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" } }
+      }
+    },
+    "_note":         { "type": "string", "description": "Free-form doc note for preset authors (Workflow ignores)." },
+    "_doc_ref":      { "type": "string", "description": "Citation to authoritative blueprint/plan section (Workflow ignores)." },
+    "_when":         { "type": "string", "description": "Human description of when this preset fires (Workflow ignores)." },
+    "_banner":       { "type": "string", "description": "Preview banner text (Skill renders, Workflow ignores)." },
+    "_d1_caveat":    { "type": "string", "description": "QA Phase B D1 roadmap caveat note." },
+    "_r9_note":      { "type": "string", "description": "Inline note pinning to reviewer R9 audit-gate pattern." },
+    "_r13_note":     { "type": "string", "description": "Inline note pinning to reviewer R13 budget reconciliation." },
+    "_resolved_model_policy": { "type": "string", "description": "Dual-layer model rule: model alias is production abstraction (skill resolves); resolved_model in preset JSON is pre-baked TEST/DEV default capped at haiku|sonnet. Workflow ignores; documentation only." },
+    "allow_dynamic_workflow": {
+      "type": "boolean",
+      "description": "Governed Gate Mode field (2026-05-29, post-4.8). false (and absent ⇒ false) means: this spec's release/security verdict MUST come from the deterministic spec-runner walking these exact phases — a model-authored Dynamic Workflow may NOT produce the verdict. Governed presets (release-readiness / commercial-cert / l3-payment / incident-response / pentest gates) MUST set false. Bound into spec_hash so the human approval pins it. Dynamic Workflows remain fine for exploration/migration OUTSIDE the gate. See CLAUDE.md Governed Gate Mode."
+    },
+    "_execution_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Self-describing execution-governance profile (2026-05-29, post-4.8). Preview renderer surfaces it and spec-hash includes it (so approval pins it); the Workflow body IGNORES it (underscore-prefixed). NOTE: effort/speed/thinking are SESSION-level controls captured here for audit reproducibility only — native agent() has no effort/speed/thinking parameter as of Claude Code 2.1.154, so the runner does NOT pass them per-agent. resolved_model_at_approval records the concrete model id the alias resolved to at approval time for the audit trail; it does NOT override the preset's test-capped resolved_model.",
+      "properties": {
+        "effort": { "enum": ["low", "medium", "high", "xhigh", "max"], "description": "Intended session effort (Opus 4.8 default high; xhigh for hardest gates; max only when justified)." },
+        "speed": { "enum": ["standard", "fast"], "description": "Orthogonal to model tier. Governed gates default standard — never route a gate verdict node to fast mode by default; fast/standard do not share prompt cache." },
+        "thinking": { "enum": ["adaptive"], "description": "Opus 4.8/4.7 support adaptive thinking only; manual budget_tokens is rejected." },
+        "resolved_model_at_approval": {
+          "type": "string",
+          "description": "Audit-only concrete model id captured at approval (e.g. claude-opus-4-8). Documentation/audit field; does NOT change node.resolved_model (which stays test-capped per the dual-layer rule)."
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "stall_ms": {
+          "description": "Reviewer R8 (2026-05-28) — per-node Workflow tool stall_ms override. Long-running QA/AppSec/L12 layers (E2E / npm audit / Lighthouse / visual / a11y / perf) routinely exceed default 180s. Integer milliseconds.",
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 3600000
+        },
+        "timeout_policy": {
+          "description": "Reviewer R8 — symbolic timeout-policy label. Documents WHY stall_ms is set; hashNode includes this so policy changes invalidate cache. Lower-case identifier.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "prompt_ref_by_kind": {
+          "description": "QA fanout pattern — per-item kind dispatches different prompts (e.g. component vs api-contract). Skill resolves at launch.",
+          "type": "object",
+          "additionalProperties": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]*$" }
+        },
+        "schema_ref_by_kind": {
+          "description": "QA fanout pattern — per-item kind dispatches different schemas.",
+          "type": "object",
+          "additionalProperties": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(\\.v[0-9]+)?$" }
+        },
+        "_width_range": {
+          "description": "Dynamic fanout width range [min, max]. Skill picks N in range at runtime based on changed-surface count etc. Workflow body ignores; the actual width comes from items_from resolution.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "integer", "minimum": 1 }
+        },
+        "_items_range": {
+          "description": "Dynamic pipeline-items range [min, max]. Analogous to _width_range for pipeline.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "integer", "minimum": 1 }
+        },
+        "_smoke_pin_width": {
+          "description": "When preset is graph-smoke / smoke, fanout width is pinned to this fixed value (per ORCHESTRATION-MIGRATION-PLAN.md §1.11 #14). Skill MUST pin items to this exact count, ignoring any dynamic _width_range.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "_smoke_pin_items": {
+          "description": "Pipeline analog of _smoke_pin_width. Smoke pipelines pinned to exactly this many items.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "_smoke_pin_note":  { "type": "string" },
+        "_smoke_width_note":{ "type": "string" },
+        "_smoke_items_note":{ "type": "string" },
+        "_width_note":      { "type": "string" },
+        "_r8_note":         { "type": "string" },
+        "_dispatch_note":   { "type": "string", "description": "Inline note documenting agentType dispatch policy at this phase (e.g. dual-handler scope, runner migration history). B.1.f addition 2026-05-29." },
+        "name": { "type": "string", "pattern": "^[A-Z][a-zA-Z0-9_-]+$" },
+        "type": { "enum": ["single", "fanout", "pipeline", "deterministic"] },
+        "model": {
+          "description": "Aliases (preferred): cheap_fast | balanced | strongest_available | inherit. Bare legacy: haiku | sonnet | opus. Versioned legacy: haiku-4.5 | sonnet-4.6 | opus-4.8 etc.",
+          "oneOf": [
+            { "enum": ["cheap_fast", "balanced", "strongest_available", "inherit"] },
+            { "type": "string", "pattern": "^(haiku|sonnet|opus)(-[0-9][a-z0-9.-]*)?$" }
+          ]
+        },
+        "resolved_model": {
+          "description": "§1.11 correction #2 (2026-05-28). Skill pre-resolves the alias to a literal model name. If present, Workflow body uses this directly and does NOT re-resolve. If absent, Workflow body falls back to its built-in resolveModel() for backward-compat with pre-v1.11 args.",
+          "type": "string",
+          "pattern": "^(haiku|sonnet|opus|inherit)(-[0-9][a-z0-9.-]*)?$"
+        },
+        "agentType": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "prompt_ref": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]*$" },
+        "schema_ref": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(\\.v[0-9]+)?$" },
+        "items_from": { "type": "string", "pattern": "^(state|ctx)(\\.[A-Za-z_][A-Za-z0-9_]*)+$" },
+        "stages": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/Stage" }
+        },
+        "op": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "params": { "type": "object" },
+        "skip_if": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "skip_default": {},
+        "post_invariants": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+        },
+        "invariant_params": { "type": "object" },
+        "isolation": { "enum": ["worktree"] },
+        "label": { "type": "string" },
+        "sdk": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "command": { "type": "string", "minLength": 1 },
+            "layer": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*$" }
+          },
+          "required": ["command"]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "single" } } },
+          "then": { "required": ["prompt_ref", "schema_ref", "agentType"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "fanout" } } },
+          "then": { "required": ["items_from", "prompt_ref", "schema_ref", "agentType"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "pipeline" } } },
+          "then": { "required": ["items_from", "stages"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "deterministic" } } },
+          "then": {
+            "required": ["op"],
+            "not": {
+              "anyOf": [
+                { "required": ["prompt_ref"] },
+                { "required": ["schema_ref"] },
+                { "required": ["agentType"] }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "Stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "name": {
+          "description": "Optional stage label for pipeline stages (e.g. 'prepare', 'run-validate').",
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_-]*$"
+        },
+        "stall_ms": {
+          "description": "Reviewer R8 — per-stage Workflow tool stall_ms override.",
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 3600000
+        },
+        "timeout_policy": {
+          "description": "Reviewer R8 — symbolic timeout-policy label.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "type": { "enum": ["fanout", "single"] },
+        "model": {
+          "description": "Aliases (preferred): cheap_fast | balanced | strongest_available | inherit. Bare legacy: haiku | sonnet | opus. Versioned legacy: haiku-4.5 | sonnet-4.6 | opus-4.8 etc.",
+          "oneOf": [
+            { "enum": ["cheap_fast", "balanced", "strongest_available", "inherit"] },
+            { "type": "string", "pattern": "^(haiku|sonnet|opus)(-[0-9][a-z0-9.-]*)?$" }
+          ]
+        },
+        "resolved_model": {
+          "description": "§1.11 correction #2 (2026-05-28). Skill pre-resolves the alias to a literal model name. If present, Workflow body uses this directly and does NOT re-resolve. If absent, Workflow body falls back to its built-in resolveModel() for backward-compat with pre-v1.11 args.",
+          "type": "string",
+          "pattern": "^(haiku|sonnet|opus|inherit)(-[0-9][a-z0-9.-]*)?$"
+        },
+        "agentType": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "prompt_ref": { "type": "string", "pattern": "^[a-z][a-z0-9_.-]*$" },
+        "schema_ref": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(\\.v[0-9]+)?$" },
+        "vote_count_by_severity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "info": { "type": "integer", "minimum": 1, "maximum": 7 },
+            "low": { "type": "integer", "minimum": 1, "maximum": 7 },
+            "medium": { "type": "integer", "minimum": 1, "maximum": 7 },
+            "high": { "type": "integer", "minimum": 1, "maximum": 7 },
+            "critical": { "type": "integer", "minimum": 1, "maximum": 7 }
+          }
+        }
+      }
+    }
+  }
+}

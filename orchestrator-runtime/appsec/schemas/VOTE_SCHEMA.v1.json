@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "VOTE_SCHEMA.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "decision",
+    "rationale"
+  ],
+  "properties": {
+    "decision": {
+      "enum": [
+        "accept",
+        "reject",
+        "needs-human"
+      ]
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

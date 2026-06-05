@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "SCOPE_SCHEMA.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tech_stack",
+    "sensitive_areas"
+  ],
+  "properties": {
+    "tech_stack": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "sensitive_areas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    }
+  }
+}

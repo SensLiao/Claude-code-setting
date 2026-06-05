@@ -1,0 +1,34 @@
+{
+  "_schema_version": "1.0.0",
+  "active_run_tag": "v1.0.0-rc1",
+  "active_run": true,
+  "gate_status": "PENDING",
+  "stale_reasons": [
+    {
+      "reason": "metadata.ts changed after last gate",
+      "file_path": "app/metadata.ts",
+      "marked_at": "2026-05-25T15:00:00Z",
+      "marked_by": "disc-mark-stale-hook"
+    }
+  ],
+  "last_gate_at": "2026-05-25T14:30:00Z",
+  "last_gate_result": "PASS",
+  "last_gate_evidence_hash": "sha256:abc123...",
+  "config_path": "discoverability.config.yaml",
+  "config_hash": "sha256:def456...",
+  "harness_version": "1.0.0",
+
+  "_field_docs": {
+    "_schema_version": "semver of state.json schema; bump major when adding/removing fields or changing enums",
+    "active_run_tag": "string|null; current active run tag (e.g. 'v1.0.0-rc1', git short SHA, or manual tag); null when no run is in progress",
+    "active_run": "bool; if false, disc-evidence-required hook does NOT gate Stop events even when assistant claims discoverability completion",
+    "gate_status": "enum: PENDING | STALE | PASS | WARN | FAIL | BLOCKED. PENDING = run initialized but gate.check not yet run; STALE = mark-stale hook fired since last gate.check; PASS/WARN/FAIL/BLOCKED mirror last_gate_result",
+    "stale_reasons": "array; APPEND-ONLY during a run; each entry is an object {reason: string, file_path: string (relative), marked_at: ISO 8601 UTC, marked_by: string (hook or agent name)}. Cleared on next successful gate.check.",
+    "last_gate_at": "ISO 8601 UTC timestamp; when gate.check last ran successfully (PASS or WARN or FAIL — but NOT when it errored out)",
+    "last_gate_result": "enum: PASS | WARN | FAIL | BLOCKED | null; mirror of last gate-result.yaml decision; null when no gate.check has been run yet",
+    "last_gate_evidence_hash": "sha256 hex digest of the evidence/discoverability/<tag>/ directory contents (sorted file list + each file SHA256, then hashed); used by disc-mark-stale to detect evidence drift",
+    "config_path": "string; relative path from project root to the active discoverability.config.yaml (default: 'discoverability.config.yaml'); orchestrator + SDK + hooks read from this path",
+    "config_hash": "sha256 hex digest of the config file contents; any config change → mark stale → forces gate.check rerun",
+    "harness_version": "semver string; the harness version this state.json was created with; used for forward-compat detection if state schema evolves"
+  }
+}

@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://claude.local/schemas/hook-registry.schema.json",
+  "title": "Hook Registry",
+  "description": "JSON Schema for manifests/hook-registry.json. Classifies every hook file on disk as one of: globally-live (registered in ~/.claude/settings.json), project-installed (shipped via templates/<subsystem>/settings*.snippet*), library_modules (shared helpers like _appsec-common.js that are not directly registered), dormant_opt_in (file exists but intentionally not wired), or deprecated. The tools/hooks/lint.js script asserts: (a) every hook in `global_live` is referenced by command in settings.json, (b) every hook in `project_installed.<subsystem>.hooks` is referenced in the corresponding subsystem snippet, (c) every hook file on disk is classified somewhere (no orphans). Authoritative reference: docs/CANONICALS.md §1 D3.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "global_live",
+    "project_installed",
+    "library_modules",
+    "dormant_opt_in",
+    "deprecated"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "generated_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "generated_by": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+
+    "global_live": {
+      "type": "object",
+      "description": "Hooks registered in ~/.claude/settings.json (fire on every session globally)",
+      "required": ["owner_subsystem", "hooks"],
+      "additionalProperties": false,
+      "properties": {
+        "owner_subsystem": {
+          "type": "string",
+          "description": "Subsystem that owns the globally-live hook set (typically 'gsd' for the GSD pipeline)"
+        },
+        "settings_path": {
+          "type": "string",
+          "description": "Path to the settings.json file these hooks are registered in (default: ~/.claude/settings.json)"
+        },
+        "hooks": {
+          "type": "array",
+          "minItems": 0,
+          "items": { "$ref": "#/$defs/GlobalLiveHook" }
+        }
+      }
+    },
+
+    "project_installed": {
+      "type": "object",
+      "description": "Per-subsystem hooks that are ONLY active when the subsystem template is installed into a project (gated by config presence). Per CANONICALS §1 D3: fresh projects without the subsystem config have NO subsystem-hook enforcement.",
+      "additionalProperties": false,
+      "properties": {
+        "appsec":         { "$ref": "#/$defs/SubsystemInstallEntry" },
+        "qa":             { "$ref": "#/$defs/SubsystemInstallEntry" },
+        "uiux":           { "$ref": "#/$defs/SubsystemInstallEntry" },
+        "discoverability":{ "$ref": "#/$defs/SubsystemInstallEntry" }
+      }
+    },
+
+    "library_modules": {
+      "type": "array",
+      "description": "Shared helper modules required by hooks but not registered themselves (e.g. _appsec-common.js, _qa-common.js, _uiux-common.js, _disc-common.js)",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+
+    "dormant_opt_in": {
+      "type": "array",
+      "description": "Hook files that exist on disk but are intentionally not wired (kept for opt-in or future activation)",
+      "items": {
+        "type": "object",
+        "required": ["name", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "name":       { "type": "string", "minLength": 1 },
+          "path":       { "type": "string" },
+          "reason":     { "type": "string", "minLength": 1 },
+          "opt_in_via": { "type": "string", "description": "How to enable this hook if desired" }
+        }
+      }
+    },
+
+    "deprecated": {
+      "type": "array",
+      "description": "Hook names that are deprecated; tests should fail if they are referenced in any settings or snippet",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+
+  "$defs": {
+    "GlobalLiveHook": {
+      "type": "object",
+      "required": ["name", "phase", "command_pattern"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Hook identifier (typically the filename minus extension, e.g. gsd-prompt-guard)"
+        },
+        "path": {
+          "type": "string",
+          "description": "Relative path under ~/.claude/ to the hook file"
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "PreToolUse",
+            "PostToolUse",
+            "Stop",
+            "SessionStart",
+            "PreCompact",
+            "UserPromptSubmit",
+            "Notification"
+          ]
+        },
+        "matcher": {
+          "type": "string",
+          "description": "Tool matcher pattern from settings.json (Bash | Edit|Write | * etc.)"
+        },
+        "command_pattern": {
+          "type": "string",
+          "description": "Substring or regex fragment that must appear in the settings.json command for this hook to be considered registered. Used by tools/hooks/lint.js for reference verification."
+        },
+        "owner_subsystem": {
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "async": {
+          "type": "boolean"
+        },
+        "blocking": {
+          "type": "boolean",
+          "description": "Whether this hook can exit non-zero to block the action"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+
+    "SubsystemInstallEntry": {
+      "type": "object",
+      "required": ["snippet_path", "hooks"],
+      "additionalProperties": false,
+      "properties": {
+        "snippet_path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Relative path to the snippet that ships with this subsystem (e.g. templates/discoverability/settings-snippet.json)"
+        },
+        "install_location_hint": {
+          "type": "string",
+          "description": "Where project authors merge the snippet (typically <project>/.claude/settings.json)"
+        },
+        "config_gate": {
+          "type": "string",
+          "description": "Config file whose presence enables the hooks (e.g. discoverability.config.yaml). Without it, hooks silent-exit."
+        },
+        "source_dir": {
+          "type": "string",
+          "description": "Where the hook source files live (typically templates/<subsystem>/hooks/ or ~/.claude/hooks/)"
+        },
+        "hooks": {
+          "type": "array",
+          "minItems": 0,
+          "items": { "$ref": "#/$defs/ProjectInstalledHook" }
+        }
+      }
+    },
+
+    "ProjectInstalledHook": {
+      "type": "object",
+      "required": ["name", "phase", "command_pattern"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "description": "Relative path to the hook file. Tests check this file actually exists."
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "PreToolUse",
+            "PostToolUse",
+            "Stop",
+            "SessionStart",
+            "PreCompact",
+            "UserPromptSubmit",
+            "Notification"
+          ]
+        },
+        "matcher": {
+          "type": "string"
+        },
+        "command_pattern": {
+          "type": "string",
+          "description": "Substring that must appear in the corresponding snippet's command field. Used by tools/hooks/lint.js."
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "disable_via_config": {
+          "type": "string",
+          "description": "Config key to disable just this hook (e.g. harness.hook_modes.deploy_gate = off)"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

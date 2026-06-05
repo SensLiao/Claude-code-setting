@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "SYNTH_SCHEMA.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "executive_summary",
+    "top_blocking",
+    "recall_outcome"
+  ],
+  "properties": {
+    "executive_summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "top_blocking": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "recall_outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "confirmed",
+        "missed",
+        "recall_rate"
+      ],
+      "properties": {
+        "confirmed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recall_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}
