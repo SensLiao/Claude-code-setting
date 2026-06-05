@@ -1,0 +1,150 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://claude.local/schemas/gate-decision.schema.yaml"
+title: Gate Decision (canonical harness vocabulary)
+description: >-
+  Canonical 7-value enum used by every harness gate (L12 discoverability,
+  AppSec v3.0 GSD-lite, enterprise-qa-testing, UIUX release gate, GSD
+  delivery gates). Single source of truth for `decision` values written
+  into evidence/<subsystem>/<tag>/gate-result.yaml.
+
+  Authoritative reference: docs/CANONICALS.md §3 (gate decision vocabulary).
+type: object
+required:
+  - decision
+  - reason
+  - evidence_refs
+  - timestamp
+  - gate_tag
+additionalProperties: false
+properties:
+  decision:
+    description: Canonical 7-value gate outcome enum
+    type: string
+    enum:
+      - PASS
+      - WARN
+      - CONDITIONAL_PASS
+      - FAIL
+      - BLOCKED
+      - STALE
+      - STRATEGY_READY
+  reason:
+    description: Human-readable explanation; required for non-PASS outcomes
+    type: string
+    minLength: 1
+  evidence_refs:
+    description: >-
+      Relative paths or stable URIs that back this decision. Validators
+      must verify these exist and are within the configured evidence root
+      for the subsystem.
+    type: array
+    items:
+      type: string
+      minLength: 1
+    minItems: 0
+    uniqueItems: true
+  timestamp:
+    description: ISO 8601 timestamp (UTC) when the decision was computed
+    type: string
+    format: date-time
+  gate_tag:
+    description: >-
+      Tag-scoped identifier for the gate run (e.g. `pre-prod`, `pr-123`,
+      `release-v1.4.0`). Maps to <tag> dimension in evidence paths.
+    type: string
+    pattern: "^[A-Za-z0-9._/-]{1,120}$"
+  subsystem:
+    description: >-
+      Optional subsystem identifier (appsec | qa | uiux | discoverability
+      | gsd). Validators may use this to route to subsystem-specific
+      release rules.
+    type: string
+    enum:
+      - appsec
+      - qa
+      - uiux
+      - discoverability
+      - gsd
+  schema_version:
+    description: Schema version stamp written by the producing SDK
+    type: string
+    pattern: "^\\d+\\.\\d+\\.\\d+$"
+  # Added 2026-06-05 (#3 schema-parity): the JSON mirror (the live schema verdict-validator loads)
+  # carried `provenance` but this YAML source did not — a real drift the parity check now catches.
+  # When present, --require-provenance asserts written_by + run_fingerprint.
+  provenance:
+    description: >-
+      Optional provenance stamp written by the producing SDK. Validators run with
+      --require-provenance assert written_by + run_fingerprint are present and well-formed.
+    type: object
+    required:
+      - written_by
+      - run_fingerprint
+    additionalProperties: true
+    properties:
+      written_by:
+        type: string
+        pattern: "^(appsec|qa|uiux|discoverability|gsd)-sdk@\\S+$"
+      run_fingerprint:
+        type: string
+        pattern: "^sha256:[0-9a-f]{64}$"
+      spec_hash:
+        type: string
+        pattern: "^sha256:[0-9a-f]{64}$"
+
+# Release semantics (informational — enforce in SDK gate.check)
+x-release-semantics:
+  description: >-
+    Maps each decision to its release impact. PASS / WARN /
+    CONDITIONAL_PASS are non-blocking; FAIL / BLOCKED / STALE block
+    release. STRATEGY_READY is a planning-phase outcome and is NEVER a
+    release decision — gate.check MUST reject it when invoked in a
+    release context.
+  blocks_release:
+    - FAIL
+    - BLOCKED
+    - STALE
+  allows_release:
+    - PASS
+    - WARN
+    - CONDITIONAL_PASS
+  not_release_decision:
+    - STRATEGY_READY
+  release_with_conditions:
+    decision: CONDITIONAL_PASS
+    requires:
+      - explicit_risk_acceptance_ref
+    note: >-
+      CONDITIONAL_PASS only allows release when the producing SDK has
+      attached an explicit risk acceptance reference (ticket ID, ADR,
+      or signed risk-register entry).
+  must_be_bundled:
+    decision: WARN
+    bundle: release_evidence_bundle
+    note: WARN outcomes are non-blocking but MUST be carried in the release evidence bundle.
+
+examples:
+  - decision: PASS
+    reason: "All 9 QA layers green; coverage 87%; no a11y violations"
+    evidence_refs:
+      - "evidence/qa/release-v1.4.0/layer-reports.json"
+      - "evidence/qa/release-v1.4.0/a11y/axe-report.html"
+    timestamp: "2026-05-25T14:32:11Z"
+    gate_tag: "release-v1.4.0"
+    subsystem: qa
+    schema_version: "1.0.0"
+  - decision: STALE
+    reason: "evidence/discoverability/pre-prod/seo.json older than 168h freshness window"
+    evidence_refs:
+      - "evidence/discoverability/pre-prod/seo.json"
+    timestamp: "2026-05-25T14:32:11Z"
+    gate_tag: "pre-prod"
+    subsystem: discoverability
+  - decision: STRATEGY_READY
+    reason: "Threat model + ROE draft ready for review; not a release decision"
+    evidence_refs:
+      - ".appsec/evidence/threat-model/STRIDE-2026-05-25.md"
+    timestamp: "2026-05-25T14:32:11Z"
+    gate_tag: "plan-phase"
+    subsystem: appsec

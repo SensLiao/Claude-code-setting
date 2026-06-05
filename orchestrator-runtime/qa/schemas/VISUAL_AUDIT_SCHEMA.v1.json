@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/VISUAL_AUDIT_SCHEMA.v1",
+  "title": "Visual Regression Audit Output (per-surface fanout item)",
+  "description": "Output of VisualAudit agent fanout item (commercial-cert only, R9 NEW). Runs Playwright toHaveScreenshot / Storybook visual diff against baseline. Consumed by deterministic VisualGate op.",
+  "type": "object",
+  "required": ["surface", "command_evidence", "baseline_present"],
+  "properties": {
+    "surface": {
+      "type": "object",
+      "required": ["path", "viewport"],
+      "properties": {
+        "path": { "type": "string" },
+        "viewport": {
+          "type": "object",
+          "properties": {
+            "width": { "type": "integer" },
+            "height": { "type": "integer" },
+            "dpr": { "type": "number" }
+          }
+        },
+        "theme": { "type": "string", "enum": ["light", "dark", "auto", "n/a"] }
+      }
+    },
+    "baseline_present": { "type": "boolean" },
+    "baseline_hash": { "type": "string", "description": "sha256 of baseline image bytes for cache fingerprint" },
+    "command_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["cmd", "exit_code"],
+        "properties": {
+          "cmd": { "type": "string" },
+          "stdout": { "type": "string" },
+          "stderr": { "type": "string" },
+          "exit_code": { "type": "integer" }
+        }
+      }
+    },
+    "pixel_diff_count": { "type": "integer", "minimum": 0 },
+    "pixel_diff_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+    "artifacts": {
+      "type": "object",
+      "properties": {
+        "actual_png": { "type": "string" },
+        "expected_png": { "type": "string" },
+        "diff_png": { "type": "string" }
+      }
+    },
+    "decision_hint": { "type": "string", "enum": ["PASS", "WARN", "FAIL"] }
+  }
+}

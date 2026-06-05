@@ -1,0 +1,551 @@
+{
+  "crosswalk_version": "1.0.0",
+  "generated_for": "harness",
+  "do_not_auto_refresh": true,
+  "governance": {
+    "rule": "This artifact is human-curated and LIVE-VERIFIED. Do NOT auto-refresh, auto-regenerate, or let any model rewrite mappings without explicit human review. Taxonomy IDs (esp. OWASP Top 10:2025 ordering) are pinned and must not be silently 'updated' from model memory.",
+    "verified_on": "2026-06-05",
+    "seeds": "~/.claude/skills/appsec-security-orchestrator/references/standards-crosswalk.json"
+  },
+  "standards": {
+    "owasp_top10_2025": {
+      "id": "owasp_top10_2025",
+      "name": "OWASP Top 10",
+      "version": "2025",
+      "source": "https://owasp.org/Top10/",
+      "verified_on": "2026-06-05",
+      "items": [
+        { "id": "A01", "title": "Broken Access Control" },
+        { "id": "A02", "title": "Security Misconfiguration" },
+        { "id": "A03", "title": "Software Supply Chain Failures" },
+        { "id": "A04", "title": "Cryptographic Failures" },
+        { "id": "A05", "title": "Injection" },
+        { "id": "A06", "title": "Insecure Design" },
+        { "id": "A07", "title": "Authentication Failures" },
+        { "id": "A08", "title": "Software or Data Integrity Failures" },
+        { "id": "A09", "title": "Security Logging and Alerting Failures" },
+        { "id": "A10", "title": "Mishandling of Exceptional Conditions" }
+      ]
+    },
+    "owasp_asvs_5_0": {
+      "id": "owasp_asvs_5_0",
+      "name": "OWASP Application Security Verification Standard",
+      "version": "5.0",
+      "source": "https://owasp.org/www-project-application-security-verification-standard/",
+      "verified_on": "2026-06-05",
+      "items": [
+        { "id": "V1", "title": "Encoding and Sanitization" },
+        { "id": "V2", "title": "Validation and Business Logic" },
+        { "id": "V3", "title": "Web Frontend Security" },
+        { "id": "V4", "title": "API and Web Service" },
+        { "id": "V5", "title": "File Handling" },
+        { "id": "V6", "title": "Authentication" },
+        { "id": "V7", "title": "Session Management" },
+        { "id": "V8", "title": "Authorization" },
+        { "id": "V9", "title": "Self-contained Tokens" },
+        { "id": "V10", "title": "OAuth and OIDC" },
+        { "id": "V11", "title": "Cryptography" },
+        { "id": "V12", "title": "Secure Communication" },
+        { "id": "V13", "title": "Configuration" },
+        { "id": "V14", "title": "Data Protection" },
+        { "id": "V15", "title": "Secure Coding and Architecture" },
+        { "id": "V16", "title": "Security Logging and Error Handling" },
+        { "id": "V17", "title": "WebRTC" }
+      ]
+    },
+    "owasp_llm_top10_2025": {
+      "id": "owasp_llm_top10_2025",
+      "name": "OWASP Top 10 for LLM Applications",
+      "version": "2025",
+      "source": "https://genai.owasp.org/llm-top-10/",
+      "verified_on": "2026-06-05",
+      "items": [
+        { "id": "LLM01", "title": "Prompt Injection" },
+        { "id": "LLM02", "title": "Sensitive Information Disclosure" },
+        { "id": "LLM03", "title": "Supply Chain" },
+        { "id": "LLM04", "title": "Data and Model Poisoning" },
+        { "id": "LLM05", "title": "Improper Output Handling" },
+        { "id": "LLM06", "title": "Excessive Agency" },
+        { "id": "LLM07", "title": "System Prompt Leakage" },
+        { "id": "LLM08", "title": "Vector and Embedding Weaknesses" },
+        { "id": "LLM09", "title": "Misinformation" },
+        { "id": "LLM10", "title": "Unbounded Consumption" }
+      ]
+    },
+    "owasp_agentic_asi_2025": {
+      "id": "owasp_agentic_asi_2025",
+      "name": "OWASP Agentic Security Initiative Top 10",
+      "version": "2025-12-09",
+      "source": "https://genai.owasp.org/initiatives/#agenticsecurity",
+      "verified_on": "2026-06-05",
+      "items": [
+        { "id": "ASI01", "title": "Agent Goal Hijack" },
+        { "id": "ASI02", "title": "Tool Misuse" },
+        { "id": "ASI03", "title": "Identity & Privilege Abuse" },
+        { "id": "ASI04", "title": "Agentic Supply Chain Vulnerabilities" },
+        { "id": "ASI05", "title": "Unexpected Code Execution" },
+        { "id": "ASI06", "title": "Memory & Context Poisoning" },
+        { "id": "ASI07", "title": "Insecure Inter-Agent Communication" },
+        { "id": "ASI08", "title": "Cascading Failures" },
+        { "id": "ASI09", "title": "Human-Agent Trust Exploitation" },
+        { "id": "ASI10", "title": "Rogue Agents" }
+      ]
+    },
+    "nist_csf_2_0": {
+      "id": "nist_csf_2_0",
+      "name": "NIST Cybersecurity Framework",
+      "version": "2.0",
+      "source": "https://www.nist.gov/cyberframework",
+      "verified_on": "2026-06-05",
+      "items": [
+        { "id": "GV", "title": "Govern" },
+        { "id": "ID", "title": "Identify" },
+        { "id": "PR", "title": "Protect" },
+        { "id": "DE", "title": "Detect" },
+        { "id": "RS", "title": "Respond" },
+        { "id": "RC", "title": "Recover" }
+      ]
+    },
+    "nist_ssdf_800_218": {
+      "id": "nist_ssdf_800_218",
+      "name": "NIST Secure Software Development Framework",
+      "version": "SP 800-218",
+      "source": "https://csrc.nist.gov/pubs/sp/800/218/final",
+      "verified_on": "2026-06-05",
+      "items": [
+        { "id": "PO", "title": "Prepare the Organization" },
+        { "id": "PS", "title": "Protect the Software" },
+        { "id": "PW", "title": "Produce Well-Secured Software" },
+        { "id": "RV", "title": "Respond to Vulnerabilities" }
+      ]
+    },
+    "iso_iec_25010_2023": {
+      "id": "iso_iec_25010_2023",
+      "name": "ISO/IEC 25010 Product Quality Model",
+      "version": "2023",
+      "source": "https://www.iso.org/standard/78176.html",
+      "verified_on": "2026-06-05",
+      "items": [
+        { "id": "FunctionalSuitability", "title": "Functional Suitability" },
+        { "id": "PerformanceEfficiency", "title": "Performance Efficiency" },
+        { "id": "Compatibility", "title": "Compatibility" },
+        { "id": "InteractionCapability", "title": "Interaction Capability" },
+        { "id": "Reliability", "title": "Reliability" },
+        { "id": "Security", "title": "Security" },
+        { "id": "Maintainability", "title": "Maintainability" },
+        { "id": "Flexibility", "title": "Flexibility" },
+        { "id": "Safety", "title": "Safety" }
+      ]
+    },
+    "wcag_2_2": {
+      "id": "wcag_2_2",
+      "name": "Web Content Accessibility Guidelines",
+      "version": "2.2",
+      "source": "https://www.w3.org/TR/WCAG22/",
+      "verified_on": "2026-06-05",
+      "items": [
+        { "id": "Perceivable", "title": "Perceivable (Principle 1)" },
+        { "id": "Operable", "title": "Operable (Principle 2)" },
+        { "id": "Understandable", "title": "Understandable (Principle 3)" },
+        { "id": "Robust", "title": "Robust (Principle 4)" }
+      ]
+    },
+    "core_web_vitals": {
+      "id": "core_web_vitals",
+      "name": "Core Web Vitals",
+      "version": "2024+",
+      "source": "https://web.dev/articles/vitals",
+      "verified_on": "2026-06-05",
+      "items": [
+        { "id": "LCP", "title": "Largest Contentful Paint" },
+        { "id": "INP", "title": "Interaction to Next Paint" },
+        { "id": "CLS", "title": "Cumulative Layout Shift" }
+      ]
+    }
+  },
+  "crosswalk": [
+    {
+      "id": "CW-001-access-control",
+      "links": {
+        "asvs": "V8",
+        "owasp_top10_2025": "A01",
+        "owasp_asi": "ASI03",
+        "cwe_family": "CWE-284",
+        "csf": "PR",
+        "ssdf": "PW",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "Authorization / broken access control. ASVS V8 verifies it, Top10:2025 A01 names it, ASI03 is the agentic identity/privilege-abuse analogue, CWE-284 (Improper Access Control) is the weakness family, CSF PR is the protect function, SSDF PW is produce-well-secured, ISO Security is the quality characteristic.",
+      "source": "https://owasp.org/Top10/A01_2025-Broken_Access_Control/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-002-misconfiguration",
+      "links": {
+        "asvs": "V13",
+        "owasp_top10_2025": "A02",
+        "cwe_family": "CWE-16",
+        "csf": "PR",
+        "ssdf": "PO",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "Security misconfiguration maps to ASVS V13 Configuration and CWE-16 (Configuration). PO (Prepare the Organization) covers secure default config baselines.",
+      "source": "https://owasp.org/Top10/A02_2025-Security_Misconfiguration/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-003-supply-chain",
+      "links": {
+        "owasp_top10_2025": "A03",
+        "owasp_llm": "LLM03",
+        "owasp_asi": "ASI04",
+        "cwe_family": "CWE-1357",
+        "csf": "ID",
+        "ssdf": "PS",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "A03:2025 = Software Supply Chain Failures (NEW in 2025; this is NOT Injection). Maps to LLM03 Supply Chain, ASI04 Agentic Supply Chain Vulnerabilities, CWE-1357 (Reliance on Insufficiently Trustworthy Component). SSDF PS (Protect the Software) and CSF ID (asset/dependency inventory) cover it. No single ASVS chapter is a clean 1:1; supply-chain touches V13/V15 indirectly so ASVS is intentionally omitted here.",
+      "source": "https://owasp.org/Top10/A03_2025-Software_Supply_Chain_Failures/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-004-crypto-failures",
+      "links": {
+        "asvs": "V11",
+        "owasp_top10_2025": "A04",
+        "cwe_family": "CWE-310",
+        "csf": "PR",
+        "ssdf": "PW",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "Cryptographic failures map to ASVS V11 Cryptography (and adjacent V12 Secure Communication for in-transit). CWE-310 (Cryptographic Issues) family.",
+      "source": "https://owasp.org/Top10/A04_2025-Cryptographic_Failures/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-005-injection",
+      "links": {
+        "asvs": "V1",
+        "owasp_top10_2025": "A05",
+        "owasp_llm": "LLM01",
+        "owasp_asi": "ASI01",
+        "cwe_family": "CWE-74",
+        "csf": "PR",
+        "ssdf": "PW",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "Injection is A05 in the 2025 list (it was A03 in 2021 — do not confuse). ASVS V1 Encoding and Sanitization + V2 Validation are the verification chapters. CWE-74 (Injection) family. LLM01 Prompt Injection and ASI01 Agent Goal Hijack are the GenAI/agentic analogues of untrusted-input-controlling-execution.",
+      "source": "https://owasp.org/Top10/A05_2025-Injection/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-006-insecure-design",
+      "links": {
+        "asvs": "V15",
+        "owasp_top10_2025": "A06",
+        "cwe_family": "CWE-657",
+        "csf": "GV",
+        "ssdf": "PW",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "Insecure design maps to ASVS V15 Secure Coding and Architecture and CWE-657 (Violation of Secure Design Principles). Threat modeling lives upstream of this; CSF GV (Govern) sets the policy that demands secure-by-design.",
+      "source": "https://owasp.org/Top10/A06_2025-Insecure_Design/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-007-authentication",
+      "links": {
+        "asvs": "V6",
+        "owasp_top10_2025": "A07",
+        "owasp_asi": "ASI03",
+        "cwe_family": "CWE-287",
+        "csf": "PR",
+        "ssdf": "PW",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "Authentication failures map to ASVS V6 Authentication (with V7 Session Management, V9 Self-contained Tokens, V10 OAuth/OIDC as adjacent identity chapters). CWE-287 (Improper Authentication).",
+      "source": "https://owasp.org/Top10/A07_2025-Authentication_Failures/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-008-integrity-failures",
+      "links": {
+        "asvs": "V9",
+        "owasp_top10_2025": "A08",
+        "owasp_llm": "LLM04",
+        "owasp_asi": "ASI06",
+        "cwe_family": "CWE-345",
+        "csf": "PR",
+        "ssdf": "PS",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "Software or Data Integrity Failures. ASVS V9 Self-contained Tokens covers token integrity; CWE-345 (Insufficient Verification of Data Authenticity). LLM04 Data and Model Poisoning and ASI06 Memory & Context Poisoning are the GenAI/agentic integrity analogues.",
+      "source": "https://owasp.org/Top10/A08_2025-Software_or_Data_Integrity_Failures/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-009-logging-alerting",
+      "links": {
+        "asvs": "V16",
+        "owasp_top10_2025": "A09",
+        "cwe_family": "CWE-778",
+        "csf": "DE",
+        "ssdf": "RV",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "Security Logging and Alerting Failures map to ASVS V16 Security Logging and Error Handling and CWE-778 (Insufficient Logging). CSF DE (Detect) is the natural function; RV (Respond to Vulnerabilities) consumes the signals.",
+      "source": "https://owasp.org/Top10/A09_2025-Security_Logging_and_Alerting_Failures/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-010-exceptional-conditions",
+      "links": {
+        "asvs": "V16",
+        "owasp_top10_2025": "A10",
+        "cwe_family": "CWE-755",
+        "csf": "DE",
+        "ssdf": "PW",
+        "iso25010": "Reliability"
+      },
+      "confidence": "high",
+      "note": "Mishandling of Exceptional Conditions (NEW in 2025). ASVS V16 covers error handling; CWE-755 (Improper Handling of Exceptional Conditions). This is the one Top-10 item that maps as cleanly to ISO Reliability as to Security, because unhandled exceptions are a reliability/fault-tolerance concern as well as an info-leak concern.",
+      "source": "https://owasp.org/Top10/A10_2025-Mishandling_of_Exceptional_Conditions/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-011-validation-business-logic",
+      "links": {
+        "asvs": "V2",
+        "owasp_top10_2025": "A06",
+        "cwe_family": "CWE-20",
+        "csf": "PR",
+        "ssdf": "PW",
+        "iso25010": "FunctionalSuitability"
+      },
+      "confidence": "high",
+      "note": "Input validation + business-logic abuse. ASVS V2 Validation and Business Logic; CWE-20 (Improper Input Validation). Business-logic flaws are often a design problem (A06) rather than a pure injection problem, and correct business rules are also an ISO Functional Suitability concern.",
+      "source": "https://owasp.org/www-project-application-security-verification-standard/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-012-secure-communication",
+      "links": {
+        "asvs": "V12",
+        "owasp_top10_2025": "A04",
+        "cwe_family": "CWE-319",
+        "csf": "PR",
+        "ssdf": "PW",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "Transport security / TLS. ASVS V12 Secure Communication; CWE-319 (Cleartext Transmission of Sensitive Information). Rolls up under A04 Cryptographic Failures in the Top 10.",
+      "source": "https://owasp.org/www-project-application-security-verification-standard/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-013-file-handling",
+      "links": {
+        "asvs": "V5",
+        "owasp_top10_2025": "A05",
+        "cwe_family": "CWE-434",
+        "csf": "PR",
+        "ssdf": "PW",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "File upload / handling. ASVS V5 File Handling; CWE-434 (Unrestricted Upload of File with Dangerous Type) and CWE-22 (Path Traversal). Malicious upload that becomes execution rolls up under Injection (A05).",
+      "source": "https://owasp.org/www-project-application-security-verification-standard/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-014-api-security",
+      "links": {
+        "asvs": "V4",
+        "owasp_top10_2025": "A01",
+        "cwe_family": "CWE-285",
+        "csf": "PR",
+        "ssdf": "PW",
+        "iso25010": "Security"
+      },
+      "confidence": "medium",
+      "note": "API and Web Service security (ASVS V4). The dominant API risk in OWASP API Security is broken object/function-level authorization, so the closest Top-10 anchor is A01 Broken Access Control — but API security is broader than A01 (rate limiting, mass assignment, etc.), hence confidence medium rather than high.",
+      "source": "https://owasp.org/www-project-application-security-verification-standard/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-015-data-protection-privacy",
+      "links": {
+        "asvs": "V14",
+        "owasp_top10_2025": "A04",
+        "owasp_llm": "LLM02",
+        "cwe_family": "CWE-200",
+        "csf": "PR",
+        "ssdf": "PW",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "Data protection / sensitive-data exposure. ASVS V14 Data Protection; CWE-200 (Exposure of Sensitive Information). LLM02 Sensitive Information Disclosure is the GenAI analogue. Rolls up under A04 when the exposure is a crypto/at-rest failure.",
+      "source": "https://owasp.org/www-project-application-security-verification-standard/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-016-web-frontend-security",
+      "links": {
+        "asvs": "V3",
+        "owasp_top10_2025": "A05",
+        "cwe_family": "CWE-79",
+        "csf": "PR",
+        "ssdf": "PW",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "Web frontend security (ASVS V3) — XSS, CSRF, clickjacking, security headers. CWE-79 (Cross-site Scripting). XSS is a form of injection, so it rolls up under A05 Injection in the 2025 Top 10.",
+      "source": "https://owasp.org/www-project-application-security-verification-standard/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-017-llm-excessive-agency",
+      "links": {
+        "owasp_llm": "LLM06",
+        "owasp_asi": "ASI02",
+        "cwe_family": "CWE-862",
+        "csf": "GV",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "Excessive Agency (LLM06) and its agentic analogue Tool Misuse (ASI02): over-permissioned tools/plugins acting without bounded authorization. CWE-862 (Missing Authorization) on the tool-call boundary. CSF GV governs the tool-permission policy.",
+      "source": "https://genai.owasp.org/llm-top-10/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-018-llm-unbounded-consumption",
+      "links": {
+        "owasp_llm": "LLM10",
+        "owasp_asi": "ASI08",
+        "cwe_family": "CWE-400",
+        "csf": "PR",
+        "iso25010": "PerformanceEfficiency"
+      },
+      "confidence": "high",
+      "note": "Unbounded Consumption (LLM10) — runaway token/cost/resource use; cascading failures (ASI08) at the multi-agent level. CWE-400 (Uncontrolled Resource Consumption). This maps to ISO Performance Efficiency as much as to Security because cost/capacity runaway is a resource-utilization quality concern.",
+      "source": "https://genai.owasp.org/llm-top-10/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-019-agentic-inter-agent-comms",
+      "links": {
+        "owasp_asi": "ASI07",
+        "owasp_top10_2025": "A04",
+        "cwe_family": "CWE-319",
+        "csf": "PR",
+        "iso25010": "Security"
+      },
+      "confidence": "medium",
+      "note": "Insecure Inter-Agent Communication (ASI07): unauthenticated / cleartext messages between agents. Closest classic anchors are A04 Cryptographic Failures (channel) and CWE-319. Confidence medium because ASI07 also overlaps A01 (authz between agents) and ASI03 — it is not a clean single-anchor mapping.",
+      "source": "https://genai.owasp.org/initiatives/#agenticsecurity",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-020-rogue-agents",
+      "links": {
+        "owasp_asi": "ASI10",
+        "owasp_top10_2025": "A08",
+        "cwe_family": "CWE-506",
+        "csf": "DE",
+        "iso25010": "Security"
+      },
+      "confidence": "medium",
+      "note": "Rogue Agents (ASI10): an agent operating outside intended bounds / compromised behavior. Detection-centric, so CSF DE. Closest integrity anchor is A08 (data/integrity) and CWE-506 (Embedded Malicious Code). Medium confidence: rogue-agent behavior spans goal-hijack (ASI01), memory poisoning (ASI06), and supply chain (ASI04) — the classic-standard anchor is approximate.",
+      "source": "https://genai.owasp.org/initiatives/#agenticsecurity",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-021-a11y-perceivable",
+      "links": {
+        "wcag": "Perceivable",
+        "iso25010": "InteractionCapability"
+      },
+      "confidence": "high",
+      "note": "WCAG 2.2 Perceivable principle (Level A/AA success criteria) maps to ISO/IEC 25010:2023 Interaction Capability (the 2023 rename of Usability), of which accessibility is a sub-characteristic. No security standard applies — accessibility is a UX/QA concern, not AppSec.",
+      "source": "https://www.w3.org/TR/WCAG22/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-022-a11y-operable",
+      "links": {
+        "wcag": "Operable",
+        "iso25010": "InteractionCapability"
+      },
+      "confidence": "high",
+      "note": "WCAG 2.2 Operable principle (keyboard, focus, target size 2.5.8 new in 2.2) maps to ISO Interaction Capability. UX/QA domain.",
+      "source": "https://www.w3.org/TR/WCAG22/",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-023-cwv-inp-responsiveness",
+      "links": {
+        "iso25010": "PerformanceEfficiency"
+      },
+      "confidence": "high",
+      "note": "Core Web Vitals INP (Interaction to Next Paint) — INP replaced FID as a Core Web Vital on 2024-03-12. Maps to ISO/IEC 25010 Performance Efficiency (time-behaviour). LCP and CLS also fall under Performance Efficiency. No security standard applies — CWV is a UX/performance/QA concern.",
+      "source": "https://web.dev/articles/inp",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-024-cwv-cls-layout-stability",
+      "links": {
+        "wcag": "Operable",
+        "iso25010": "PerformanceEfficiency"
+      },
+      "confidence": "medium",
+      "note": "Core Web Vitals CLS (Cumulative Layout Shift) maps primarily to ISO Performance Efficiency. Secondary tie to WCAG Operable because unexpected layout shifts harm operability (mis-taps); confidence medium on the WCAG link since CLS is not itself a WCAG success criterion.",
+      "source": "https://web.dev/articles/cls",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-025-incident-response",
+      "links": {
+        "csf": "RS",
+        "ssdf": "RV",
+        "iso25010": "Reliability"
+      },
+      "confidence": "high",
+      "note": "Incident response. CSF RS (Respond) and SSDF RV (Respond to Vulnerabilities) are the direct functions. Ties to ISO Reliability (recoverability / fault-tolerance posture). Pairs with CW-026 for the recover side.",
+      "source": "https://www.nist.gov/cyberframework",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-026-recovery-resilience",
+      "links": {
+        "csf": "RC",
+        "iso25010": "Reliability"
+      },
+      "confidence": "high",
+      "note": "Recovery / BCP / DR / backup validation. CSF RC (Recover) is the function (the 2.0-era function the harness emphasizes as non-ignorable). Maps to ISO Reliability (recoverability sub-characteristic). No ASVS/Top10 anchor — recovery is an operational-resilience concern, not an app-code weakness.",
+      "source": "https://www.nist.gov/cyberframework",
+      "verified_on": "2026-06-05"
+    },
+    {
+      "id": "CW-027-governance-threat-modeling",
+      "links": {
+        "owasp_top10_2025": "A06",
+        "csf": "GV",
+        "ssdf": "PO",
+        "iso25010": "Security"
+      },
+      "confidence": "high",
+      "note": "Security governance + threat modeling (STRIDE). CSF GV (Govern, new top-level function in CSF 2.0) and SSDF PO (Prepare the Organization) are the anchors. Feeds A06 Insecure Design downstream. Maps to NIST SP 800-154 (data-centric threat modeling) and CSF ID.RA conceptually.",
+      "source": "https://www.nist.gov/cyberframework",
+      "verified_on": "2026-06-05"
+    }
+  ]
+}

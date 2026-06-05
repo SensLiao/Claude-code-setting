@@ -1,0 +1,378 @@
+{
+  "schema_version": "2.0.0",
+  "generated_date": "2026-05-25",
+  "generated_by": "harness drift normalization Wave 2 Agent A2 (PR-1)",
+  "description": "Global ~/.claude/ skill manifest. Defines 5 primary orchestrators (1 manual-first bootstrap + 4 commercial-grade three-mainline) and how supporting skills are tiered beneath them. v2.0.0 adds hooks/sdks/evidence_roots/name_freeze top-level blocks for harness-level coverage of AppSec v3.0 GSD-lite engine + L12 discoverability + QA layered matrix + UIUX subsystem. Claude routes through primary orchestrators first; supporting skills are invoked by orchestrators or by explicit user request.",
+
+  "primary_orchestrators": [
+    {
+      "name": "claude-env-bootstrap",
+      "tier": "primary",
+      "role": "Project Bootstrap Orchestrator",
+      "trigger_mode": "manual-first",
+      "disable_model_invocation": true,
+      "purpose": "Interactive project-level Claude environment setup and repair. Scans project signals, asks high-leverage questions, composes a tailored .claude/ environment in real time, and synchronizes the global ~/.claude/ catalog into the project."
+    },
+    {
+      "name": "gsd-pipeline-orchestrator",
+      "tier": "primary",
+      "role": "GSD Delivery Orchestrator",
+      "trigger_mode": "auto",
+      "disable_model_invocation": false,
+      "purpose": "PM-style commercial delivery: requirements / acceptance criteria / spec / discuss / plan / execute / verify / ship. Routes phase commands and coordinates with UIUX / QA / AppSec orchestrators."
+    },
+    {
+      "name": "uiux-product-orchestrator",
+      "tier": "primary",
+      "role": "UIUX Product Orchestrator",
+      "trigger_mode": "auto",
+      "disable_model_invocation": false,
+      "downstream_gates": ["discoverability-orchestrator"],
+      "purpose": "UIUX workflow routing: foundation (ux-principles) -> discovery -> exploration -> source import -> style lock (L3 exclusive) -> production -> platform overlay -> audit -> design system -> assets. Acts as a thin routing layer; delegates execution to underlying UIUX skills. Downstream L12 release gate via discoverability-orchestrator (SEO/AEO/Local-SEO/ASO)."
+    },
+    {
+      "name": "enterprise-qa-testing",
+      "tier": "primary",
+      "role": "Enterprise QA / SDET Orchestrator",
+      "trigger_mode": "auto",
+      "disable_model_invocation": false,
+      "purpose": "9-layer QA matrix (static / unit / component / integration / contract / E2E / visual / a11y / performance + smoke). Sets CI quality gates. Routes backend/API/auth/data work to appsec-security-orchestrator."
+    },
+    {
+      "name": "appsec-security-orchestrator",
+      "canonical_id": "security.orchestrator",
+      "aliases": ["appsec", "appsec-orchestrator", "security-orchestrator", "security-appsec-orchestrator", "security-appsec"],
+      "version": "3.0.0",
+      "tier": "primary",
+      "role": "AppSec Orchestrator (v3.0 — GSD-lite execution engine + NIST CSF 2.0 + ASVS 5.0)",
+      "trigger_mode": "auto when triggers present (backend / API / auth / user-data / file-upload / payment / admin / production)",
+      "disable_model_invocation": false,
+      "standards_versions": {
+        "OWASP_ASVS": "5.0",
+        "OWASP_WSTG": "latest (passive only)",
+        "OWASP_API_Top_10": "2023",
+        "NIST_CSF": "2.0",
+        "NIST_SSDF_SP_800-218": "1.1",
+        "CIS_Controls": "v8.1"
+      },
+      "capability_layers": ["governance", "app", "platform", "operations", "response", "compliance"],
+      "csf_functions": ["GV Govern", "ID Identify", "PR Protect", "DE Detect", "RS Respond", "RC Recover"],
+      "purpose": "Defensive AppSec orchestrator (v3.0 GSD-lite execution engine). Self-dispatches via named subagents (appsec-risk-classifier, appsec-finding-triager, appsec-evidence-validator) backed by appsec-sdk.sh canonical evidence sink at `.appsec/evidence/<tag>/` and 7 project-level hooks installed via `appsec-sdk init` (config-gated by `.appsec/config.json`). Routes through 6-layer capability map (governance / app / platform / operations / response / compliance) and aligns with NIST CSF 2.0 six functions (Govern / Identify / Protect / Detect / Respond / Recover) + ASVS 5.0 V1-V17 + WSTG passive + API Top 10 2023 + standardized finding schema. NEVER performs active scans; active work gated by pentest-scope-and-roe (ROE governance) + authorized-pentest-validation (manual hard gate, disable-model-invocation: true)."
+    }
+  ],
+
+  "supporting_skills": {
+    "gsd_core": [
+      "gsd-new-project", "gsd-spec-phase", "gsd-discuss-phase", "gsd-plan-phase",
+      "gsd-execute-phase", "gsd-verify-work", "gsd-ship", "gsd-resume-work",
+      "gsd-progress", "gsd-quick", "gsd-fast", "gsd-debug"
+    ],
+    "gsd_advanced": [
+      "gsd-code-review", "gsd-ui-review", "gsd-secure-phase", "gsd-validate-phase",
+      "gsd-add-tests", "gsd-ai-integration-phase", "gsd-eval-review",
+      "gsd-map-codebase", "gsd-extract-learnings", "gsd-milestone-summary",
+      "gsd-pr-branch", "gsd-forensics"
+    ],
+    "uiux_foundation": ["ux-principles", "emil-design-eng"],
+    "uiux_discovery": ["grill-with-docs", "competitive-teardown", "meeting-analyzer"],
+    "uiux_exploration": [
+      "prototyping-ui-directions",
+      "imagegen-frontend-web"
+    ],
+    "uiux_source_import": ["image-to-code-skill"],
+    "uiux_style_lock_exclusive": [
+      "taste-skill", "luxury", "brutalist-skill"
+    ],
+    "uiux_production": [
+      "anchor-prototype-wave",
+      "sens-frontend-design",
+      "luxury-editorial-site-builder",
+      "frontend-design@claude-plugins-official"
+    ],
+    "uiux_platform_vercel": [
+      "vercel:nextjs", "vercel:react-best-practices", "vercel:shadcn",
+      "vercel:turbopack", "vercel:deploy", "vercel:ai-sdk"
+    ],
+    "uiux_refinement": [
+      "ux-principles", "visual-critique", "design-audit@bencium",
+      "redesign-skill", "gsd-ui-review"
+    ],
+    "uiux_design_system": [
+      "design-systems:tokenize", "design-systems:create-component",
+      "design-systems:audit-system", "ui-design:color-palette",
+      "ui-design:type-system", "ui-design:responsive-design",
+      "interaction-design:design-interaction"
+    ],
+    "uiux_assets": [
+      "brandkit", "theme-factory", "canvas-design"
+    ],
+    "qa_supporting": ["dast-baseline-scanning", "security-remediation"],
+    "qa_layers": [
+      "qa-static-baseline",
+      "qa-test-design-tdd-bridge",
+      "qa-component-behavior",
+      "qa-integration-service-virtualization",
+      "qa-contract-api",
+      "qa-e2e-coverage-gate",
+      "qa-visual-regression",
+      "qa-a11y-compliance",
+      "qa-performance-reliability",
+      "qa-test-data-environment",
+      "qa-flaky-governance",
+      "qa-smoke-release-safety",
+      "qa-evidence-bundle"
+    ],
+    "l12_discoverability_orchestrator": ["discoverability-orchestrator"],
+    "l12_discoverability_narrow": ["web-seo", "web-aeo", "web-local-seo", "app-aso"],
+    "appsec_governance": ["security-governance-threat-modeling"],
+    "appsec_platform": ["security-platform-secrets", "security-platform-iac-cloud"],
+    "appsec_app": ["security-remediation", "dast-baseline-scanning"],
+    "appsec_app_overlay": ["security-app-mobile", "security-app-llm", "security-app-multitenant", "security-app-websocket", "security-app-file-upload"],
+    "appsec_response": ["security-response-incident-response", "security-response-recovery"],
+    "appsec_compliance": ["security-compliance-payment", "security-compliance-cn-data"],
+    "appsec_governance_visible": ["pentest-scope-and-roe"],
+    "appsec_manual_only": ["authorized-pentest-validation"],
+    "appsec_gsd_adapter": ["gsd-secure-phase"],
+    "non_ui_meta": [
+      "remotion-best-practices", "claude-api", "codex-dispatch",
+      "skill-creator"
+    ],
+    "code_reading_tools": [
+      "gitnexus-repo-map",
+      "codegraph-cli",
+      "arch-viz"
+    ],
+    "deployment_parity": ["env-parity-baseline"]
+  },
+
+  "agent_families": {
+    "appsec_qa": [
+      "appsec-reviewer",
+      "appsec-risk-classifier",
+      "appsec-finding-triager",
+      "appsec-evidence-validator",
+      "security-remediation-engineer",
+      "dast-baseline-engineer",
+      "pentest-scope-planner",
+      "authorized-pentest-validator"
+    ],
+    "l12_discoverability": [
+      "disc-scope-classifier",
+      "disc-evidence-validator",
+      "disc-remediation-planner"
+    ],
+    "qa_specialists": [
+      "qa-risk-classifier",
+      "qa-evidence-validator",
+      "qa-flaky-triager"
+    ],
+    "uiux_specialists": [
+      "uiux-gsd-contract-validator"
+    ],
+    "gsd_specialists": [
+      "gsd-planner", "gsd-executor", "gsd-verifier",
+      "gsd-code-reviewer", "gsd-ui-auditor", "gsd-security-auditor",
+      "gsd-nyquist-auditor", "gsd-eval-auditor"
+    ],
+    "language_reviewers": [
+      "typescript-reviewer", "python-reviewer", "go-reviewer",
+      "rust-reviewer", "java-reviewer", "kotlin-reviewer",
+      "csharp-reviewer", "cpp-reviewer", "flutter-reviewer",
+      "database-reviewer", "healthcare-reviewer"
+    ],
+    "build_resolvers": [
+      "build-error-resolver", "cpp-build-resolver", "dart-build-resolver",
+      "go-build-resolver", "java-build-resolver", "kotlin-build-resolver",
+      "pytorch-build-resolver", "rust-build-resolver"
+    ],
+    "decision_layer": [
+      "architect", "planner", "security-reviewer", "tdd-guide"
+    ]
+  },
+
+  "routing_rule": "Claude should route through primary orchestrators first. Supporting skills are invoked by orchestrators or by explicit user request. The 4 commercial-grade primary orchestrators (GSD / UIUX / QA / AppSec) form the three-mainline architecture; claude-env-bootstrap is the project-setup gate.",
+
+  "anti_patterns": [
+    "Multiple L3 styles simultaneously activated (taste/luxury/minimalist/soft are mutually exclusive)",
+    "Workflow skills used as primary style lock (redesign / image-to-code are workflow helpers, not L3 style locks)",
+    "Auto-invoking authorized-pentest-validation or any active security testing skill without explicit user request",
+    "Skipping ROE checklist before active security testing",
+    "Updating visual regression baselines without user authorization",
+    "Routing AppSec work to enterprise-qa-testing without handoff (must route to appsec-security-orchestrator)",
+    "Calling claude-env-bootstrap without user explicit request (it has side effects)",
+    "Auto-firing anchor-prototype-wave (manual-first; user must explicitly request)",
+    "Renaming safety-critical skills (pentest-scope-and-roe / authorized-pentest-validation / dast-baseline-scanning) — the manual invocation phrase IS part of the control surface",
+    "Using ASVS 4.x V2-V13 chapter identifiers in new findings (must use ASVS 5.0 v5.0.0-X.Y.Z)",
+    "Treating OWASP LLM Top 10 as complete coverage for Agentic AI (need tool-perm boundaries, memory poisoning, indirect prompt injection, evals, human override, rollback)",
+    "Running gitleaks detect without --redact flag (raw secrets must never appear in chat/logs/reports)",
+    "Merging gsd-secure-phase into appsec-security-orchestrator (GSD namespace boundary is intentional)"
+  ],
+
+  "hooks": {
+    "global_live": {
+      "owner": "gsd + general",
+      "entries": [
+        "detect-bootstrap-needed.js",
+        "gsd-prompt-guard.js",
+        "gsd-read-guard.js",
+        "gsd-workflow-guard.js",
+        "gsd-validate-commit.sh",
+        "gsd-context-monitor.js",
+        "gsd-read-injection-scanner.js",
+        "gsd-phase-boundary.sh",
+        "gsd-check-update.js",
+        "gsd-session-state.sh",
+        "gsd-statusline.js"
+      ]
+    },
+    "project_installed": {
+      "appsec": {
+        "config_gate": "<project>/.appsec/config.json",
+        "snippet_path": "skills/appsec-security-orchestrator/templates/dot-appsec-skeleton/settings.json.snippet",
+        "install_command": "appsec-sdk init",
+        "hooks": [
+          "appsec-active-scan-guard.js",
+          "appsec-secret-access-guard.js",
+          "appsec-finding-schema-prewrite.js",
+          "appsec-pentest-authorization.js",
+          "appsec-finding-schema-postverify.js",
+          "appsec-secret-redaction.js",
+          "appsec-evidence-required.js"
+        ]
+      },
+      "qa": {
+        "config_gate": "<project>/.qa/config.json",
+        "snippet_path": "templates/qa/settings.project.json",
+        "install_command": "qa-sdk init",
+        "hooks": [
+          "qa-block-update-snapshots.js",
+          "qa-quarantine-accountability.js",
+          "qa-floor-rule-prompt.js",
+          "qa-detect-internal-mock.js",
+          "qa-evidence-required.js"
+        ]
+      },
+      "uiux": {
+        "config_gate": "<project>/.uiux/config.json",
+        "snippet_path": "skills/uiux-product-orchestrator/templates/dot-uiux-skeleton/settings.uiux-hooks.snippet.json",
+        "install_command": "uiux-sdk init",
+        "hooks": [
+          "uiux-gsd-plan-guard.js",
+          "uiux-style-mutex-guard.js",
+          "uiux-release-guard.js"
+        ]
+      },
+      "discoverability": {
+        "config_gate": "<project>/discoverability.config.yaml",
+        "snippet_path": "templates/discoverability/settings-snippet.json",
+        "install_command": "python -m discoverability_sdk init",
+        "hooks": [
+          "disc-session-context.js",
+          "disc-robots-sitemap-guard.js",
+          "disc-deploy-gate.js",
+          "disc-mark-stale.js",
+          "disc-evidence-required.js"
+        ]
+      }
+    },
+    "library_modules": [
+      "_appsec-common.js",
+      "_qa-common.js",
+      "_uiux-common.js",
+      "_disc-common.js"
+    ],
+    "dormant_opt_in": [
+      {
+        "name": "gsd-update-banner.js",
+        "reason": "GSD statusline registered, banner suppressed by design"
+      }
+    ]
+  },
+
+  "sdks": {
+    "appsec": {
+      "path": "scripts/appsec-sdk.sh",
+      "lang": "bash",
+      "commands": [
+        "init",
+        "set-active",
+        "evidence.append",
+        "evidence.list",
+        "evidence.validate-presence",
+        "finding.add",
+        "gate.check",
+        "redact",
+        "roe.verify",
+        "csf.coverage",
+        "overlay.activate",
+        "migrate-evidence"
+      ]
+    },
+    "qa": {
+      "path": "scripts/qa-sdk.sh",
+      "lang": "bash"
+    },
+    "uiux": {
+      "path": "scripts/uiux-sdk.sh",
+      "lang": "bash"
+    },
+    "discoverability": {
+      "path": "skills/discoverability-orchestrator/scripts/discoverability-sdk.py",
+      "lang": "python",
+      "commands": [
+        "init",
+        "classify",
+        "audit",
+        "evidence.append",
+        "evidence.validate",
+        "gate.check",
+        "report",
+        "mark-stale",
+        "explain",
+        "status"
+      ]
+    }
+  },
+
+  "evidence_roots": {
+    "gsd": ".planning/<milestone>/<phase>/",
+    "discoverability": "evidence/discoverability/<tag>/",
+    "appsec": {
+      "canonical": ".appsec/evidence/<tag>/",
+      "deprecated_alias": ".planning/security/",
+      "migration_command": "appsec-sdk migrate-evidence"
+    },
+    "qa": ".qa/evidence/<tag>/",
+    "uiux": ".uiux/evidence/<tag>/"
+  },
+
+  "name_freeze": [
+    "pentest-scope-and-roe",
+    "authorized-pentest-validation",
+    "dast-baseline-scanning",
+    "discoverability-orchestrator",
+    "web-seo",
+    "web-aeo",
+    "web-local-seo",
+    "app-aso",
+    "disc-scope-classifier",
+    "disc-evidence-validator",
+    "disc-remediation-planner",
+    "disc-deploy-gate.js",
+    "disc-evidence-required.js",
+    "disc-mark-stale.js",
+    "disc-robots-sitemap-guard.js",
+    "disc-session-context.js"
+  ],
+
+  "see_also": [
+    "skill-routing-policy.json",
+    "skill-overrides.recommended.json",
+    "harness.registry.json",
+    "hook-registry.json",
+    "../docs/ORCHESTRATOR-MAP.md",
+    "../docs/L12-DISCOVERABILITY.md",
+    "../docs/CANONICALS.md",
+    "../SKILLS-INDEX.md"
+  ]
+}

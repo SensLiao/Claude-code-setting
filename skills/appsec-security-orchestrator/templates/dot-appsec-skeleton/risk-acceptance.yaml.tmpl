@@ -1,0 +1,39 @@
+# Risk Acceptance — only required when appsec_release_decision.yaml.decision == CONDITIONAL_PASS
+# One file per accepted finding, written to .appsec/decisions/<tag>/risk-acceptance/<n>.yaml
+# Must be human-attested. appsec-sdk gate.check rejects CONDITIONAL_PASS if approver/approval_date/review_date missing.
+
+schema_version: 1.0
+finding_id: 2026-05-25-sast-001            # must match an existing finding in .appsec/findings/<tag>/
+release_tag: v0.1.0
+
+approver: "Alice Zhang (CTO)"              # name + role; Claude CANNOT self-mint approvals
+approval_date: 2026-05-25
+review_date: 2026-08-25                    # must be in the future; <=90 days for High; <=30 days for Critical
+
+accepted_decision: CONDITIONAL_PASS
+rationale: >
+  Risk is being accepted for v0.1.0 release because the affected component
+  is gated behind an internal VPN and not reachable from public internet
+  during the launch window. Permanent fix is scheduled for v0.2.0.
+
+compensating_controls:
+  - "Network ACL restricts target to bastion IP range"
+  - "Audit logging enabled on all access paths"
+  - "WAF rule blocks suspicious payloads at edge"
+
+residual_risk_score: medium                # critical | high | medium | low
+business_justification: "Required to meet contractual launch date with Customer X"
+
+monitoring_plan:
+  - "Daily review of access logs for affected endpoint"
+  - "Alert on >5 4xx responses per minute from non-bastion sources"
+
+rollback_plan: >
+  If exploitation detected, route affected endpoint to maintenance page
+  via edge config flip (estimated <5 min).
+
+# Approval evidence (e.g. email, ticket link, signed memo)
+approval_evidence:
+  type: ticket                             # email | ticket | signed_memo | meeting_minutes
+  reference: "JIRA-SECREL-1234"
+  artifact_path: .appsec/decisions/v0.1.0/risk-acceptance/JIRA-SECREL-1234.pdf

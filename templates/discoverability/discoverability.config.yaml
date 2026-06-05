@@ -1,0 +1,478 @@
+# ==============================================================================
+# discoverability.config.yaml — L12 Discoverability project config template
+# ==============================================================================
+# Project root config consumed by orchestrator + SDK + hooks. The
+# discoverability-orchestrator skill reads this first, then self-dispatches to
+# the 4 narrow skills (web-seo / web-aeo / web-local-seo / app-aso) and the
+# disc-* agents. The SDK (`scripts/discoverability-sdk.py`) and hooks
+# (`.claude/hooks/disc-*`) ALSO read this file.
+#
+# This file is COPIED into your project root, then customized per project_type.
+# DO NOT commit secrets here — API keys go in `.env` or your secret manager.
+#
+# ==============================================================================
+# SCHEMA SOURCE OF TRUTH
+# ------------------------------------------------------------------------------
+# This file is the canonical schema for L12 Discoverability config v1.0.0
+# harness. All other files (orchestrator/SKILL.md §5, activation-rules.yaml,
+# project-types.yaml, runner-skeleton/*, harness-contract.md) reference THIS
+# schema and must be kept in sync.
+#
+# _schema_version follows semver. Any breaking change to top-level keys, value
+# enums, or nesting structure MUST bump major.
+# ==============================================================================
+
+_schema_version: "1.0.0"   # harness config schema version (semver)
+version: 1                  # config-document format version (legacy, kept for compat)
+
+# ------------------------------------------------------------------------------
+# project — basic identity + activation signals
+# ------------------------------------------------------------------------------
+project:
+  # Required. Used in evidence header + report cover.
+  name: "<your-project>"
+
+  # Required. Canonical production URL (https, no trailing slash).
+  # Used for runner base URL, sitemap default, robots fetch.
+  canonical_url: "https://example.com"
+
+  # Required. One of 8 known project_types. See:
+  #   ~/.claude/skills/discoverability-orchestrator/project-types.yaml
+  # Allowed values (enum):
+  #   - content_site                         # blog / media / public articles
+  #   - ecommerce                            # PDP + cart + checkout
+  #   - local_service                        # brick-and-mortar / service area
+  #   - b2b_saas_marketing                   # SaaS marketing + docs (THIS TEMPLATE'S EXAMPLE)
+  #   - api_with_public_docs                 # API platform + docs (docs-heavy)
+  #   - pure_backend_api_no_public_surface   # no public web/app surface
+  #   - mobile_app                           # iOS / Android only (+ optional landing)
+  #   - web_app_plus_mobile_app              # full web product + companion app
+  type: "b2b_saas_marketing"
+
+  # Optional. Drives framework adapter choice in web-seo runner.
+  # Common values: nextjs | nuxt | astro | docusaurus | wordpress | sveltekit |
+  #                rails | django | flask | hugo | jekyll | generic_static
+  framework: "nextjs"
+
+  # Optional. Authentication posture (informational, not a security setting).
+  # Allowed values (enum):
+  #   public               — all content publicly accessible (default)
+  #   mixed                — some pages public, some require auth
+  #   authenticated_only   — entire site behind auth (rare; web-seo usually disabled)
+  auth_model: "public"
+
+  # Optional. BCP 47 locale tags. First entry is canonical/default.
+  # web-seo uses this for hreflang audit; app-aso for store localization matrix.
+  locales: ["en", "zh-Hans"]
+
+  # Optional. Regions/markets you serve (ISO 3166-1 alpha-2). Used by:
+  #   - app-aso for target storefronts
+  #   - web-local-seo for service area enumeration (if local_service)
+  regions: ["US", "CN"]
+
+  # Local entity signal — drives `conditional_local` activation logic.
+  # web-local-seo activates iff physical_locations > 0 OR len(service_areas) > 0.
+  physical_locations: 0          # int: number of physical customer-facing locations
+  service_areas: []              # list of strings: cities/regions served
+
+  # Marketing surface signal (required if project.type == mobile_app).
+  # If false on mobile_app, web-seo defaults to disabled.
+  has_web_landing: false         # bool: does the mobile-app project have a public marketing web page?
+
+# ------------------------------------------------------------------------------
+# public_surfaces — list of surface KINDS your project actually ships
+# ------------------------------------------------------------------------------
+# Used by web-seo + web-aeo to scope crawl + citability audit.
+# Use surface kinds (home/pricing/docs/blog/...), NOT URLs.
+# Actual route URLs are resolved from sitemap.xml at runtime.
+public_surfaces:
+  - home
+  - pricing
+  - docs
+  # - blog          # uncomment if you publish blog content
+  # - changelog
+  # - help_center
+  # - landing/campaign-foo
+
+# ------------------------------------------------------------------------------
+# channels — which of the 4 L12 domains are active
+# ------------------------------------------------------------------------------
+# Each channel is a DICT (NOT a string). Three sub-keys per channel:
+#   enabled     bool       — runner activates this channel at all
+#   state       enum       — activation policy:
+#                              required           — must run; blockers stop release
+#                              optional           — runs but findings default warn
+#                              disabled           — runner skipped; reason → 00-scope.yaml
+#                              warn_only          — runs but ALL findings demoted to warn
+#                              conditional_local  — runs only if project has
+#                                                   physical_locations > 0 OR
+#                                                   len(service_areas) > 0
+#   gate_level  enum       — gate severity if state != disabled:
+#                              blocker            — failure stops release
+#                              warn-only          — failure surfaces in report, does not block
+#
+# Default activation per project_type lives in:
+#   ~/.claude/skills/discoverability-orchestrator/activation-rules.yaml
+# This block OVERRIDES those defaults.
+#
+# Channel-key naming: the config-side key `geo` is kept for contract back-compat
+# (older evidence path used `geo/`); the orchestrator + SDK alias it to the
+# canonical evidence channel key `local` at runtime, and route to the
+# `web-local-seo` skill. NOT related to GEO=Generative Engine Optimization
+# (that one goes to web-aeo). See orchestrator SKILL.md §2.5 GEO Ambiguity.
+#
+# Canonical evidence channel keys (orchestrator + SDK internal):
+#   seo / ai-search / local / aso
+# Config-side keys (this file):
+#   seo / aeo / geo / aso
+channels:
+  # Standard Web SEO — Google / Bing / Baidu indexing.
+  # For b2b_saas_marketing: required (long sales cycle → organic search critical).
+  seo:
+    enabled: true
+    state: required
+    gate_level: blocker
+
+  # Answer Engine Optimization — ChatGPT / Claude / Perplexity / Gemini citation.
+  # For b2b_saas_marketing: warn_only by default (AI search ecosystem still
+  # maturing; no official ranking factors published by any AI vendor).
+  # Set state: required ONLY if your team has decided AI citation is critical
+  # AND accepts that internal citability heuristics are NOT official signals.
+  aeo:
+    enabled: true
+    state: warn_only
+    gate_level: warn-only
+
+  # Local SEO — only if you have brick-and-mortar OR service-area business.
+  # For b2b_saas_marketing: disabled (no geographic boundary).
+  # NOTE: this `geo` key routes to web-local-seo skill (NOT web-aeo).
+  geo:
+    enabled: false
+    state: disabled
+    gate_level: blocker
+
+  # App Store Optimization — iOS App Store + Google Play.
+  # For b2b_saas_marketing: disabled (no app).
+  aso:
+    enabled: false
+    state: disabled
+    gate_level: blocker
+
+# ------------------------------------------------------------------------------
+# crawler_policy — AI + search crawler allow/disallow stance (per-bot enum)
+# ------------------------------------------------------------------------------
+# This block expresses your BUSINESS DECISION about who can index/train on
+# your public content. The web-seo + web-aeo runners cross-check this against
+# the actual robots.txt deployed to canonical_url. Mismatches are blockers.
+#
+# Allowed values for each bot (enum):
+#   allow                                — explicit Allow: / in robots.txt
+#   disallow                             — explicit Disallow: / in robots.txt
+#   policy_decision                      — flag for human review; runner produces a checklist item
+#   verify_before_gate                   — bot has UA-spoofing history; verify server-side before treating as the claimed bot
+#   user_initiated_not_robots_controlled — fetch is triggered by a logged-in user; robots.txt does NOT control these; enforce at app layer
+crawler_policy:
+  # --- Traditional search ---
+  googlebot: allow
+  bingbot: allow
+
+  # --- AI search (indexes for ChatGPT/Claude/Perplexity answer cards) ---
+  oai_searchbot: allow              # OpenAI ChatGPT Search index
+  claude_searchbot: allow           # Anthropic Claude Search index
+  perplexitybot: verify_before_gate # Past UA-spoofing — verify server-side
+
+  # --- AI training (separate decision from search!) ---
+  gptbot: policy_decision            # OpenAI training crawler
+  claudebot: policy_decision         # Anthropic training/general crawler
+  google_extended: policy_decision   # Controls Gemini training, NOT Google Search
+  applebot_extended: policy_decision # Controls Apple Intelligence / Siri training
+
+  # --- User-initiated AI fetches (NOT batch crawl; robots.txt does NOT apply) ---
+  chatgpt_user: user_initiated_not_robots_controlled
+  claude_user: user_initiated_not_robots_controlled
+
+# ------------------------------------------------------------------------------
+# Domain-specific scope blocks — TOP-LEVEL, NOT nested under `channels`
+# ------------------------------------------------------------------------------
+# Only the channel you ENABLE consumes its block. Disabled channels ignore.
+
+# --- SEO scope ----------------------------------------------------------------
+seo:
+  sitemap_path: "/sitemap.xml"        # path relative to canonical_url
+  robots_path: "/robots.txt"
+
+  # Pages to deep-crawl for canonical / hreflang / metadata audit.
+  # If omitted, runner samples from sitemap.xml.
+  critical_pages:
+    - "/"
+    - "/pricing"
+    - "/docs"
+
+  # Optional. Search Console API integration.
+  search_console:
+    enabled: false
+    property: "https://example.com"
+    # credentials_path: ".secrets/gsc-oauth.json"   # NOT committed
+
+# --- AEO scope ----------------------------------------------------------------
+aeo:
+  llms_txt_path: "/llms.txt"          # location of llms.txt
+  llms_full_txt_path: "/llms-full.txt"
+
+  # Pages on which to score citability (5-axis internal heuristic).
+  citability_targets:
+    - "/docs/quickstart"
+    - "/docs/api"
+
+  # Brand identity for brand-entity-signals scan.
+  brand:
+    name: "<Your Brand>"
+    aliases: []                       # e.g. ["YB", "YourBrand Inc."]
+
+# --- GEO scope (Local SEO; routes to web-local-seo skill) --------------------
+geo:
+  has_physical_presence: false        # bool
+  business_type: "service_area_business"   # enum: service_area_business | brick_and_mortar | hybrid
+
+  # Canonical NAP — single source of truth used to cross-check site / GBP /
+  # schema / third-party directories.
+  nap:
+    name: ""
+    address:
+      street: ""
+      locality: ""
+      region: ""
+      postal_code: ""
+      country: ""                     # ISO 3166-1 alpha-2
+    phone: ""                         # E.164 format preferred
+
+  # Google Business Profile account binding.
+  gbp:
+    account_id: null
+    location_id: null
+
+  # Required if business_type == service_area_business.
+  service_areas: []
+    # - {"type": "City", "name": "Beijing"}
+
+# --- ASO scope ----------------------------------------------------------------
+aso:
+  platforms: []                       # list: [ios, android]
+  bundle_ids:
+    ios: null                         # e.g. "com.example.app"
+    android: null
+  fastlane_metadata:
+    ios: "fastlane/metadata"
+    android: "fastlane/android/metadata"
+  target_storefronts: []              # e.g. [en-US, zh-Hans, ja]
+
+# ==============================================================================
+# quality_gates — per-domain pass/fail criteria
+# ==============================================================================
+# Runner computes pass/fail by comparing evidence against these thresholds.
+# `gate-result.yaml` aggregates these into the release-gate verdict.
+quality_gates:
+
+  # --- Lighthouse (consumed by web-seo) ---
+  # L12 only OWNS Lighthouse `seo` category. Other 3 are warn_only references
+  # owned by other layers (rules/web/performance.md / qa-a11y-compliance).
+  lighthouse:
+    min_seo_score: 0.90               # 0..1 fraction (NOT 0..100); severity=warn_only
+    min_accessibility_score: 0.85     # warn_only — owned by qa-a11y-compliance
+    min_performance_score: 0.70       # warn_only — owned by rules/web/performance.md
+    min_best_practices_score: 0.85    # warn_only — owned by qa-static-baseline
+    desktop_performance_floor: 0.85   # warn_only — owned by rules/web/performance.md
+
+  # --- SEO gates ---
+  seo:
+    require_robots_txt: true                                          # blocker
+    require_sitemap_xml: true                                         # blocker
+    require_canonical: true                                           # blocker
+    require_status_200_for_critical_pages: true                       # blocker
+    require_no_unintended_noindex: true                               # blocker
+    require_structured_data_for_supported_page_types: true            # blocker
+    require_open_graph_for_share_targets: false                       # warn_only
+    require_hreflang_for_multilingual: true                           # warn_only (only enforced if locales > 1)
+    require_structured_data_matches_visible_content: true             # blocker (Google quality guideline)
+    require_non_empty_server_rendered_primary_content: true           # blocker
+    require_sitemap_excludes_private_noindex_4xx_staging_urls: true   # blocker (also AppSec escalation)
+    require_production_robots_txt_not_staging: true                   # blocker
+
+  # --- AEO gates ---
+  # AEO defaults to warn-only per L12 spec (ecosystem still maturing).
+  # Each entry carries explicit `severity` annotation in comment.
+  aeo:
+    # min_average_citability_score is INTERNAL HEURISTIC, NEVER official.
+    # Uncomment ONLY if you accept it as a warn_only directional signal.
+    # min_average_citability_score: 65         # 0-100, internal_heuristic, warn_only
+    require_llms_txt_for_docs_heavy_projects: true       # severity: warn_only (blocker only for api_with_public_docs)
+    require_llms_txt_for_marketing_sites: false          # severity: warn_only
+    require_ai_crawler_policy_review: true               # severity: warn_only
+    require_no_private_pages_in_llms_txt: true           # severity: blocker (AppSec escalation)
+    require_answer_blocks_self_contained: true           # severity: warn_only
+    require_machine_readable_docs_path: true             # severity: warn_only
+
+  # --- GEO gates (Local SEO; consumed when channels.geo != disabled) ---
+  geo:
+    require_business_profile_eligibility_check: true     # blocker
+    require_nap_consistency: true                        # blocker
+    require_localbusiness_schema_for_local_landing: true # blocker
+    require_localbusiness_subtype_specific: true         # blocker (forbid generic LocalBusiness)
+    forbid_doorway_service_area_pages: true              # blocker
+    min_service_area_page_unique_words: 400              # warn threshold
+    min_owner_review_response_rate: 0.50                 # warn threshold
+
+  # --- ASO gates (consumed when channels.aso != disabled) ---
+  aso:
+    require_store_listing_metadata: true                 # blocker
+    require_privacy_policy_url: true                     # blocker
+    require_localized_assets_for_target_regions: false   # set true if i18n is GTM core
+    forbid_keyword_stuffing: true                        # blocker
+    require_screenshots_min_count:                       # NESTED, NOT flat
+      ios_iphone: 3                                      # Apple: 1 min, 10 max per device class
+      ios_ipad: 3
+      android_phone: 2                                   # Google publish threshold
+    require_feature_graphic_for_google_play: true        # blocker (Google only)
+    require_data_safety_form_for_google_play: true       # blocker (Google only)
+
+# ==============================================================================
+# evidence — output paths + retention
+# ==============================================================================
+evidence:
+  # All runners + SDK write under this path. v1.0 harness uses <tag> dimension:
+  #   <output_dir>/<tag>/{00-scope.yaml, seo.json, ai-search.json, local.json,
+  #                       aso.json, evidence-validation.yaml,
+  #                       remediation-plan.yaml, gate-result.yaml, report.md}
+  output_dir: "evidence/discoverability"
+
+  # Formats the `report` subcommand produces.
+  report_formats: ["md", "json", "pdf"]
+
+  # If true, CI is expected to upload evidence/ as a build artifact.
+  upload_artifacts: true
+
+  # Retention for CI artifacts (days). Configure on the CI side too.
+  retention_days: 90
+
+# ==============================================================================
+# monitoring — ongoing observability (not part of audit, but tracked)
+# ==============================================================================
+monitoring:
+  search_console:
+    enabled: false
+    property: "https://example.com"
+
+  chatgpt_referral_tracking:
+    utm_source_patterns:
+      - "chatgpt.com"
+      - "perplexity.ai"
+      - "claude.ai"
+      - "gemini.google.com"
+
+  lighthouse_ci:
+    enabled: false
+    budget_file: ".lighthouseci/budget.json"
+
+# ==============================================================================
+# vendor_tools — pinned external runners
+# ==============================================================================
+# web-aeo can wrap external runners as vendored tools. Pin commit SHAs so
+# evidence schema remains stable; upgrade requires an ADR.
+vendor_tools:
+  geo_seo_claude:
+    enabled: false
+    pinned_commit: "<PINNED_COMMIT_SHA>"   # replace after `git submodule add`
+    path: "tools/vendor/geo-seo-claude"
+
+# ==============================================================================
+# harness — v1.0 GSD-lite execution harness configuration
+# ==============================================================================
+# Controls orchestrator self-dispatch, SDK behavior, and project-level hooks.
+# See: ~/.claude/templates/discoverability/harness-contract.md (ground truth)
+# All hooks check this block FIRST. If `harness.enabled == false`, every
+# hook silent-exits. If `harness.strict_mode == false`, blocking hooks
+# downgrade to stderr-only advisory.
+harness:
+  # Schema version of the harness block itself (semver). Bump major on break.
+  _schema_version: "1.0.0"
+
+  # Master switch. If false, all disc-* hooks silent-exit 0; orchestrator
+  # treats project as "not L12-managed" and skips dispatch.
+  enabled: true
+
+  # Strict mode controls whether blocking hooks actually block.
+  # true   → blocking hooks emit PreToolUse block / Stop block as designed
+  # false  → all hooks downgrade to stderr warning + exit 0 (audit observability
+  #          without enforcement — useful during initial rollout)
+  strict_mode: true
+
+  # If empty []: required channels are auto-derived from channels.*.state==required
+  # Override here ONLY when you want to require a channel even if config says
+  # `optional` or `warn_only`. Use canonical evidence channel keys here:
+  #   seo / ai-search / local / aso
+  required_channels: []
+
+  # Evidence is considered STALE if older than this many hours.
+  # disc-deploy-gate hook reads this to block "deploy with stale evidence".
+  evidence_freshness_hours: 24
+
+  # When true, deploys are blocked iff state.gate_status == STALE.
+  # Set false to allow deploy with stale evidence (NOT recommended).
+  block_on_stale_in_deploy: true
+
+  # How the SDK derives the run tag for `init` / `gate.check`.
+  # Allowed values (enum):
+  #   git-describe         — runs `git describe --tags --always`
+  #   manual               — caller must pass `<tag>` arg explicitly
+  #   env:VAR_NAME         — read tag from environment variable VAR_NAME
+  active_release_tag_source: "git-describe"
+
+  # Per-hook mode (so you can tune each hook independently).
+  # Hook IDs are FROZEN (see harness-contract.md §9) — do not rename.
+  hook_modes:
+    # SessionStart context hook. advisory = inject context, never blocks.
+    # Allowed values (enum): off | advisory
+    session_context: advisory
+
+    # PostToolUse Edit/Write hook. Updates state.gate_status to STALE when
+    # discoverability-relevant files change (robots / sitemap / metadata / etc).
+    # Allowed values (enum): off | state-update
+    mark_stale: state-update
+
+    # PreToolUse Edit/Write hook on robots.txt / sitemap.xml / llms.txt.
+    # block-obvious   = only block 5 documented scenarios (see contract §7.3)
+    # block-all-changes = block ANY edit to these files (paranoid mode)
+    # Allowed values (enum): off | block-obvious | block-all-changes
+    robots_sitemap_guard: block-obvious
+
+    # PreToolUse Bash hook on `deploy_commands`. Reads state.json + gate-result;
+    # blocks STALE / FAIL / BLOCKED / missing evidence at deploy time.
+    # Allowed values (enum): off | warn | block
+    deploy_gate: block
+
+    # Stop hook. If assistant claims "discoverability done" without valid
+    # gate-result, blocks the Stop event (forces real evidence).
+    # Allowed values (enum): off | warn | block
+    evidence_required: block
+
+  # Bash commands that trigger disc-deploy-gate. Substring match against the
+  # command string (case-sensitive). Add project-specific deploy commands here.
+  deploy_commands:
+    - "vercel deploy"
+    - "vercel --prod"
+    - "netlify deploy --prod"
+    - "wrangler deploy"
+    - "firebase deploy"
+    - "pnpm release"
+    - "npm run deploy"
+    - "gsd-ship"
+
+# ─────────────────────────────────────────────────────────
+# HOW TO USE THIS TEMPLATE
+# 1. Copy to <project-root>/discoverability.config.yaml
+# 2. Set project.name, project.canonical_url, project.type
+# 3. Adjust channels.*.state to reflect what you actually run
+# 4. Run: python scripts/discoverability-sdk.py init v1.0.0-rc1
+# 5. Dispatch: invoke skill discoverability-orchestrator
+# See: ~/.claude/templates/discoverability/harness-contract.md
+# ─────────────────────────────────────────────────────────

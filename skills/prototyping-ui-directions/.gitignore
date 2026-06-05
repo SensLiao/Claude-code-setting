@@ -1,0 +1,6 @@
+output/
+state/checkpoint.json
+state/log.md
+.DS_Store
+node_modules/
+*.local

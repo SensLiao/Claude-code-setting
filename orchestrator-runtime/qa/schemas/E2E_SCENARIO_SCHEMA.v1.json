@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/E2E_SCENARIO_SCHEMA.v1",
+  "title": "Single E2E Scenario Output",
+  "description": "Output of one E2E pipeline stage (prepare or run-validate). Per-scenario evidence captured by e2e-runner (Playwright / Vercel Agent Browser).",
+  "type": "object",
+  "required": ["scenario_id", "stage", "command_evidence", "decision"],
+  "properties": {
+    "scenario_id": { "type": "string" },
+    "journey": { "type": "string" },
+    "stage": { "type": "string", "enum": ["prepare", "run-validate"] },
+    "target_url": { "type": "string" },
+    "viewport": {
+      "type": "object",
+      "properties": {
+        "width": { "type": "integer" },
+        "height": { "type": "integer" },
+        "dpr": { "type": "number" }
+      }
+    },
+    "branch_sha": { "type": "string" },
+    "playwright_config_hash": { "type": "string" },
+    "command_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["cmd", "exit_code"],
+        "properties": {
+          "cmd": { "type": "string" },
+          "stdout": { "type": "string" },
+          "stderr": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "duration_ms": { "type": "integer" }
+        }
+      }
+    },
+    "retry_count": { "type": "integer", "minimum": 0 },
+    "flaky_signal": {
+      "type": "object",
+      "properties": {
+        "kind": { "type": "string", "enum": ["retry_pass", "ci_only_fail", "nondeterministic_fail", "none"] },
+        "evidence": { "type": "string" }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "properties": {
+        "screenshot": { "type": "string" },
+        "video": { "type": "string" },
+        "trace": { "type": "string" },
+        "har": { "type": "string" }
+      }
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "BLOCKED", "CONDITIONAL_PASS", "MISSING"]
+    }
+  }
+}

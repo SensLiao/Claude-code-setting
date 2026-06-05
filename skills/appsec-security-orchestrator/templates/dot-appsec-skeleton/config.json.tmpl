@@ -1,0 +1,32 @@
+{
+  "_comment": "Project-level AppSec config. See SKILL.md §16.0 / §20.4. Rename to config.json after editing.",
+  "schema_version": "1.0",
+  "asvs_level": "L2",
+  "asvs_version": "5.0.0",
+  "csf_targets": ["GV", "ID", "PR", "DE", "RS", "RC"],
+  "csf_waivers": [],
+  "overlays": [],
+  "strict_mode": "strict",
+  "production_hosts": [
+    "REPLACE_WITH_YOUR_PROD_HOST.example.com"
+  ],
+  "staging_hosts": [
+    "staging.example.com",
+    "preview.example.com"
+  ],
+  "active_roe": null,
+  "redaction": {
+    "redactor": "appsec-sdk redact",
+    "secret_scan_tool": "gitleaks",
+    "secret_scan_args_required": ["--redact"]
+  },
+  "_notes": {
+    "asvs_level": "L1 = automated only / L2 = + human code review (default) / L3 = + architect review + pentest",
+    "csf_targets": "Internal evidence completeness gate per SKILL.md §3 — not a NIST checklist claim",
+    "csf_waivers": "Subset of csf_targets that may MISSING/PARTIAL without blocking release. E.g. ['RS','RC'] for early-stage services without incident-response practice yet. Must be reviewed each release.",
+    "overlays": "Subset of [mobile, llm, multitenant, websocket, file_upload, payment, cn_data]. classifier may add more.",
+    "strict_mode": "strict | lax. Controls evidence-required Stop hook §18.4.",
+    "production_hosts": "Hard-deny list for active-scan-guard §18.2 even with valid ROE.",
+    "active_roe": "Path to current .planning/PENTEST-ROE.md when pentest in progress. null = no active ROE."
+  }
+}

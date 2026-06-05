@@ -1,0 +1,78 @@
+# === env-parity-baseline: cross-platform CI matrix ===
+# 默认双跑 ubuntu + windows。macOS 注释，按需启用。
+# 目标：让"在我机器上能跑"变成"在 CI 所有目标平台都能跑"。
+#
+# 复制到：.github/workflows/ci-matrix.yml
+# 按需替换：
+#   - cache: 'pnpm' → 'npm' / 'yarn'
+#   - pnpm install --frozen-lockfile → npm ci / yarn install --frozen-lockfile
+#   - node-version → 实际版本（与 .nvmrc 一致）
+
+name: ci-matrix
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # 一个 OS 挂不阻断其他 OS — 才能看到完整差异
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          # - macos-latest  # 按需启用：团队有 mac 开发者 / 上线含 macOS target
+        node-version: ['20.x'] # 与 .nvmrc 范围一致
+        # python-version: ['3.11', '3.12']  # 多语言项目按需启用
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ---- Node 项目 ----
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install (clean, lockfile-driven)
+        # 关键：必须用 lockfile-driven clean install
+        # pnpm: --frozen-lockfile
+        # npm:  npm ci（要求 package-lock.json 存在且与 package.json 一致，否则失败）
+        # yarn: --frozen-lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm tsc --noEmit --pretty false
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test -- --run
+
+      - name: Build
+        run: pnpm build
+
+      # ---- .env contract check（可选） ----
+      - name: Verify .env.example exists
+        shell: bash
+        run: |
+          if [ ! -f .env.example ]; then
+            echo "::error::.env.example missing — see docs/env-contract.md"
+            exit 1
+          fi
+
+      # ---- Cross-platform path / shell sanity ----
+      - name: Cross-platform sanity
+        run: node -e "const p=require('path');console.log('sep:',p.sep,'platform:',process.platform,'arch:',process.arch)"

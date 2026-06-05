@@ -1,0 +1,15 @@
+{
+  "type": "commonjs",
+  "scripts": {
+    "test:harness": "node tests/harness/run-all.js",
+    "test:harness:registry": "node tests/harness/manifest-versions.test.js",
+    "test:harness:routing": "node tests/harness/routing-json.test.js",
+    "test:harness:hooks": "node tests/harness/hook-registry.test.js",
+    "test:harness:docs": "node tests/harness/docs-drift.test.js",
+    "test:harness:sdk": "node tests/harness/sdk-matrix.test.js",
+    "test:harness:smoke": "node tests/harness/release-gate-smoke.test.js",
+    "test:harness:files": "node tests/harness/file-existence.test.js",
+    "test:harness:names": "node tests/harness/safety-name-freeze.test.js",
+    "test:harness:appsec-routing": "node tests/harness/appsec-routing-bridge.test.js"
+  }
+}

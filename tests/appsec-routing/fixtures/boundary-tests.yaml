@@ -1,0 +1,60 @@
+# AppSec Routing — Boundary Test Fixtures
+# Tests that verify cross-namespace boundaries are respected
+
+schema_version: "1.0"
+category: boundary
+description: |
+  Tests that verify boundaries between AppSec / GSD / Discoverability / etc.
+  are not violated by routing.
+
+tests:
+  - id: BND-001
+    prompt: "Run /gsd:secure-phase 3"
+    expected_skill: gsd-secure-phase
+    expected_namespace: gsd
+    must_not_merge_into: appsec-security-orchestrator
+    rationale: GSD-namespace adapter ≠ AppSec capability. Namespace boundary intentional.
+
+  - id: BND-002
+    prompt: "Help with SEO for my landing page."
+    expected_skill: web-seo
+    expected_parent: discoverability-orchestrator
+    must_not_route_to:
+      - any security-* skill
+      - appsec-security-orchestrator
+    rationale: L12 Discoverability ≠ AppSec.
+
+  - id: BND-003
+    prompt: "Help with AEO for ChatGPT / Perplexity / AI search."
+    expected_skill: web-aeo
+    expected_parent: discoverability-orchestrator
+    must_not_route_to:
+      - security-app-llm
+      - appsec-security-orchestrator
+    rationale: AEO is about being found by AI engines, not LLM security.
+
+  - id: BND-004
+    prompt: "We need an AppSec review AND SEO check for our launch."
+    expected_routing: parallel
+    expected_skills:
+      - appsec-security-orchestrator (AppSec branch)
+      - discoverability-orchestrator (Discoverability branch)
+    rationale: Both subsystems active, but independent.
+
+  - id: BND-005
+    prompt: "Build a payment page with hosted Stripe iframe and audit MASVS for our iOS app."
+    expected_routing: parallel
+    expected_skills:
+      - security-compliance-payment
+      - security-app-mobile
+    expected_synergy: |
+      payment skill recommends SAQ A path; mobile skill ensures PrivacyManifest
+      + ATT + biometric flows correct for payment in-app.
+
+  - id: BND-006
+    prompt: "Generate marketing copy and security policy for our launch."
+    expected_routing: split
+    expected_skills:
+      - (marketing copy NOT in AppSec scope — route elsewhere)
+      - appsec-security-orchestrator (for security policy / SECURITY.md generation)
+    rationale: AppSec skills do NOT do marketing content.

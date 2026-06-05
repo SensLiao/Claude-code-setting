@@ -1,0 +1,103 @@
+{
+  "_comment": "Project-level hook registration for the appsec subsystem. GENERATED from manifests/hook-registry.json by orchestrator-runtime/shared/install-subsystem-hooks.js --emit-snippet — DO NOT hand-edit. Preferred install path is the SDK init (it copies hooks project-local AND merges this); this snippet is the manual fallback: copy the hook .js + _<sub>-common.js into <project>/.claude/hooks/, then merge \"hooks\" into <project>/.claude/settings.json.",
+  "_config_gate": "<project>/.appsec/config.json",
+  "_install_command": "appsec-sdk init",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/appsec-active-scan-guard.js\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/appsec-secret-access-guard.js\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/appsec-finding-schema-prewrite.js\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Skill|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/appsec-pentest-authorization.js\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/appsec-preview-gate.js\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/governed-gate-workflow-guard.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/appsec-finding-schema-postverify.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/appsec-secret-redaction.js\"",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/appsec-evidence-required.js\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

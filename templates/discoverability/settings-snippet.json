@@ -1,0 +1,98 @@
+{
+  "_doc": "L12 Discoverability harness — copy these 5 hook entries into your project's .claude/settings.json under hooks. Adjust paths if you put hooks somewhere other than .claude/hooks/.",
+  "_install_steps": [
+    "1. Copy all files from <claude-user-dir>/templates/discoverability/hooks/ into <project-root>/.claude/hooks/",
+    "2. Merge this snippet's `hooks` section into <project-root>/.claude/settings.json",
+    "3. Ensure discoverability.config.yaml is at <project-root>/discoverability.config.yaml (otherwise all hooks silent-exit)",
+    "4. Run: python scripts/discoverability-sdk.py init <tag>"
+  ],
+  "_path_form_options": {
+    "form_a_project_relative": "${CLAUDE_PROJECT_DIR}/.claude/hooks/<hook>.js — preferred; portable across machines",
+    "form_b_absolute_node_exe": "\"C:/Program Files/nodejs/node.exe\" \"<absolute>/<hook>.js\" — Windows-style absolute path with node.exe; use when Node is not in PATH",
+    "form_c_node_in_path": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/<hook>.js\" — when 'node' is on PATH (mac/linux/Windows with node in PATH)"
+  },
+
+  "hooks": {
+    "SessionStart": [
+      {
+        "_comment": "disc-session-context — advisory; emits L12 status reminder at session start. Never blocks. Silent exit on non-L12 projects.",
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/disc-session-context.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+
+    "PreToolUse": [
+      {
+        "_comment": "disc-robots-sitemap-guard — blocks obvious robots/sitemap/llms.txt mistakes (full-site Disallow without sentinel, private routes in sitemap, etc.). Exit 2 to block.",
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/disc-robots-sitemap-guard.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "_comment": "disc-deploy-gate — blocks deploy commands (vercel/netlify/wrangler/firebase/pnpm-release/gsd-ship/...) when gate is STALE/FAIL/BLOCKED/missing/stale-by-time. Exit 2 to block.",
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/disc-deploy-gate.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+
+    "PostToolUse": [
+      {
+        "_comment": "disc-mark-stale — flips .discoverability/state.json gate_status to STALE when a discoverability-relevant file (robots/sitemap/metadata/structured-data/store-listing) is edited. Cannot block (PostToolUse).",
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/disc-mark-stale.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+
+    "Stop": [
+      {
+        "_comment": "disc-evidence-required — when the assistant claims 'discoverability done / L12 complete / SEO/AEO/ASO audit done / 可发现性审查通过' but gate-result.yaml is missing/FAIL/BLOCKED/STALE, emit Stop block. 30s timeout because Stop hooks can take longer to evaluate state.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/disc-evidence-required.js\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  },
+
+  "_alternate_command_forms": {
+    "_when_node_not_in_path_windows": {
+      "disc-session-context": "\"C:/Program Files/nodejs/node.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/disc-session-context.js\"",
+      "disc-robots-sitemap-guard": "\"C:/Program Files/nodejs/node.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/disc-robots-sitemap-guard.js\"",
+      "disc-deploy-gate": "\"C:/Program Files/nodejs/node.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/disc-deploy-gate.js\"",
+      "disc-mark-stale": "\"C:/Program Files/nodejs/node.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/disc-mark-stale.js\"",
+      "disc-evidence-required": "\"C:/Program Files/nodejs/node.exe\" \"${CLAUDE_PROJECT_DIR}/.claude/hooks/disc-evidence-required.js\""
+    }
+  },
+
+  "_disabling_per_hook": "To disable an individual hook without removing it from settings, set the matching key in discoverability.config.yaml: harness.hook_modes.<name> = 'off'. Names: session_context, mark_stale, robots_sitemap_guard, deploy_gate, evidence_required.",
+
+  "_disabling_all_hooks": "Set harness.enabled = false in discoverability.config.yaml. All 5 hooks will silent-exit.",
+
+  "_strict_vs_warn": "harness.strict_mode = true (default) → blocking hooks block. harness.strict_mode = false → all hooks downgrade to stderr advisory + exit 0 (still emit warnings)."
+}

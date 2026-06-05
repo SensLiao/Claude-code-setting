@@ -1,0 +1,94 @@
+# AppSec Release Decision (machine-readable release artifact)
+# Canonical: ~/.claude/skills/appsec-security-orchestrator/SKILL.md §16.9
+# Written by: appsec-evidence-validator agent  +  appsec-sdk gate.check
+# Consumed by: gsd-ship, gsd-verify-work, enterprise-qa-testing, CI release gates
+
+schema_version: 1.0
+release_tag: v0.1.0
+decision: PASS                            # PASS | FAIL | BLOCKED | CONDITIONAL_PASS
+decided_at: 2026-05-25T07:30:00Z
+decided_by: appsec-evidence-validator@<git_sha>
+asvs_level: L2                            # L1 | L2 | L3
+asvs_version: 5.0.0
+
+# Internal evidence completeness gate per SKILL.md §3 — NOT a NIST CSF release checklist claim.
+csf2_coverage:
+  note: "Internal evidence completeness gate per §3; not a NIST CSF release checklist claim."
+  GV:
+    status: PASS                          # PASS | PARTIAL | MISSING
+    evidence_paths:
+      - .appsec/evidence/v0.1.0/threat-model/
+  ID:
+    status: PASS
+    evidence_paths:
+      - .appsec/evidence/v0.1.0/threat-model/
+  PR:
+    status: PASS
+    evidence_paths:
+      - .appsec/evidence/v0.1.0/sast/
+      - .appsec/evidence/v0.1.0/code-review/
+      - .appsec/evidence/v0.1.0/headers-cookies/
+  DE:
+    status: PASS
+    evidence_paths:
+      - .appsec/evidence/v0.1.0/secret-scan/
+      - .appsec/evidence/v0.1.0/sca/
+  RS:
+    status: PARTIAL                       # incident-response plan present but no live test this cycle
+    evidence_paths:
+      - .appsec/evidence/v0.1.0/incident-response/
+  RC:
+    status: PARTIAL                       # last DR test was Q-1
+    evidence_paths:
+      - .appsec/evidence/v0.1.0/recovery/
+
+overlays_activated: [file_upload]
+overlays_evidence:
+  file_upload:
+    checklist_path: .appsec/evidence/v0.1.0/overlay-file_upload/checklist.yaml
+    findings_count: 3
+    critical: 0
+    high: 1
+    medium: 2
+
+findings_summary:
+  total: 12
+  critical: 0
+  high: 1
+  medium: 5
+  low: 6
+  by_source:
+    sast: 4
+    sca: 3
+    secret_scan: 0
+    manual_review: 5
+
+# ★ P0.1.7 — nested redaction object (NOT flat redaction_attested/redaction_method)
+redaction:
+  attested: true
+  method: "gitleaks --redact + appsec-sdk redact"
+  proof_path: .appsec/evidence/v0.1.0/secret-scan/redaction-attestation.txt
+
+pentest_status: not_required              # not_required | roe_drafted | roe_signed | executed | report_received | skipped_with_reason
+
+dependency_audit:
+  tools:
+    - npm-audit@10.x
+    - trivy@0.58.x
+  ran_at: 2026-05-25T05:00:00Z
+  results_paths:
+    - .appsec/evidence/v0.1.0/sca/raw-npm-audit.json
+    - .appsec/evidence/v0.1.0/sca/raw-trivy.json
+
+# Required only when decision == CONDITIONAL_PASS. Each entry needs approver + approval_date + review_date.
+risk_acceptance: []
+
+sla_breaches: []
+hard_block_reasons: []                    # FAIL / BLOCKED 必填
+conditional_reasons: []                   # CONDITIONAL_PASS 必填
+
+downstream_consumers:
+  - gsd-ship
+  - gsd-verify-work
+  - enterprise-qa-testing
+  - ci

@@ -1,0 +1,434 @@
+{
+  "schema_version": "1.1.0",
+  "generated_date": "2026-05-25",
+  "description": "Intent-to-orchestrator routing table. When Claude classifies user intent, this policy decides which primary orchestrator handles it. Supports keyword matching + tie-break rules. v1.1.0 adds discoverability_release_gate (L12) intent below appsec_narrow_* and above pentest_active. Not enforced at runtime; consulted as guidance.",
+
+  "intent_to_orchestrator": [
+    {
+      "intent_category": "project_bootstrap",
+      "intent_keywords": [
+        "新项目", "开新项目", "bootstrap", "装环境", "configure claude",
+        "init project", "项目初始化", "新仓库", ".claude 配置", "装 skills",
+        "同步全局到项目", "claude env install"
+      ],
+      "orchestrator": "claude-env-bootstrap",
+      "trigger_mode": "manual-first",
+      "notes": "Suggest `/claude-env-bootstrap` to the user; do NOT auto-execute. Has side effects (writes files, copies skills, modifies CLAUDE.md). disable-model-invocation: true."
+    },
+    {
+      "intent_category": "pm_delivery",
+      "intent_keywords": [
+        "需求", "PM", "milestone", "里程碑", "acceptance", "验收",
+        "spec", "plan", "delivery", "phase", "ship", "PR",
+        "做新功能", "改 bug 但牵连面广", "续上次的活", "审一下这个 phase"
+      ],
+      "orchestrator": "gsd-pipeline-orchestrator",
+      "trigger_mode": "auto",
+      "notes": "Default entry for all non-trivial work. Dispatches phase commands (spec / discuss / plan / execute / verify / ship)."
+    },
+    {
+      "intent_category": "uiux_design",
+      "intent_keywords": [
+        "UI", "UX", "design", "visual", "style", "theme",
+        "reference", "参考", "image", "frontend visual",
+        "audit UI", "UI 升级", "重做页面", "原型",
+        "premium", "luxury", "minimalist", "soft", "brutalist",
+        "design system", "tokens", "色彩", "字体"
+      ],
+      "orchestrator": "uiux-product-orchestrator",
+      "trigger_mode": "auto",
+      "notes": "Routes to sens-frontend-design / L3 style locks (taste-skill / luxury / brutalist-skill) / ux-principles (refinement) / etc. Resolves L3 style ambiguity by asking the user."
+    },
+    {
+      "intent_category": "qa_testing",
+      "intent_keywords": [
+        "testing", "QA", "SDET", "E2E", "集成测试", "unit test",
+        "smoke", "visual regression", "CI gate", "release gate",
+        "release readiness", "verify", "工业级测试", "commercial quality"
+      ],
+      "orchestrator": "enterprise-qa-testing",
+      "trigger_mode": "auto",
+      "notes": "9-layer test matrix decision tree. Includes AppSec routing for backend/API/auth changes."
+    },
+    {
+      "intent_category": "appsec_defensive",
+      "intent_keywords": [
+        "security", "AppSec", "安全审查", "vulnerability",
+        "OWASP", "ASVS", "ASVS 5.0", "WSTG", "API Security",
+        "threat model", "威胁建模", "STRIDE", "DFD", "abuse case", "risk register",
+        "auth review", "authentication review", "authorization review",
+        "SAST", "SCA", "SBOM", "secret scan", "dependency audit", "supply chain",
+        "security headers", "CSP", "HSTS",
+        "DAST baseline", "passive 安全扫描",
+        "NIST CSF", "NIST CSF 2.0", "NIST SSDF", "CIS Controls", "CIS Benchmark",
+        "secrets management", "Vault", "OIDC", "secrets engineering", "Gitleaks",
+        "IaC scan", "container scan", "Kubernetes security", "K8s security",
+        "Trivy", "Checkov", "Hadolint", "kube-bench", "Falco", "Prowler",
+        "cloud posture", "cloud security",
+        "incident response", "forensics", "recovery", "BCP", "DR", "backup validation",
+        "RTO", "RPO", "post-incident review"
+      ],
+      "orchestrator": "appsec-security-orchestrator",
+      "sub_orchestrators": {
+        "threat_modeling": "security-governance-threat-modeling",
+        "secrets_management": "security-platform-secrets",
+        "iac_cloud_posture": "security-platform-iac-cloud",
+        "dast_baseline": "dast-baseline-scanning",
+        "remediation": "security-remediation"
+      },
+      "routing_semantics": "primary-orchestrator-first-then-delegate — appsec-security-orchestrator owns the entry; it consults sub_orchestrators based on narrower intent keywords (see appsec_narrow_routes below) and delegates rather than executing in-place. If the resolver supports narrow-intent direct routing, prefer the appsec_narrow_* intents below.",
+      "trigger_mode": "auto",
+      "notes": "Defensive review and baseline only. Routes through 6-layer capability map (governance / app / platform / operations / response / compliance). Standardized finding schema in orchestrator §9. Active testing requires manual gate (pentest-scope-and-roe + authorized-pentest-validation)."
+    },
+    {
+      "intent_category": "appsec_narrow_threat_modeling",
+      "intent_keywords": [
+        "threat model", "威胁建模", "STRIDE workshop", "abuse case", "control gap inventory",
+        "DFD", "data flow diagram", "trust boundary"
+      ],
+      "orchestrator": "security-governance-threat-modeling",
+      "trigger_mode": "auto",
+      "notes": "Direct narrow route to threat-modeling skill. If parent appsec_defensive matches first, delegation to this skill must happen via orchestrator §5.1 governance.threat_modeling row."
+    },
+    {
+      "intent_category": "appsec_narrow_secrets",
+      "intent_keywords": [
+        "secrets management", "secrets engineering", "Vault", "Secrets Manager",
+        "OIDC migration", "短期凭证", "凭证轮换", "secret rotation",
+        "gitleaks", "TruffleHog", "secret leak"
+      ],
+      "orchestrator": "security-platform-secrets",
+      "trigger_mode": "auto",
+      "notes": "Direct narrow route to secrets engineering skill."
+    },
+    {
+      "intent_category": "appsec_narrow_iac_cloud",
+      "intent_keywords": [
+        "IaC scan", "Terraform security", "Checkov", "Hadolint", "Trivy",
+        "Kubernetes security", "K8s security", "kube-bench", "Falco",
+        "cloud posture", "Prowler", "container security"
+      ],
+      "orchestrator": "security-platform-iac-cloud",
+      "trigger_mode": "auto",
+      "notes": "Direct narrow route to IaC/cloud posture skill. Runtime cloud/cluster commands require user explicit confirmation (Tier B per skill §4)."
+    },
+    {
+      "intent_category": "appsec_narrow_mobile",
+      "intent_keywords": [
+        "mobile security", "iOS security", "Android security",
+        "MASVS", "MASTG", "cert pinning", "keychain", "keystore",
+        "jailbreak detection", "root detection", "deep link security"
+      ],
+      "orchestrator": "security-app-mobile",
+      "trigger_mode": "auto",
+      "notes": "Mobile security overlay. Coordinates with security-platform-secrets (Keychain/Keystore)."
+    },
+    {
+      "intent_category": "appsec_narrow_llm",
+      "intent_keywords": [
+        "LLM security", "AI security", "GenAI security", "agentic AI",
+        "prompt injection", "indirect prompt injection", "memory poisoning",
+        "tool permission", "AI agent security", "LLM eval", "guardrails"
+      ],
+      "orchestrator": "security-app-llm",
+      "trigger_mode": "auto",
+      "notes": "LLM + Agentic AI overlay. LLM Top 10 ALONE is insufficient — covers tool perms / memory poisoning / human override / rollback."
+    },
+    {
+      "intent_category": "appsec_narrow_multitenant",
+      "intent_keywords": [
+        "multi-tenant", "multitenancy", "tenant isolation", "cross-tenant",
+        "RLS", "row-level security", "BOLA with tenant"
+      ],
+      "orchestrator": "security-app-multitenant",
+      "trigger_mode": "auto",
+      "notes": "Multi-tenant overlay. 12-layer tenant boundary checklist."
+    },
+    {
+      "intent_category": "appsec_narrow_websocket",
+      "intent_keywords": [
+        "WebSocket security", "WS security", "SSE security",
+        "Socket.IO", "SignalR", "realtime channel auth", "CSWSH"
+      ],
+      "orchestrator": "security-app-websocket",
+      "trigger_mode": "auto",
+      "notes": "WebSocket/SSE overlay. HTTP access log INSUFFICIENT for WS — frame-level controls required."
+    },
+    {
+      "intent_category": "appsec_narrow_file_upload",
+      "intent_keywords": [
+        "file upload security", "upload validation", "polyglot file",
+        "antivirus", "AV scan", "CDR", "signed URL", "S3 upload security",
+        "archive bomb", "zip bomb"
+      ],
+      "orchestrator": "security-app-file-upload",
+      "trigger_mode": "auto",
+      "notes": "File upload overlay. 12-step OWASP cheat sheet defense."
+    },
+    {
+      "intent_category": "appsec_narrow_payment",
+      "intent_keywords": [
+        "PCI DSS", "payment security", "card data security", "cardholder data",
+        "PAN", "SAQ A", "SAQ D", "Stripe security", "PCI 4.0",
+        "tokenization", "3-D Secure", "SCA"
+      ],
+      "orchestrator": "security-compliance-payment",
+      "trigger_mode": "auto",
+      "notes": "PCI DSS 4.0.1 overlay. Prefers SAQ A architecture; never stores CVV/track/PIN."
+    },
+    {
+      "intent_category": "appsec_narrow_cn_data",
+      "intent_keywords": [
+        "PIPL", "个人信息保护法", "中国数据合规", "数据出境",
+        "跨境数据", "数据本地化", "CIIO", "网信办", "CAC",
+        "敏感个人信息", "算法备案", "大模型备案",
+        "标准合同", "SCC", "CAC 安全评估"
+      ],
+      "orchestrator": "security-compliance-cn-data",
+      "trigger_mode": "auto",
+      "notes": "China data protection overlay. Covers PIPL + DSL + CSL + CAC export rules + 2024 new regulations + GenAI registration."
+    },
+    {
+      "intent_category": "appsec_narrow_incident_response",
+      "intent_keywords": [
+        "incident response", "事件响应", "IR", "breach response",
+        "data breach", "数据泄露", "IC declared", "SEV-1", "SEV-2",
+        "credential leak response"
+      ],
+      "orchestrator": "security-response-incident-response",
+      "trigger_mode": "auto",
+      "notes": "NIST SP 800-61 R3 IR workflow. Includes forensics bridge per NIST SP 800-86 until standalone forensics skill exists."
+    },
+    {
+      "intent_category": "appsec_narrow_recovery",
+      "intent_keywords": [
+        "recovery", "恢复", "disaster recovery", "DR", "灾难恢复",
+        "business continuity", "BCP", "业务连续性",
+        "backup validation", "备份验证", "restore test", "恢复测试",
+        "RTO", "RPO", "post-incident recovery review", "DR exercise", "failover test"
+      ],
+      "orchestrator": "security-response-recovery",
+      "trigger_mode": "auto",
+      "notes": "NIST CSF 2.0 RC function. 3 modes: post-incident / scheduled drill / recovery audit. Activates after incident-response RS→RC transition criteria met."
+    },
+    {
+      "intent_category": "discoverability_release_gate",
+      "intent_keywords": [
+        "discoverability", "可发现性", "上线后被找到",
+        "release readiness check", "release readiness check (discoverability)",
+        "L12", "L12 audit",
+        "AI search 和 SEO 一起做", "discoverability audit",
+        "我的网站怎么被 ChatGPT 找到", "我的网站怎么被 Google 找到"
+      ],
+      "orchestrator": "discoverability-orchestrator",
+      "parent_orchestrator": "uiux-product-orchestrator",
+      "narrow_skills": ["web-seo", "web-aeo", "web-local-seo", "app-aso"],
+      "trigger_mode": "auto",
+      "notes": "L12 release gate; downstream of UIUX orchestrator. Narrow domain words (SEO / AEO / GEO / ASO alone) route directly to narrow skills, not here."
+    },
+    {
+      "intent_category": "pentest_active",
+      "intent_keywords": [
+        "pentest", "penetration test", "渗透测试", "active scan",
+        "active validation", "exploit", "vulnerability validation",
+        "ZAP full scan", "ROE", "Rules of Engagement"
+      ],
+      "orchestrator_sequence": [
+        "pentest-scope-and-roe",
+        "authorized-pentest-validation"
+      ],
+      "trigger_mode": "ROE-gated then manual",
+      "notes": "MUST complete ROE first via pentest-scope-and-roe (visible governance skill). Active validation via authorized-pentest-validation is manual-only (disable-model-invocation: true)."
+    }
+  ],
+
+  "tie_break_rules": [
+    {
+      "rule": "specificity",
+      "description": "When multiple orchestrators match, prefer the one with the most specific keyword match (e.g. 'pentest' is more specific than 'security' or 'testing')."
+    },
+    {
+      "rule": "pentest_safety",
+      "description": "When intent includes 'pentest' / 'active scan' / 'exploit', ALWAYS gate through pentest-scope-and-roe first regardless of other matches."
+    },
+    {
+      "rule": "appsec_vs_qa",
+      "description": "When intent involves backend/API/auth/data + testing, route to enterprise-qa-testing which will further route to appsec-security-orchestrator. Do NOT route directly to appsec from QA intent."
+    },
+    {
+      "rule": "ambiguity_fallback",
+      "description": "When intent is unclear, route to gsd-pipeline-orchestrator (PM main line) which can dispatch via gsd-spec-phase to clarify WHAT is being built."
+    },
+    {
+      "rule": "trivial_skip",
+      "description": "For 1-3 line bugfixes / answering questions / reading code / 'don't use GSD' explicit user requests, skip orchestrators entirely."
+    }
+  ],
+
+  "utility_skill_routes": {
+    "_comment": "Supporting utility skills (code-reading 2026-05-25; arch-viz + env-parity-baseline added 2026-06-02). Lightweight tools — NOT orchestrators, NOT gates, NOT sources of truth. Keyword-only routing. They never replace primary orchestrators; they feed supporting context into GSD / UIUX / QA / AppSec / L12. Covers code-reading (gitnexus / codegraph), architecture visualization (arch-viz), and cross-env deployment parity (env-parity-baseline).",
+    "gitnexus-repo-map": {
+      "purpose": "Repo-level visual map / architecture topology / cluster overview / unfamiliar open-source reading. Wraps GitNexus CLI; CLI-first; web UI opt-in; never auto-runs gitnexus setup; never modifies global ~/.claude/.",
+      "keywords": [
+        "GitNexus",
+        "gitnexus",
+        "repo map",
+        "code graph",
+        "visual graph",
+        "visual code graph",
+        "architecture graph",
+        "architecture topology",
+        "architecture map",
+        "topology",
+        "module map",
+        "dependency graph",
+        "functional clusters",
+        "code clusters",
+        "read this repo",
+        "understand this open source project",
+        "open source reading",
+        "生成图谱",
+        "代码拓扑",
+        "仓库架构",
+        "模块地图",
+        "读开源项目",
+        "陌生 repo"
+      ],
+      "do_not_use_for": [
+        "Local symbol callers / callees / impact — route to codegraph-cli instead",
+        "Project initialization — route to claude-env-bootstrap",
+        "Decision-making — route to GSD / UIUX / QA / AppSec / L12 orchestrators"
+      ]
+    },
+    "codegraph-cli": {
+      "purpose": "Local symbol-level traversal — callers / callees / impact / affected tests / task context. Wraps CodeGraph CLI; CLI-only by default; MCP off by default; never runs codegraph install automatically.",
+      "keywords": [
+        "CodeGraph",
+        "CodeGraph CLI",
+        "codegraph",
+        "callers",
+        "callees",
+        "impact",
+        "blast radius",
+        "affected tests",
+        "affected test files",
+        "who calls",
+        "what calls",
+        "what calls this",
+        "code context",
+        "task context",
+        "调用链",
+        "影响面",
+        "受影响测试",
+        "受影响的测试",
+        "读代码",
+        "函数开发",
+        "符号查询",
+        "改这个函数会影响什么"
+      ],
+      "do_not_use_for": [
+        "Visual / architectural / repo-wide view — route to gitnexus-repo-map instead",
+        "QA release gate — affected output is supporting context only, gate stays in enterprise-qa-testing",
+        "Spec / product decisions — route to gsd-spec-phase"
+      ]
+    },
+    "arch-viz": {
+      "purpose": "Repo → committable, presentable architecture bundle (interactive offline viewer viz/index.html + agent-readable graph.json + architecture.svg + ARCHITECTURE.md) written into docs/architecture/. Wraps the local arch-viz CLI. Use for shareable / committable architecture artifacts for clients / teammates; prefer over gitnexus-repo-map when a permissive committable artifact is wanted.",
+      "keywords": [
+        "arch-viz", "architecture bundle", "architecture diagram", "architecture svg",
+        "ARCHITECTURE.md", "committable architecture", "可提交架构图", "给客户看的架构图",
+        "生成架构图", "可视化架构", "visualize architecture", "diagram this repo", "docs/architecture"
+      ],
+      "do_not_use_for": [
+        "Local symbol callers / callees / impact — route to codegraph-cli instead",
+        "Quick throwaway reading of an unfamiliar repo — gitnexus-repo-map is lighter",
+        "Decision-making — route to GSD / UIUX / QA / AppSec / L12 orchestrators"
+      ]
+    },
+    "env-parity-baseline": {
+      "purpose": "Cross-environment parity baseline & deployment risk router. Detects dev / CI / staging / prod consistency gaps, injects a minimum baseline set (.gitattributes / .editorconfig / env-validator / CI matrix / env-contract / runtime-manifest / deploy-parity-checklist), and routes deployment-layer concerns (Docker / Compose / k8s / systemd / Nginx / Terraform / Ansible) to downstream specialists. Scope = detect + minimum contract + handoff, NOT a full deploy generator. Twelve-Factor X (dev/prod parity) + III (config in env) aligned.",
+      "keywords": [
+        "环境一致性", "dev-prod parity", "dev/prod parity", "twelve-factor parity",
+        "works on my machine", "在我机器上能跑", "CRLF", "LF", "跨平台",
+        "Windows vs 服务器", "runtime version pin", ".env.example",
+        "Dockerfile secret", "k8s configmap mismatch", "部署环境", "deployment parity"
+      ],
+      "do_not_use_for": [
+        "Full Docker / k8s / Terraform generation — env-parity only detects + hands off to deployment specialists",
+        "Security secret scanning — route to security-platform-secrets / appsec-security-orchestrator",
+        "CI test strategy — route to enterprise-qa-testing"
+      ]
+    },
+    "pairing": {
+      "rule": "Both tools = repo reading / code context. They do NOT compete. On hard problems, GitNexus first (see the repo), then CodeGraph CLI (aim at a specific symbol).",
+      "decision_card": {
+        "global / visual / architectural": "gitnexus-repo-map",
+        "local / symbol-level / call-graph": "codegraph-cli"
+      }
+    }
+  },
+
+  "manual_first_skills": [
+    {
+      "skill": "claude-env-bootstrap",
+      "reason": "Has side effects (writes files, copies skills, modifies CLAUDE.md). User must invoke via /claude-env-bootstrap."
+    },
+    {
+      "skill": "authorized-pentest-validation",
+      "reason": "Performs active security validation. Must NEVER auto-trigger. Hard gate via disable-model-invocation: true."
+    },
+    {
+      "skill": "anchor-prototype-wave",
+      "reason": "Multi-surface production wave. Expensive (parallel subagents). User must explicitly request."
+    },
+    {
+      "skill": "brutalist-skill",
+      "reason": "Experimental L3 style. User must opt in by name."
+    }
+  ],
+
+  "three_mainline_handoffs": [
+    {
+      "from": "gsd-pipeline-orchestrator",
+      "to": "uiux-product-orchestrator",
+      "trigger": "gsd-spec-phase determines feature is UI-heavy",
+      "handoff_payload": ["business intent", "user persona", "acceptance criteria draft"]
+    },
+    {
+      "from": "gsd-pipeline-orchestrator",
+      "to": "enterprise-qa-testing",
+      "trigger": "gsd-plan-phase needs quality gate definition",
+      "handoff_payload": ["acceptance criteria", "risk classification", "release target"]
+    },
+    {
+      "from": "uiux-product-orchestrator",
+      "to": "enterprise-qa-testing",
+      "trigger": "UI changes affect theme/layout/image — notify for visual regression target",
+      "handoff_payload": ["affected pages/components", "theme variants", "responsive breakpoints"]
+    },
+    {
+      "from": "uiux-product-orchestrator",
+      "to": "appsec-security-orchestrator",
+      "trigger": "production UI includes backend/API/auth integration",
+      "handoff_payload": ["API surface", "auth model", "data sensitivity"]
+    },
+    {
+      "from": "enterprise-qa-testing",
+      "to": "appsec-security-orchestrator",
+      "trigger": "QA decision tree hits backend/API/auth/data branch",
+      "handoff_payload": ["affected modules", "auth flows", "data classes"]
+    },
+    {
+      "from": "appsec-security-orchestrator",
+      "to": "pentest-scope-and-roe",
+      "trigger": "user requests active security validation",
+      "handoff_payload": ["target identification", "AppSec findings to validate"]
+    },
+    {
+      "from": "pentest-scope-and-roe",
+      "to": "authorized-pentest-validation",
+      "trigger": "ROE 11-item checklist complete + user explicit sign-off",
+      "handoff_payload": ["ROE document path", "user confirmation timestamp"]
+    }
+  ]
+}

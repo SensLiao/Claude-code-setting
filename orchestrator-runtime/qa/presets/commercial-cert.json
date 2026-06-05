@@ -1,0 +1,248 @@
+{
+  "engine_version": "1.0",
+  "orchestrator": "qa",
+  "domain_runtime_version": "qa-0.1.0",
+  "preset_name": "commercial-cert",
+  "mode": "commercial-cert",
+  "_doc_ref": "QA-PHASE-B-BLUEPRINT.md §1 commercial-cert + §22 R4/R9 + §22.2 R2 roadmap",
+  "_when": "customer-facing release / regulated industry / explicit /qa-commercial-cert. REQUIRES EXPLICIT USER BUDGET APPROVAL.",
+  "_banner": "=== REQUIRES EXPLICIT BUDGET APPROVAL === Preview must render this banner above Mode line; Skill must store {approved_estimate_high, user_text} into sentinel for hook cross-verify.",
+  "_r9_note": "Visual / A11y / Perf use Audit (agent) -> Gate (deterministic) pattern. Deterministic gates do not run external tools — that lesson was already learned for static baseline.",
+  "_d1_caveat": "R2 roadmap dedicated runners MUST ship before any project uses this preset in production.",
+  "_resolved_model_policy": "Per user 2026-05-28 dual-layer rule: model alias is the abstraction skills resolve in production; resolved_model in this preset JSON is the pre-baked TEST/DEV default — capped at sonnet (NEVER opus) so workflow-lint / graph-smoke / preflight run on Haiku/Sonnet only. Production-mode skill (enterprise-qa-testing) overrides resolved_model based on model_policy_version + project risk before launching Workflow. See ~/.claude/projects/.../memory/feedback-orchestration-model-routing.md.",
+  "context": {
+    "_skill_fills": [
+      "risk_snapshot (per R4)",
+      "release_tag",
+      "run_id",
+      "critical_release_paths",
+      "policy",
+      "budget_approval"
+    ],
+    "_policy_doc": "DOUBLE-WRITE gate-policy floors (slice qa-a11y-perf, 2026-06-05). enterprise-qa-testing §18.5 step 13 MUST pass ctx.policy into Workflow input.context.policy; the engine reads input.context.policy (NOT this static block) at qa-orchestrator.js line 47. This baked `policy` is the CANONICAL DEFAULT the Skill copies/merges as the floor — the Skill MAY tighten per project (never silently loosen below these). Field names match qa-orchestrator.js a11y_gate_policy / perf_gate_policy reads exactly. Mirrored in schemas A11Y_AUDIT_SCHEMA.v1.json + PERF_AUDIT_SCHEMA.v1.json `_canonical_threshold_policy`. WHY baked: perf_gate_policy defaults unset floors to Infinity (never blocks) — an empty policy = silent non-enforcement, so the default must be authored here.",
+    "policy": {
+      "a11y_floor": {
+        "_target": "WCAG 2.2 AA",
+        "max_critical": 0,
+        "max_serious": 0
+      },
+      "perf_floor": {
+        "_cwv": "Core Web Vitals 'good' boundaries; INP replaced FID 2024-03-12",
+        "max_lcp_ms": 2500,
+        "max_inp_ms": 200,
+        "max_cls": 0.1,
+        "max_tbt_ms": 200
+      }
+    }
+  },
+  "phases": [
+    {
+      "name": "LayerSelect",
+      "type": "single",
+      "model": "strongest_available",
+      "resolved_model": "opus",
+      "agentType": "qa-risk-classifier",
+      "prompt_ref": "layer-select.v1",
+      "schema_ref": "LAYER_SELECT_SCHEMA.v1",
+      "stall_ms": 180000
+    },
+    {
+      "name": "StaticBaseline",
+      "type": "single",
+      "model": "balanced",
+      "resolved_model": "sonnet",
+      "agentType": "qa-static-baseline-runner",
+      "prompt_ref": "static-baseline.v1",
+      "schema_ref": "STATIC_BASELINE_SCHEMA.v1",
+      "stall_ms": 600000
+    },
+    {
+      "name": "StaticGate",
+      "type": "deterministic",
+      "op": "run_static_baseline_policy"
+    },
+    {
+      "name": "ComponentOrContract",
+      "type": "fanout",
+      "items_from": "state.LayerSelect.changed_surfaces",
+      "_width_range": [
+        4,
+        8
+      ],
+      "_dispatch_note": "qa-component-runner dual-handles component + api-contract kinds via component-or-contract.v1 prompt's _dispatched_schema routing field. R2 follow-up: pure split into separate Component + Contract phases with dedicated qa-component-runner / qa-contract-runner agents.",
+      "model": "balanced",
+      "resolved_model": "sonnet",
+      "agentType": "qa-component-runner",
+      "prompt_ref": "component-or-contract.v1",
+      "schema_ref": "COMPONENT_TEST_SCHEMA.v1",
+      "stall_ms": 600000
+    },
+    {
+      "name": "E2E",
+      "type": "pipeline",
+      "items_from": "state.LayerSelect.critical_scenarios",
+      "_items_range": [
+        2,
+        5
+      ],
+      "stages": [
+        {
+          "name": "prepare",
+          "type": "single",
+          "model": "balanced",
+          "resolved_model": "sonnet",
+          "agentType": "e2e-runner",
+          "prompt_ref": "e2e-scenario-prepare.v1",
+          "schema_ref": "E2E_SCENARIO_SCHEMA.v1",
+          "stall_ms": 300000
+        },
+        {
+          "name": "run-validate",
+          "type": "single",
+          "model": "strongest_available",
+          "resolved_model": "opus",
+          "agentType": "e2e-runner",
+          "prompt_ref": "e2e-scenario.v1",
+          "schema_ref": "E2E_SCENARIO_SCHEMA.v1",
+          "stall_ms": 900000,
+          "timeout_policy": "long_running_external_test"
+        }
+      ]
+    },
+    {
+      "name": "FlakyTriage",
+      "type": "single",
+      "skip_if": "no_flaky_signal",
+      "model": "strongest_available",
+      "resolved_model": "opus",
+      "agentType": "qa-flaky-triager",
+      "prompt_ref": "flaky-triage.v1",
+      "schema_ref": "FLAKY_TRIAGE_SCHEMA.v1",
+      "stall_ms": 300000,
+      "post_invariants": [
+        "critical_release_paths_have_owner"
+      ]
+    },
+    {
+      "name": "FlakyQuarantineCheck",
+      "type": "deterministic",
+      "op": "flaky_quarantine_decision"
+    },
+    {
+      "name": "VisualAudit",
+      "type": "fanout",
+      "items_from": "state.LayerSelect.changed_surfaces",
+      "_width_range": [
+        3,
+        10
+      ],
+      "model": "balanced",
+      "resolved_model": "sonnet",
+      "agentType": "qa-visual-runner",
+      "prompt_ref": "visual-audit.v1",
+      "schema_ref": "VISUAL_AUDIT_SCHEMA.v1",
+      "stall_ms": 600000,
+      "timeout_policy": "long_running_external_test"
+    },
+    {
+      "name": "VisualGate",
+      "type": "deterministic",
+      "op": "visual_gate_policy"
+    },
+    {
+      "name": "A11yAudit",
+      "type": "single",
+      "model": "balanced",
+      "resolved_model": "sonnet",
+      "agentType": "qa-a11y-runner",
+      "prompt_ref": "a11y-audit.v1",
+      "schema_ref": "A11Y_AUDIT_SCHEMA.v1",
+      "stall_ms": 300000
+    },
+    {
+      "name": "A11yGate",
+      "type": "deterministic",
+      "op": "a11y_gate_policy"
+    },
+    {
+      "name": "PerfAudit",
+      "type": "single",
+      "model": "balanced",
+      "resolved_model": "sonnet",
+      "agentType": "qa-perf-runner",
+      "prompt_ref": "perf-audit.v1",
+      "schema_ref": "PERF_AUDIT_SCHEMA.v1",
+      "stall_ms": 900000,
+      "timeout_policy": "long_running_external_test"
+    },
+    {
+      "name": "PerfGate",
+      "type": "deterministic",
+      "op": "perf_gate_policy"
+    },
+    {
+      "name": "Gate",
+      "type": "deterministic",
+      "op": "qa_gate_policy"
+    },
+    {
+      "name": "EvidenceBundle",
+      "type": "single",
+      "model": "strongest_available",
+      "resolved_model": "opus",
+      "agentType": "qa-evidence-validator",
+      "prompt_ref": "evidence-bundle.v1",
+      "schema_ref": "EVIDENCE_BUNDLE_SCHEMA.v1",
+      "stall_ms": 300000,
+      "post_invariants": [
+        "ensure_evidence_bundle_layers",
+        "map_null_outputs_to_missing"
+      ]
+    }
+  ],
+  "prompts": {},
+  "schemas": {},
+  "ops_allowed": {
+    "deterministic": [
+      "run_static_baseline_policy",
+      "qa_gate_policy",
+      "compute_critical_path_coverage",
+      "flaky_quarantine_decision",
+      "visual_gate_policy",
+      "a11y_gate_policy",
+      "perf_gate_policy"
+    ],
+    "predicates": [
+      "no_layers_active",
+      "critical_path_not_covered",
+      "evidence_bundle_incomplete",
+      "no_flaky_signal",
+      "fanout_item_dropped"
+    ],
+    "invariants": [
+      "ensure_evidence_bundle_layers",
+      "map_null_outputs_to_missing",
+      "critical_release_paths_have_owner"
+    ]
+  },
+  "_estimate": {
+    "token_estimate_low": 1000000,
+    "token_estimate_high": 3000000,
+    "hard_budget_cap": 3500000,
+    "wallclock_estimate_minutes": 25,
+    "evidence_layers": [
+      ".qa/evidence/<tag>/02-layer-selection.yaml",
+      ".qa/evidence/<tag>/static.yaml",
+      ".qa/evidence/<tag>/component.yaml",
+      ".qa/evidence/<tag>/contract.yaml",
+      ".qa/evidence/<tag>/e2e.yaml",
+      ".qa/evidence/<tag>/flaky_triage.yaml",
+      ".qa/evidence/<tag>/visual.yaml",
+      ".qa/evidence/<tag>/a11y.yaml",
+      ".qa/evidence/<tag>/perf.yaml",
+      ".qa/evidence/<tag>/qa_evidence_bundle.yaml",
+      ".qa/evidence/<tag>/workflow-state.yaml",
+      ".qa/evidence/<tag>/dispatch_failures.yaml"
+    ]
+  }
+}

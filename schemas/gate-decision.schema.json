@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://claude.local/schemas/gate-decision.schema.json",
+  "title": "Gate Decision (canonical harness vocabulary) — JSON mirror of schemas/gate-decision.schema.yaml",
+  "description": "Dependency-free JSON mirror of the canonical YAML schema (the schema verdict-validator.js actually loads). Kept in sync via schemas/check-gate-decision-parity.js (run in CI / before release; exit 1 = drift). 2026-06-05: that parity guard caught a real drift — JSON had `provenance` but the YAML source did not — now reconciled.",
+  "type": "object",
+  "required": ["decision", "reason", "evidence_refs", "timestamp", "gate_tag"],
+  "additionalProperties": false,
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": ["PASS", "WARN", "CONDITIONAL_PASS", "FAIL", "BLOCKED", "STALE", "STRATEGY_READY"]
+    },
+    "reason": { "type": "string", "minLength": 1 },
+    "evidence_refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "gate_tag": { "type": "string", "pattern": "^[A-Za-z0-9._/-]{1,120}$" },
+    "subsystem": {
+      "type": "string",
+      "enum": ["appsec", "qa", "uiux", "discoverability", "gsd"]
+    },
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "provenance": {
+      "type": "object",
+      "required": ["written_by", "run_fingerprint"],
+      "additionalProperties": true,
+      "properties": {
+        "written_by": { "type": "string", "pattern": "^(appsec|qa|uiux|discoverability|gsd)-sdk@\\S+$" },
+        "run_fingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "spec_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    }
+  },
+  "x-release-semantics": {
+    "blocks_release": ["FAIL", "BLOCKED", "STALE"],
+    "allows_release": ["PASS", "WARN", "CONDITIONAL_PASS"],
+    "not_release_decision": ["STRATEGY_READY"],
+    "conditional_pass_requires": ["explicit_risk_acceptance_ref"]
+  }
+}

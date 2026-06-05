@@ -1,0 +1,145 @@
+{
+  "$schema": "../schemas/hook-registry.schema.json",
+  "schema_version": "1.0.0",
+  "generated_date": "2026-05-25",
+  "generated_by": "harness drift normalization Wave 2 Agent A2 (PR-1)",
+  "description": "5-category taxonomy of harness hooks. Distinguishes between globally-registered hooks (in ~/.claude/settings.json, fire on every session) and project-installed hooks (config-gated, only fire when SDK init has run inside a project). Implements CANONICALS.md D3: subsystem hooks are project-installed-only.",
+
+  "categories": {
+    "global_live": {
+      "description": "Registered in ~/.claude/settings.json. Fires on every session, no project config required.",
+      "owner": "gsd + general infrastructure",
+      "registered_in": "~/.claude/settings.json",
+      "hooks": [
+        {"name": "detect-bootstrap-needed.js", "trigger": "SessionStart", "purpose": "Detect if cwd needs claude-env-bootstrap and inject [BOOTSTRAP_HINT]"},
+        {"name": "gsd-prompt-guard.js", "trigger": "UserPromptSubmit", "purpose": "Guard GSD prompt patterns"},
+        {"name": "gsd-read-guard.js", "trigger": "PreToolUse", "purpose": "Guard GSD-protected file reads"},
+        {"name": "gsd-workflow-guard.js", "trigger": "PreToolUse", "purpose": "Guard GSD workflow boundaries"},
+        {"name": "gsd-validate-commit.sh", "trigger": "PreToolUse(bash:git commit)", "purpose": "Validate GSD commit conventions"},
+        {"name": "gsd-context-monitor.js", "trigger": "PostToolUse", "purpose": "Monitor context window usage"},
+        {"name": "gsd-read-injection-scanner.js", "trigger": "PreToolUse(Read)", "purpose": "Scan Read output for prompt injection"},
+        {"name": "gsd-phase-boundary.sh", "trigger": "Stop", "purpose": "Enforce GSD phase boundary"},
+        {"name": "gsd-check-update.js", "trigger": "SessionStart", "purpose": "Check for GSD updates"},
+        {"name": "gsd-session-state.sh", "trigger": "Stop", "purpose": "Persist session state"},
+        {"name": "gsd-statusline.js", "trigger": "Statusline", "purpose": "Render GSD statusline"}
+      ]
+    },
+
+    "project_installed": {
+      "description": "Config-gated hooks installed via subsystem SDK init. Each subsystem's hook .js + its _<sub>-common.js are COPIED project-local into <project>/.claude/hooks/, and registered (nested {matcher,hooks:[{type,command}]} form, command=node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/<name>\") into <project>/.claude/settings.json by the SDK init command. Both the copy and the settings merge are performed by the single shared installer orchestrator-runtime/shared/install-subsystem-hooks.js, which reads THIS registry as the source of truth (do not re-implement per SDK). Fresh projects without the corresponding config gate have NO enforcement. Hooks are committed with the repo (self-contained clone-and-run; user lock 2026-05-30).",
+      "scope": "per-project; not global",
+      "installer": "orchestrator-runtime/shared/install-subsystem-hooks.js",
+      "settings_file": ".claude/settings.json",
+      "hook_path_form": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/<name>.js\"",
+      "subsystems": {
+        "appsec": {
+          "config_gate": "<project>/.appsec/config.json",
+          "snippet_path": "skills/appsec-security-orchestrator/templates/dot-appsec-skeleton/settings.json.snippet",
+          "install_command": "appsec-sdk init",
+          "hooks": [
+            {"name": "appsec-active-scan-guard.js", "trigger": "PreToolUse(Bash)", "purpose": "Block active security scans without ROE + authorization"},
+            {"name": "appsec-secret-access-guard.js", "trigger": "PreToolUse(Read|Bash)", "purpose": "Block raw secret material reads (Read .env/*.pem/*.key) and Bash cat/printenv exfil; require redaction"},
+            {"name": "appsec-finding-schema-prewrite.js", "trigger": "PreToolUse(Write|Edit|MultiEdit)", "purpose": "Validate finding YAML/JSON against standardized schema before write; block direct Edit/MultiEdit of protected findings/decisions (E7 2026-06-05)"},
+            {"name": "appsec-pentest-authorization.js", "trigger": "PreToolUse(Skill|Agent)", "purpose": "Hard gate for authorized-pentest-validation Skill/Agent invocation (11-item ROE + window + sign-off)"},
+            {"name": "appsec-finding-schema-postverify.js", "trigger": "PostToolUse(Write|Edit)", "purpose": "Post-write validation of finding artifacts"},
+            {"name": "appsec-secret-redaction.js", "trigger": "Stop", "purpose": "Last-line defense: scan final assistant message/transcript for raw secret patterns; never downgradable to warn-only"},
+            {"name": "appsec-evidence-required.js", "trigger": "Stop", "purpose": "Block phase completion if .appsec/evidence/<tag>/ is empty"},
+            {"name": "appsec-preview-gate.js", "trigger": "PreToolUse(Workflow)", "purpose": "workflow-spec launch gate: recompute spec_hash + verify approval sentinel + TTL for deterministic appsec-orchestrator launches"},
+            {"name": "governed-gate-workflow-guard.js", "trigger": "PreToolUse(Workflow)", "purpose": "Governed Gate Mode (CLAUDE.md §3.7, post-4.8): block inline model-authored Dynamic Workflows / ultracode during an active gate; cross-domain (also installed by qa-sdk init)"}
+          ]
+        },
+        "qa": {
+          "config_gate": "<project>/.qa/config.json",
+          "snippet_path": "templates/qa/settings.project.json",
+          "install_command": "qa-sdk init",
+          "hooks": [
+            {"name": "qa-block-update-snapshots.js", "trigger": "PreToolUse(Bash)", "purpose": "Block visual-regression baseline updates without authorization"},
+            {"name": "qa-quarantine-accountability.js", "trigger": "PreToolUse(Bash)", "purpose": "On git commit: require justification/accountability fields when quarantining tests or adding test files"},
+            {"name": "qa-floor-rule-prompt.js", "trigger": "PostToolUse(Write|Edit|MultiEdit)", "purpose": "After edits to risk-relevant files: inject QA floor-rule advisory (PostToolUse, non-blocking)"},
+            {"name": "qa-detect-internal-mock.js", "trigger": "PostToolUse(Write|Edit)", "purpose": "Detect over-mocking of internal modules"},
+            {"name": "qa-evidence-required.js", "trigger": "Stop", "purpose": "Block phase completion if .qa/evidence/<tag>/ is empty"},
+            {"name": "qa-preview-gate.js", "trigger": "PreToolUse(Workflow)", "purpose": "workflow-spec launch gate: recompute spec_hash + verify approval sentinel + TTL + commercial-cert budget approval for deterministic qa-orchestrator launches"},
+            {"name": "qa-bundle-write-guard.js", "trigger": "PreToolUse(Write|Edit|MultiEdit)", "purpose": "Block direct non-SDK writes to .qa/evidence/<tag>/{qa_evidence_bundle,gate-result,release-decision} verdict files (drift guard; D1). Matcher MUST include MultiEdit"},
+            {"name": "qa-mark-stale.js", "trigger": "PostToolUse(Write|Edit|MultiEdit|Bash)", "purpose": "Proactively mark .qa/evidence/<tag>/ STALE after a QA-relevant source/config/test edit or deploy command, once a bundle for the active tag exists (D2)"},
+            {"name": "governed-gate-workflow-guard.js", "trigger": "PreToolUse(Workflow)", "purpose": "Governed Gate Mode (CLAUDE.md §3.7, post-4.8): block inline model-authored Dynamic Workflows / ultracode during an active gate; cross-domain (also installed by appsec-sdk init)"}
+          ]
+        },
+        "uiux": {
+          "config_gate": "<project>/.uiux/config.json",
+          "snippet_path": "skills/uiux-product-orchestrator/templates/dot-uiux-skeleton/settings.uiux-hooks.snippet.json",
+          "install_command": "uiux-sdk init",
+          "hooks": [
+            {"name": "uiux-gsd-plan-guard.js", "trigger": "PreToolUse(Skill)", "purpose": "Block /gsd-plan-phase Skill on a frontend phase when UI-SPEC.md is missing (strict)"},
+            {"name": "uiux-style-mutex-guard.js", "trigger": "PreToolUse(Skill)", "purpose": "On Skill invocation: enforce L3 style mutex (taste/luxury/minimalist/soft mutually exclusive); reject workflow skills as L3"},
+            {"name": "uiux-release-guard.js", "trigger": "Stop", "purpose": "Gate release if .uiux/evidence/<tag>/ lacks required artifacts"}
+          ]
+        },
+        "discoverability": {
+          "config_gate": "<project>/discoverability.config.yaml",
+          "snippet_path": "templates/discoverability/settings-snippet.json",
+          "install_command": "python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py --project-root . init",
+          "hooks": [
+            {"name": "disc-session-context.js", "trigger": "SessionStart", "purpose": "Inject L12 status into session context if discoverability.config.yaml exists"},
+            {"name": "disc-robots-sitemap-guard.js", "trigger": "PreToolUse(Write|Edit)", "purpose": "Guard robots.txt / sitemap / llms.txt edits against AppSec access-control confusion"},
+            {"name": "disc-deploy-gate.js", "trigger": "PreToolUse(Bash)", "purpose": "Block deploy commands if L12 gate-result.yaml = FAIL or BLOCKED"},
+            {"name": "disc-mark-stale.js", "trigger": "PostToolUse", "purpose": "Auto-mark L12 evidence stale after deploy or config change"},
+            {"name": "disc-evidence-required.js", "trigger": "Stop", "purpose": "Block phase completion if evidence/discoverability/<tag>/ is empty"}
+          ]
+        }
+      }
+    },
+
+    "library_modules": {
+      "description": "Shared helper modules used by the project-installed hooks. Not hooks themselves; not registered in settings.json. Imported by hook scripts at runtime.",
+      "modules": [
+        {"name": "_appsec-common.js", "used_by": "appsec-*.js"},
+        {"name": "_qa-common.js", "used_by": "qa-*.js"},
+        {"name": "_uiux-common.js", "used_by": "uiux-*.js"},
+        {"name": "_disc-common.js", "used_by": "disc-*.js"}
+      ]
+    },
+
+    "dormant_opt_in": {
+      "description": "Hooks present on disk but intentionally not registered in settings.json. Available for opt-in but suppressed by default.",
+      "entries": [
+        {
+          "name": "gsd-update-banner.js",
+          "reason": "GSD statusline already registered; banner would duplicate notification. Available for users who prefer banner over statusline."
+        }
+      ]
+    },
+
+    "deprecated": {
+      "description": "Hooks removed or renamed. Listed here so audit tools can flag legacy references.",
+      "entries": []
+    }
+  },
+
+  "enforcement_gaps_callout": {
+    "description": "Subsystems whose docs may have implied global enforcement but whose hooks are project-installed only. Fresh projects without the corresponding config gate have ZERO subsystem-hook enforcement; only GSD hooks fire globally.",
+    "subsystems": ["appsec", "qa", "uiux", "discoverability"],
+    "config_gates": {
+      "appsec": "<project>/.appsec/config.json",
+      "qa": "<project>/.qa/config.json",
+      "uiux": "<project>/.uiux/config.json",
+      "discoverability": "<project>/discoverability.config.yaml"
+    },
+    "install_commands": {
+      "appsec": "bash ~/.claude/scripts/appsec-sdk.sh init",
+      "qa": "bash ~/.claude/scripts/qa-sdk.sh init",
+      "uiux": "bash ~/.claude/scripts/uiux-sdk.sh init",
+      "discoverability": "python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py --project-root . init"
+    },
+    "remediation": "claude-env-bootstrap EXECUTE §7.1a now auto-runs the right init for each selected subsystem (2026-05-30), and each SDK init is an idempotent hook-installer (creates <sub> config if missing + copies project-local hooks + merges settings.json via install-subsystem-hooks.js). Users invoking a subsystem in a project NOT created by bootstrap can run the install_command above once (bare init, no release tag needed)."
+  },
+
+  "see_also": [
+    "skills.manifest.json",
+    "harness.registry.json",
+    "skill-routing-policy.json",
+    "../docs/CANONICALS.md",
+    "../docs/ORCHESTRATOR-MAP.md",
+    "../docs/L12-DISCOVERABILITY.md",
+    "../SKILLS-INDEX.md"
+  ]
+}

@@ -1,0 +1,481 @@
+# yaml-language-server: $schema=https://json-schema.org/draft/2020-12/schema
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://claude.local/schemas/handoff.schema.yaml"
+title: Cross-subsystem Handoff Payloads
+description: >-
+  Payload contracts for handoffs between primary orchestrators. Used by
+  orchestrators when they invoke a downstream subsystem (UIUX -> L12, GSD
+  -> AppSec, etc.) and by validators that check the handoff is
+  well-formed before the downstream orchestrator accepts work.
+
+  Each handoff is one named definition under $defs. A handoff payload
+  validates against exactly one $def — pick the one that names the
+  source-destination pair.
+
+# Top-level is a discriminated union: callers pick which handoff via $ref
+type: object
+oneOf:
+  - $ref: "#/$defs/gsd_to_uiux"
+  - $ref: "#/$defs/uiux_to_l12"
+  - $ref: "#/$defs/gsd_to_qa"
+  - $ref: "#/$defs/gsd_to_appsec"
+  - $ref: "#/$defs/l12_to_appsec_escalation"
+  - $ref: "#/$defs/qa_to_appsec"
+
+$defs:
+
+  # ---------------------------------------------------------------------
+  # gsd_to_uiux
+  # Producer: gsd-pipeline-orchestrator (during UI phase plan)
+  # Consumer: uiux-product-orchestrator
+  # ---------------------------------------------------------------------
+  gsd_to_uiux:
+    type: object
+    title: GSD -> UIUX handoff
+    description: GSD delegates a UI-bearing phase to the UIUX orchestrator
+    required:
+      - handoff_type
+      - phase
+      - surface_inventory
+      - acceptance_criteria
+    additionalProperties: false
+    properties:
+      handoff_type:
+        const: gsd_to_uiux
+      phase:
+        type: string
+        description: GSD phase identifier (e.g. "1.4-onboarding-ui")
+        minLength: 1
+      milestone:
+        type: string
+      surface_inventory:
+        type: array
+        description: List of UI surfaces in scope (route, screen, component)
+        minItems: 1
+        items:
+          type: object
+          required: [name, kind]
+          additionalProperties: false
+          properties:
+            name: { type: string, minLength: 1 }
+            kind:
+              type: string
+              enum: [route, screen, component, modal, email, pdf, other]
+            viewports:
+              type: array
+              items: { type: string }
+            states:
+              type: array
+              items: { type: string }
+      brand_assets:
+        type: object
+        description: References to brand/token/asset roots
+        additionalProperties: false
+        properties:
+          tokens_path: { type: string }
+          brand_guidelines_path: { type: string }
+          components_root: { type: string }
+      acceptance_criteria:
+        type: array
+        minItems: 1
+        items: { type: string, minLength: 1 }
+      risk_flags:
+        type: array
+        items:
+          type: string
+          enum:
+            - a11y_critical
+            - i18n_critical
+            - performance_critical
+            - first_impression
+            - customer_facing
+            - regulated_content
+            - high_blast_radius
+
+  # ---------------------------------------------------------------------
+  # uiux_to_l12
+  # Producer: uiux-product-orchestrator (downstream release gate)
+  # Consumer: discoverability-orchestrator
+  # ---------------------------------------------------------------------
+  uiux_to_l12:
+    type: object
+    title: UIUX -> L12 Discoverability handoff
+    description: UIUX completes; L12 release gate must run before deploy
+    required:
+      - handoff_type
+      - public_surfaces
+      - locales
+      - project_type
+    additionalProperties: false
+    properties:
+      handoff_type:
+        const: uiux_to_l12
+      public_surfaces:
+        type: array
+        description: Public-facing URLs / store-listings to evaluate
+        minItems: 1
+        items:
+          type: object
+          required: [kind, identifier]
+          additionalProperties: false
+          properties:
+            kind:
+              type: string
+              enum: [web_url, app_store_listing, play_store_listing, docs_url, marketing_url]
+            identifier:
+              type: string
+              minLength: 1
+            channels:
+              type: array
+              description: Which L12 channels apply (seo / ai-search / local / aso)
+              items:
+                type: string
+                enum: [seo, ai-search, local, aso]
+      locales:
+        type: array
+        minItems: 1
+        items:
+          type: string
+          pattern: "^[a-z]{2,3}(-[A-Z]{2})?$"
+      project_type:
+        type: string
+        enum:
+          - web_marketing
+          - web_app
+          - docs_site
+          - mobile_app_ios
+          - mobile_app_android
+          - mobile_app_cross
+          - hybrid
+      brand_assets:
+        type: object
+        additionalProperties: false
+        properties:
+          tokens_path: { type: string }
+          screenshots_root: { type: string }
+          store_assets_root: { type: string }
+      gate_tag:
+        type: string
+        description: Release tag the L12 gate is gating against
+        pattern: "^[A-Za-z0-9._/-]{1,120}$"
+
+  # ---------------------------------------------------------------------
+  # gsd_to_qa
+  # Producer: gsd-pipeline-orchestrator
+  # Consumer: enterprise-qa-testing
+  # ---------------------------------------------------------------------
+  gsd_to_qa:
+    type: object
+    title: GSD -> QA handoff
+    description: GSD asks QA orchestrator to plan / execute / gate testing
+    required:
+      - handoff_type
+      - phase
+      - test_targets
+      - coverage_target
+    additionalProperties: false
+    properties:
+      handoff_type:
+        const: gsd_to_qa
+      phase:
+        type: string
+        minLength: 1
+      milestone:
+        type: string
+      test_targets:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          required: [path, layers]
+          additionalProperties: false
+          properties:
+            path:
+              type: string
+              description: Relative path to source under test
+            layers:
+              type: array
+              minItems: 1
+              items:
+                type: string
+                enum:
+                  - static
+                  - unit
+                  - component
+                  - integration
+                  - contract
+                  - e2e
+                  - visual
+                  - a11y
+                  - performance
+                  - smoke
+            tags:
+              type: array
+              items: { type: string }
+      coverage_target:
+        type: object
+        additionalProperties: false
+        properties:
+          lines: { type: number, minimum: 0, maximum: 100 }
+          branches: { type: number, minimum: 0, maximum: 100 }
+          functions: { type: number, minimum: 0, maximum: 100 }
+          statements: { type: number, minimum: 0, maximum: 100 }
+          floor:
+            type: number
+            minimum: 0
+            maximum: 100
+            description: Per .claude/rules/common/testing.md, default 80
+      risk_flags:
+        type: array
+        items:
+          type: string
+          enum:
+            - regression_prone
+            - mission_critical
+            - revenue_path
+            - data_integrity
+            - auth_flow
+            - payment_flow
+            - new_dependency
+
+  # ---------------------------------------------------------------------
+  # gsd_to_appsec
+  # Producer: gsd-pipeline-orchestrator (when phase touches sensitive surface)
+  # Consumer: appsec-security-orchestrator v3.0
+  # ---------------------------------------------------------------------
+  gsd_to_appsec:
+    type: object
+    title: GSD -> AppSec handoff
+    description: GSD asks AppSec v3.0 orchestrator to gate a sensitive phase
+    required:
+      - handoff_type
+      - phase
+      - changed_files
+    additionalProperties: false
+    properties:
+      handoff_type:
+        const: gsd_to_appsec
+      phase:
+        type: string
+        minLength: 1
+      milestone:
+        type: string
+      changed_files:
+        type: array
+        minItems: 1
+        description: Relative paths of files in scope of the AppSec review
+        items:
+          type: string
+          minLength: 1
+      data_classes:
+        type: array
+        description: Data classifications touched by this change
+        items:
+          type: string
+          enum:
+            - public
+            - internal
+            - confidential
+            - restricted
+            - pii
+            - phi
+            - financial
+            - credentials
+            - tokens
+      auth_flows:
+        type: array
+        description: Authentication / authorization flows in scope
+        items:
+          type: object
+          required: [name]
+          additionalProperties: false
+          properties:
+            name: { type: string, minLength: 1 }
+            kind:
+              type: string
+              enum:
+                - login
+                - signup
+                - sso
+                - mfa
+                - oauth
+                - api_key
+                - service_account
+                - rbac
+                - abac
+                - other
+      risk_flags:
+        type: array
+        items:
+          type: string
+          enum:
+            - production_facing
+            - customer_data
+            - payment_path
+            - admin_surface
+            - file_upload
+            - external_integration
+            - new_secret
+            - new_endpoint
+            - schema_change
+            - migration
+
+  # ---------------------------------------------------------------------
+  # l12_to_appsec_escalation
+  # Producer: discoverability-orchestrator (when crawler policy leak detected)
+  # Consumer: appsec-security-orchestrator
+  # NOTE: robots/noindex/llms.txt are crawler policy NOT access control —
+  # L12 only IDENTIFIES the leak and ESCALATES; AppSec implements the fix.
+  # ---------------------------------------------------------------------
+  l12_to_appsec_escalation:
+    type: object
+    title: L12 -> AppSec escalation
+    description: L12 detected private content reachable by crawlers; AppSec must scope an access-control fix
+    required:
+      - handoff_type
+      - affected_urls
+      - leak_evidence
+      - severity
+    additionalProperties: false
+    properties:
+      handoff_type:
+        const: l12_to_appsec_escalation
+      affected_urls:
+        type: array
+        minItems: 1
+        items:
+          type: string
+          format: uri
+      leak_evidence:
+        type: array
+        minItems: 1
+        description: Evidence files / log excerpts demonstrating the leak
+        items:
+          type: object
+          required: [kind, path_or_inline]
+          additionalProperties: false
+          properties:
+            kind:
+              type: string
+              enum:
+                - robots_txt
+                - sitemap_xml
+                - meta_robots
+                - llms_txt
+                - server_log
+                - crawler_hit
+                - cached_snippet
+                - other
+            path_or_inline:
+              type: string
+              minLength: 1
+            timestamp:
+              type: string
+              format: date-time
+      severity:
+        type: string
+        enum: [low, medium, high, critical]
+      suggested_scope:
+        type: object
+        additionalProperties: false
+        properties:
+          access_control_targets:
+            type: array
+            items: { type: string }
+          recommended_remediation:
+            type: string
+          recommended_handoff_owner:
+            type: string
+            description: AppSec sub-skill suggested as next step
+            enum:
+              - security-app-multitenant
+              - security-app-file-upload
+              - security-platform-iac-cloud
+              - security-remediation
+              - security-governance-threat-modeling
+
+  # ---------------------------------------------------------------------
+  # qa_to_appsec
+  # Producer: enterprise-qa-testing (when test surfaces a security concern)
+  # Consumer: appsec-security-orchestrator
+  # ---------------------------------------------------------------------
+  qa_to_appsec:
+    type: object
+    title: QA -> AppSec handoff
+    description: QA discovered a security-relevant finding; AppSec must triage
+    required:
+      - handoff_type
+      - trigger_reason
+      - affected_files
+      - findings
+    additionalProperties: false
+    properties:
+      handoff_type:
+        const: qa_to_appsec
+      trigger_reason:
+        type: string
+        enum:
+          - test_revealed_auth_bypass
+          - test_revealed_injection
+          - dependency_audit_high
+          - dependency_audit_critical
+          - secret_in_code
+          - secret_in_log
+          - permissive_default
+          - missing_authz_check
+          - other
+      affected_files:
+        type: array
+        minItems: 1
+        items:
+          type: string
+          minLength: 1
+      auth_flows:
+        type: array
+        items:
+          type: object
+          required: [name]
+          additionalProperties: false
+          properties:
+            name: { type: string, minLength: 1 }
+            note: { type: string }
+      data_classes:
+        type: array
+        items:
+          type: string
+          enum:
+            - public
+            - internal
+            - confidential
+            - restricted
+            - pii
+            - phi
+            - financial
+            - credentials
+            - tokens
+      findings:
+        type: array
+        minItems: 1
+        description: >-
+          QA's findings in QA's own format. AppSec validator will
+          re-shape these into AppSec finding schema during triage.
+        items:
+          type: object
+          required: [id, summary, severity]
+          additionalProperties: false
+          properties:
+            id: { type: string, minLength: 1 }
+            summary: { type: string, minLength: 1 }
+            severity:
+              type: string
+              enum: [info, low, medium, high, critical]
+            evidence_ref: { type: string }
+            test_id: { type: string }
+      qa_release_tag:
+        type: string
+        description: QA release evidence tag this handoff was extracted from
+        pattern: "^[A-Za-z0-9._/-]{1,120}$"
+      evidence_bundle_path:
+        type: string
+        description: Path to the QA release evidence bundle
+        minLength: 1

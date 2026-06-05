@@ -1,0 +1,46 @@
+{
+  "$schema": "ops.manifest.v1",
+  "orchestrator": "appsec",
+  "note": "Metadata only. Real op functions are inlined in ~/.claude/workflows/appsec-orchestrator.js because workflow body cannot import. This manifest documents what's available for spec authors.",
+  "registries": {
+    "deterministic": {
+      "fingerprint_cluster": {
+        "description": "Cluster normalized findings by fingerprint(file+title.toLowerCase). Outputs { all_clusters, eligible_clusters, pruned_count }. Eligibility = severity meets ctx.severity_floor.",
+        "inputs_consumed": ["state.Normalize.findings"],
+        "outputs": ["all_clusters", "eligible_clusters", "pruned_count"]
+      },
+      "appsec_gate_policy": {
+        "description": "Compute BLOCK/WARN/PASS gate decision. BLOCK if: missing CSF coverage OR blocking_findings (high/critical accepted) OR recall < oracle.recall_metric.minimum_acceptable. WARN if medium accepted. PASS otherwise.",
+        "inputs_consumed": ["state.Map", "state.Verify", "state.Normalize", "ctx.policy", "ctx.oracle"],
+        "outputs": ["decision", "blocking_findings", "missing_csf", "evidenced_csf", "recall"]
+      },
+      "compute_recall": {
+        "description": "Compute oracle confirmation rate. Reserved for future fine-grained recall reporting.",
+        "inputs_consumed": ["state.Normalize", "ctx.oracle"],
+        "outputs": ["confirmed", "total", "rate"]
+      }
+    },
+    "predicates": {
+      "no_candidates": {
+        "description": "Returns true if state.Find produced zero candidate_findings across all finders.",
+        "returns": "boolean"
+      },
+      "no_accepted": {
+        "description": "Returns true if state.Verify has zero clusters with resolved='accept'.",
+        "returns": "boolean"
+      }
+    },
+    "invariants": {
+      "ensure_csf_coverage": {
+        "description": "Post-invariant on Plan output. Force required_csf_functions to include all 6 CSF; auto-add missing finders to selected_finders to cover each CSF.",
+        "inputs_consumed": ["output (Plan)", "ctx.policy", "ctx.finders"],
+        "outputs": "mutated Plan output"
+      },
+      "prune_below_floor": {
+        "description": "Post-invariant on Dedup output. Filter eligible_clusters to those meeting ctx.severity_floor. Reserved for future use; fingerprint_cluster already does this.",
+        "inputs_consumed": ["output (Dedup)", "ctx.severity_floor"],
+        "outputs": "mutated Dedup output"
+      }
+    }
+  }
+}

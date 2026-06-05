@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/STATIC_BASELINE_SCHEMA.v1",
+  "title": "Static Baseline Runner Output",
+  "description": "Output of StaticBaseline agent node. Runs tsc + ESLint + Prettier + npm audit + git-secrets against changed files. Consumed by deterministic StaticGate op.",
+  "type": "object",
+  "required": ["command_evidence", "tsc_errors", "eslint_findings", "npm_audit_critical_count", "git_secrets_hits"],
+  "properties": {
+    "command_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["cmd", "exit_code"],
+        "properties": {
+          "cmd": { "type": "string" },
+          "stdout": { "type": "string" },
+          "stderr": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "duration_ms": { "type": "integer" }
+        }
+      }
+    },
+    "tsc_errors": { "type": "integer", "minimum": 0 },
+    "tsc_error_samples": { "type": "array", "items": { "type": "string" }, "maxItems": 20 },
+    "eslint_findings": {
+      "type": "object",
+      "properties": {
+        "errors": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "samples": { "type": "array", "items": { "type": "string" }, "maxItems": 20 }
+      }
+    },
+    "prettier_drift_files": { "type": "array", "items": { "type": "string" } },
+    "npm_audit_critical_count": { "type": "integer", "minimum": 0 },
+    "npm_audit_high_count": { "type": "integer", "minimum": 0 },
+    "npm_audit_advisories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "severity", "package"],
+        "properties": {
+          "id": { "type": "string" },
+          "severity": { "type": "string", "enum": ["critical", "high", "moderate", "low", "info"] },
+          "package": { "type": "string" }
+        }
+      }
+    },
+    "git_secrets_hits": { "type": "integer", "minimum": 0 },
+    "git_secrets_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "redacted_match"],
+        "properties": {
+          "file": { "type": "string" },
+          "line": { "type": "integer" },
+          "redacted_match": { "type": "string", "description": "REDACTED; raw secret never emitted per security.md" }
+        }
+      }
+    },
+    "artifacts": { "type": "array", "items": { "type": "string" } }
+  }
+}

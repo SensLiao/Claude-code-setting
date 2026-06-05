@@ -1,0 +1,99 @@
+# ============================================================
+# Claude Code 配置仓库 — .gitignore 黑名单
+# 防止 secrets / 个人数据 / 缓存 / 二进制误传到 GitHub
+# ============================================================
+
+# === 🔴 SECRETS / CREDENTIALS（绝对不能上传） ===
+.credentials.json
+*.credentials
+*credentials*
+.env
+.env.*
+!.env.example
+tokens/
+oauth/
+*token*
+*.pem
+*.key
+*.p12
+
+# === 🔴 含 OAuth 的 settings（只保留 settings.example.json） ===
+settings.json
+settings.local.json
+.last-cleanup
+.gsd-profile
+
+# === 🟡 个人数据 / 对话历史（用户决定不上） ===
+memory/
+projects/
+sessions/
+tasks/
+jobs/
+teams/
+plans/
+metrics/
+session-data/
+session-env/
+shell-snapshots/
+paste-cache/
+
+# === 🟡 缓存 / 状态（每台机器各自生成） ===
+cache/
+*-cache.json
+mcp-health-cache.json
+mcp-needs-auth-cache.json
+stats-cache.json
+file-history/
+gsd-migration-journal/
+daemon/
+daemon.log
+
+# === 🟡 日志 / 运行时产物 ===
+*.log
+*.jsonl
+bash-commands.log
+cost-tracker.log
+history.jsonl
+
+# === 🟡 大体积二进制（在新机器上由各自工具重新安装） ===
+plugins/
+tools/
+mcp-servers/
+homunculus/
+
+# === 🟡 旧备份 ===
+backups/
+_backup-*/
+_backup-*
+
+# === 🟡 机器特定的安装状态文件 ===
+gsd-install-state.json
+gsd-file-manifest.json
+ecc/install-state.json
+
+# === 🟡 OS / 编辑器噪声 ===
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+.idea/
+.vscode/
+*~
+
+# === 🟡 Python 缓存 ===
+__pycache__/
+*.pyc
+*.pyo
+
+# === 🟡 Node 缓存 ===
+node_modules/
+
+# === 🟡 工作临时文件 ===
+.sanitize-tmp.py
+*.tmp
+*.bak
+
+# extra hygiene (2026-06-05 re-export)
+*.bak-*
+skills/arch-viz-workspace/

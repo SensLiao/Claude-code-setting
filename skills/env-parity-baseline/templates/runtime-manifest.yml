@@ -1,0 +1,128 @@
+# === env-parity-baseline: runtime-manifest.yml ===
+# Source of truth for runtime / toolchain / lockfile / service / deployment target.
+# 与 .nvmrc / .python-version / Dockerfile / compose / k8s / CI 必须一致。
+# 任何不一致都是 env parity risk。
+#
+# 复制到：docs/runtime-manifest.yml（或项目根的 RUNTIME.yml）
+
+manifest_version: 1
+
+project:
+  name: ""           # 项目名
+  description: ""    # 一句话描述
+
+# ============ 运行时 ============
+runtime:
+  languages:
+    # ---- Node 示例 ----
+    # node:
+    #   version: "20.11"               # minor 锁；patch 自由
+    #   pin_files: [".nvmrc"]          # 实际锁定文件
+    #   package_manager:
+    #     name: pnpm                   # npm / yarn / pnpm / bun
+    #     version: "9"
+    #     lockfile: pnpm-lock.yaml
+    #     install_cmd: "pnpm install --frozen-lockfile"
+    #
+    # ---- Python 示例 ----
+    # python:
+    #   version: "3.11"
+    #   pin_files: [".python-version"]
+    #   package_manager:
+    #     name: uv                     # pip / poetry / uv / pdm
+    #     lockfile: uv.lock
+    #     install_cmd: "uv sync --frozen"
+    #
+    # ---- Rust 示例 ----
+    # rust:
+    #   version: "1.78"
+    #   pin_files: ["rust-toolchain.toml"]
+    #   install_cmd: "cargo build --locked"
+    #
+    # ---- Go 示例 ----
+    # go:
+    #   version: "1.22"
+    #   pin_files: ["go.mod"]           # toolchain directive
+    #   install_cmd: "GOFLAGS=-mod=readonly go build ./..."
+    #
+    # ---- Java 示例 ----
+    # java:
+    #   version: "21"
+    #   pin_files: [".java-version", ".sdkmanrc"]
+    #   wrapper: "./mvnw" # 或 ./gradlew
+    #   install_cmd: "./mvnw -B verify"
+
+  os_targets:
+    development: [linux, macos, windows]   # 开发者机器
+    ci: [ubuntu-latest, windows-latest]    # CI matrix（与 .github/workflows/ci-matrix.yml 一致）
+    production: [linux]                    # 生产部署 OS
+
+  shells:
+    primary: bash                # 跨平台脚本统一 bash（Windows 用 git-bash / WSL）
+    windows_compat: powershell   # Windows 特定脚本用 .ps1
+
+  locale:
+    LC_ALL: C.UTF-8
+    TZ: UTC                      # 所有环境时区统一 UTC
+
+# ============ 服务依赖（Twelve-Factor IV: backing services） ============
+# 本地、CI、staging、prod 的版本必须一致（同 minor）。不一致 = parity risk。
+services: {}
+  # 示例：
+  # postgres:
+  #   version: "16.2"
+  #   compose_image: "postgres:16.2-alpine"
+  #   prod_managed: "AWS RDS Postgres 16.2"
+  # redis:
+  #   version: "7.2"
+  #   compose_image: "redis:7.2-alpine"
+  #   prod_managed: "AWS ElastiCache Redis 7.2"
+  # object_storage:
+  #   local: "minio/minio:RELEASE.2024-xx"
+  #   prod: "AWS S3"
+
+# ============ 部署 ============
+deployment:
+  target: ""                     # local / docker_compose / vm_systemd / kubernetes / serverless
+  os: linux
+  arch: [amd64]                  # 多架构构建：amd64, arm64（buildx 必须）
+
+  secrets:
+    source: ""                   # local_env / github_secrets / aws_secrets_manager / gcp_secret_manager / hashicorp_vault / k8s_secret
+    rotation_days: 90            # secret 轮换周期
+
+  health_checks:
+    liveness: "/healthz"         # k8s livenessProbe 用
+    readiness: "/readyz"         # k8s readinessProbe 用
+
+  migrations:
+    tool: ""                     # drizzle / alembic / flyway / liquibase / sqlx
+    strategy: "expand-contract"  # 兼容老版本 app，零停机
+    auto_run_on_deploy: false    # 默认手动执行，避免风险
+
+  rollback:
+    strategy: ""                 # blue_green / canary / restart / k8s_rollout_undo
+    sla_minutes: 5               # 故障到回滚完成的 SLA
+
+# ============ 可观测 ============
+observability:
+  logs:
+    format: structured_json      # 跨环境一致
+    sink: ""                     # stdout / loki / cloudwatch / datadog
+  metrics: ""                    # prometheus / datadog / cloudwatch
+  tracing: ""                    # otel / sentry / jaeger
+  error_tracking: ""             # sentry / rollbar / bugsnag
+
+# ============ Parity Checks（每次 release 前过） ============
+parity_checks:
+  - "本地服务版本 == compose 服务版本 == 生产服务版本（同 minor）"
+  - "lockfile committed 且 CI 用 lockfile-driven clean install"
+  - ".env.example keys == env validator schema keys"
+  - "OS targets 全部覆盖在 CI matrix"
+  - "Dockerfile 不用 ARG / ENV 传 secret"
+  - "k8s ConfigMap / Secret keys 与 env validator 一致"
+  - "systemd EnvironmentFile keys 与 env validator 一致"
+  - "Nginx / Caddy 的 timeout / body size 与 app SLA 一致"
+  - "时区 = UTC，locale = C.UTF-8 在所有环境"
+  - "/healthz 和 /readyz endpoint 存在且 k8s/compose 已 wire"
+  - "rollback 路径已验证（演练 ≥ 1 次/季度）"

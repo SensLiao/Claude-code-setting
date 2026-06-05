@@ -1,0 +1,1026 @@
+#!/usr/bin/env bash
+# appsec-sdk — evidence sink + gate helper for appsec-security-orchestrator v3.0
+# Contract: §17 of ~/.claude/skills/appsec-security-orchestrator/SKILL.md
+#
+# Project root resolution: walks upward from current dir for .appsec/config.json.
+#
+# Commands:
+#   appsec-sdk init <release-tag>
+#   appsec-sdk set-active <release-tag>
+#   appsec-sdk evidence.append <tag> <layer> [<file>]
+#   appsec-sdk evidence.list <tag>
+#   appsec-sdk evidence.validate-presence <tag> [<expected-layers-csv>] [--legacy-path <path>]
+#   appsec-sdk finding.add [<file>]                  # schema v1.0 + ASVS regex + raw-secret reject
+#   appsec-sdk gate.check <tag> [--strict|--lax] [--allow-conditional] [--legacy-path <path>]
+#   appsec-sdk redact                                # stdin → redacted stdout
+#   appsec-sdk roe.verify <roe-file>                 # 11-item ROE checklist
+#   appsec-sdk csf.coverage <tag>                    # GV/ID/PR/DE/RS/RC YAML
+#   appsec-sdk overlay.activate <tag> <overlay-name>
+#   appsec-sdk migrate-evidence [--from <path>] [--to <path>] [--dry-run]
+#                                                    # D2 legacy-path adapter — move
+#                                                    # .planning/security/ → .appsec/evidence/<tag>/
+#
+# Exit codes (per SKILL.md §17.2):
+#   0 PASS / success
+#   1 FAIL
+#   2 BLOCKED / unsafe input / schema invalid / missing required
+#   3 CONDITIONAL_PASS (collapses to 0 with --allow-conditional)
+
+set -u
+
+# ───── Project root resolution (walks upward for .appsec/config.json) ─────
+find_project_root() {
+  local dir; dir=$(pwd)
+  local i=0
+  while (( i < 12 )); do
+    if [[ -f "$dir/.appsec/config.json" ]]; then
+      printf '%s' "$dir"
+      return 0
+    fi
+    local parent; parent=$(dirname "$dir")
+    if [[ "$parent" == "$dir" ]]; then return 1; fi
+    dir="$parent"; i=$((i+1))
+  done
+  return 1
+}
+
+PROJECT_ROOT=""
+ensure_project_root() {
+  if ! PROJECT_ROOT=$(find_project_root); then
+    echo "appsec-sdk: .appsec/config.json not found in current dir or any parent — is this an AppSec-enabled project?" >&2
+    exit 1
+  fi
+}
+
+# ───── init-only helpers: bootstrap config + project-local hooks ─────
+# init must work BEFORE .appsec/config.json exists (it is what creates it).
+CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
+APPSEC_CONFIG_TEMPLATE="$CLAUDE_HOME/skills/appsec-security-orchestrator/templates/dot-appsec-skeleton/config.json.tmpl"
+HOOK_INSTALLER="$CLAUDE_HOME/orchestrator-runtime/shared/install-subsystem-hooks.js"
+
+resolve_or_create_root() {
+  if PROJECT_ROOT=$(find_project_root); then return 0; fi
+  PROJECT_ROOT="$(pwd)"
+}
+
+ensure_appsec_config() {
+  local cfg="$PROJECT_ROOT/.appsec/config.json"
+  [[ -f "$cfg" ]] && return 0
+  mkdir -p "$PROJECT_ROOT/.appsec"
+  if [[ -f "$APPSEC_CONFIG_TEMPLATE" ]]; then
+    cp "$APPSEC_CONFIG_TEMPLATE" "$cfg"
+    echo "appsec-sdk init: created .appsec/config.json from template (edit production_hosts / asvs_level before release)" >&2
+  else
+    printf '{"schema_version":"1.0","asvs_level":"L2","asvs_version":"5.0.0","strict_mode":"strict","overlays":[],"production_hosts":[]}\n' > "$cfg"
+    echo "appsec-sdk init: created minimal .appsec/config.json (template missing)" >&2
+  fi
+}
+
+install_appsec_hooks() {
+  if [[ -f "$HOOK_INSTALLER" ]]; then
+    node "$HOOK_INSTALLER" --subsystem appsec --project-root "$PROJECT_ROOT" >&2 \
+      || echo "appsec-sdk init: WARN hook installer exited non-zero" >&2
+  else
+    echo "appsec-sdk init: WARN hook installer missing at $HOOK_INSTALLER — hooks NOT registered" >&2
+  fi
+}
+
+# ───── Safety: validate names against allowlist ─────
+validate_safe_name() {
+  local kind="$1" value="$2"
+  if [[ -z "$value" ]]; then echo "appsec-sdk: $kind is empty" >&2; exit 2; fi
+  if ! [[ "$value" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+    echo "appsec-sdk: $kind '$value' contains unsafe characters (allowed: a-z A-Z 0-9 . _ -)" >&2
+    exit 2
+  fi
+  if [[ "$value" == "." || "$value" == ".." || "$value" == *".."* ]]; then
+    echo "appsec-sdk: $kind '$value' contains path traversal" >&2
+    exit 2
+  fi
+}
+
+need_arg() {
+  if [[ -z "${2:-}" ]]; then echo "appsec-sdk: missing $1" >&2; exit 2; fi
+}
+
+iso_now() { date -u +"%Y-%m-%dT%H:%M:%SZ"; }
+
+# Confirm resolved path stays under expected root (defense in depth)
+ensure_under_root() {
+  local out="$1" root="$2"
+  local out_r root_r
+  case "$(uname -s 2>/dev/null)" in
+    MINGW*|MSYS*|CYGWIN*)
+      out_r=$(cygpath -m "$out" 2>/dev/null || printf '%s' "$out")
+      root_r=$(cygpath -m "$root" 2>/dev/null || printf '%s' "$root");;
+    *)
+      out_r=$(readlink -f "$out" 2>/dev/null || printf '%s' "$out")
+      root_r=$(readlink -f "$root" 2>/dev/null || printf '%s' "$root");;
+  esac
+  case "$out_r" in
+    "$root_r"/*|"$root_r") :;;
+    *) echo "appsec-sdk: refusing path-traversal: $out" >&2; exit 2;;
+  esac
+}
+
+usage() {
+  cat <<'USAGE'
+appsec-sdk — appsec-security-orchestrator v3.0 evidence + gate helper
+
+Commands:
+  init [<tag>]        # bootstrap .appsec/config.json + register project-local hooks; <tag> optional (also makes evidence/findings/decisions dirs + active tag)
+  set-active <tag>
+  evidence.append <tag> <layer> [<file>]
+  evidence.list <tag>
+  evidence.validate-presence <tag> [<expected-layers-csv>] [--legacy-path <path>]
+  finding.add [<file>]
+  gate.check <tag> [--strict|--lax] [--allow-conditional] [--legacy-path <path>]
+  redact                              (stdin → redacted stdout)
+  roe.verify <roe-file>
+  csf.coverage <tag>
+  overlay.activate <tag> <overlay-name>
+  migrate-evidence [--from <path>] [--to <path>] [--dry-run]
+                                      (D2 legacy adapter; default --from .planning/security/
+                                       --to .appsec/evidence/<active-tag>/)
+
+Exit codes: 0=PASS  1=FAIL  2=BLOCKED  3=CONDITIONAL_PASS
+With --allow-conditional, 3 collapses to 0.
+
+Project root auto-detected by walking up to .appsec/config.json.
+Tags / layers / overlays must match /^[a-zA-Z0-9._-]+$/.
+
+D2 Legacy Path Adapter:
+  Canonical evidence layout is .appsec/evidence/<tag>/. Projects migrating from
+  v2.x may still have content under .planning/security/. The --legacy-path flag
+  on validate-presence / gate.check makes the SDK ALSO scan the deprecated alias
+  and emit a WARN-level finding when legacy content is observed. Use the
+  migrate-evidence subcommand to relocate content into the canonical layout.
+USAGE
+}
+
+# ───── Redaction (canonical) ─────
+# Replaces matched secret patterns with <REDACTED:kind>. Used by every hook + agent.
+redact_stdin() {
+  # Read all stdin, then run sequential sed replacements.
+  # NOTE: order matters — match more specific patterns first.
+  local input; input=$(cat)
+  # PEM private key blocks (multiline)
+  input=$(printf '%s' "$input" | awk '
+    BEGIN{drop=0}
+    /-----BEGIN [A-Z ]*PRIVATE KEY-----/ {print "<REDACTED:pem_private_key>"; drop=1; next}
+    /-----END [A-Z ]*PRIVATE KEY-----/   {drop=0; next}
+    drop==1 {next}
+    {print}
+  ')
+  # Single-line patterns
+  # ★ P7 fix (code-reviewer MEDIUM): sed `gI` flag is GNU-only; BSD/macOS sed silently no-ops.
+  # ★ P7 fix (Tier 1 #4): openai_key body allows _ and -; sk-proj-/sk-svcacct-/sk-admin- prefixes.
+  # Match credential KV with explicit case alternatives instead of `I` flag.
+  input=$(printf '%s' "$input" | sed -E \
+    -e 's/(AKIA[0-9A-Z]{16})/<REDACTED:aws_access_key>/g' \
+    -e 's/(ASIA[0-9A-Z]{16})/<REDACTED:aws_session_key>/g' \
+    -e 's/(aws_secret_access_key[[:space:]]*[:=][[:space:]]*)[A-Za-z0-9\/+=]{30,256}/\1<REDACTED:aws_secret>/g' \
+    -e 's/(AWS_SECRET_ACCESS_KEY[[:space:]]*[:=][[:space:]]*)[A-Za-z0-9\/+=]{30,256}/\1<REDACTED:aws_secret>/g' \
+    -e 's/(ghp_[A-Za-z0-9]{30,256})/<REDACTED:github_pat>/g' \
+    -e 's/(gho_[A-Za-z0-9]{30,256})/<REDACTED:github_oauth>/g' \
+    -e 's/(ghu_[A-Za-z0-9]{30,256})/<REDACTED:github_user>/g' \
+    -e 's/(ghs_[A-Za-z0-9]{30,256})/<REDACTED:github_server>/g' \
+    -e 's/(ghr_[A-Za-z0-9]{30,256})/<REDACTED:github_refresh>/g' \
+    -e 's/(sk-ant-[A-Za-z0-9_-]{20,256})/<REDACTED:anthropic_key>/g' \
+    -e 's/(sk-(proj-|svcacct-|admin-)?[A-Za-z0-9_-]{20,256})/<REDACTED:openai_key>/g' \
+    -e 's/(xox[abprs]-[A-Za-z0-9-]{10,256})/<REDACTED:slack_token>/g' \
+    -e 's/(eyJ[A-Za-z0-9_-]{10,512}\.[A-Za-z0-9_-]{10,512}\.[A-Za-z0-9_-]{10,512})/<REDACTED:jwt>/g' \
+    -e 's/((PASSWORD|PASSWD|PWD|SECRET|TOKEN|API_KEY|APIKEY|PRIVATE_KEY|password|passwd|pwd|secret|token|api_key|apikey|private_key|Password|Passwd|Pwd|Secret|Token|Api_Key|ApiKey|Private_Key)[[:space:]]{0,8}[:=][[:space:]]{0,8})["'\'']?[^"'\''[:space:]]{8,256}["'\'']?/\1<REDACTED:credential>/g' \
+  )
+  printf '%s\n' "$input"
+}
+
+# Strip YAML comments (both whole-line `^# ...` and inline `<whitespace># ...$`)
+# Used by raw-secret and ASVS 4.x detection so docstring/comment examples don't trip the gate.
+strip_yaml_comments() {
+  sed -E -e 's/^[[:space:]]*#.*$//' -e 's/[[:space:]]+#.*$//'
+}
+
+# Returns 0 if input is clean, 1 if any raw-secret pattern matched (used by finding.add).
+# ★ P7 fix (code-reviewer HIGH #3): include JWT pattern + (Tier 1 #4) sk-proj-/sk-svcacct-/sk-admin- aware
+contains_raw_secret() {
+  local content="$1"
+  local stripped; stripped=$(printf '%s' "$content" | strip_yaml_comments)
+  # Combined high-signal regex including JWT
+  if printf '%s' "$stripped" | grep -qE '(AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,}|gho_[A-Za-z0-9]{30,}|ghu_[A-Za-z0-9]{30,}|ghs_[A-Za-z0-9]{30,}|ghr_[A-Za-z0-9]{30,}|sk-ant-[A-Za-z0-9_-]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})'; then
+    return 1
+  fi
+  # OpenAI keys (sk-, sk-proj-, sk-svcacct-, sk-admin-) — body allows _ and -
+  if printf '%s' "$stripped" | grep -qE 'sk-(proj-|svcacct-|admin-)?[A-Za-z0-9_-]{20,}'; then
+    return 1
+  fi
+  return 0
+}
+
+# ───── Commands ─────
+
+cmd_init() {
+  # release-tag is OPTIONAL: bare `appsec-sdk init` bootstraps .appsec/config.json +
+  # registers project-local hooks (no release tag yet). `appsec-sdk init <tag>` ALSO
+  # creates the evidence/findings/decisions dirs + active-tag state for that release.
+  # Hooks gate on .appsec/config.json presence, so bare init makes enforcement live.
+  local tag="${1:-}"
+  resolve_or_create_root
+  ensure_appsec_config
+  install_appsec_hooks
+  if [[ -z "$tag" ]]; then
+    echo "$PROJECT_ROOT/.appsec"
+    return 0
+  fi
+  validate_safe_name "release-tag" "$tag"
+  local ev_dir="$PROJECT_ROOT/.appsec/evidence/$tag"
+  local fnd_dir="$PROJECT_ROOT/.appsec/findings/$tag"
+  local dec_dir="$PROJECT_ROOT/.appsec/decisions/$tag"
+  mkdir -p "$ev_dir" "$fnd_dir" "$dec_dir"
+  ensure_under_root "$ev_dir" "$PROJECT_ROOT/.appsec"
+  ensure_under_root "$fnd_dir" "$PROJECT_ROOT/.appsec"
+  ensure_under_root "$dec_dir" "$PROJECT_ROOT/.appsec"
+  : > "$ev_dir/dispatch-failures.log"
+  printf '{"active_release_tag":"%s","initialized_at":"%s","last_dispatch_at":null}\n' "$tag" "$(iso_now)" \
+    > "$PROJECT_ROOT/.appsec/state.json"
+  echo "$ev_dir"
+}
+
+cmd_set_active() {
+  need_arg "release-tag" "${1:-}"
+  validate_safe_name "release-tag" "$1"
+  ensure_project_root
+  # ★ P7 fix (drift D-011): preserve last_dispatch_at across tag switch (was: clobbered to null)
+  local last_dispatch="null"
+  if [[ -f "$PROJECT_ROOT/.appsec/state.json" ]]; then
+    last_dispatch=$(grep -oE '"last_dispatch_at"[[:space:]]*:[[:space:]]*("[^"]*"|null)' "$PROJECT_ROOT/.appsec/state.json" \
+      | head -n1 | sed -E 's/.*"last_dispatch_at"[[:space:]]*:[[:space:]]*//')
+    [[ -z "$last_dispatch" ]] && last_dispatch="null"
+  fi
+  printf '{"active_release_tag":"%s","initialized_at":"%s","last_dispatch_at":%s}\n' "$1" "$(iso_now)" "$last_dispatch" \
+    > "$PROJECT_ROOT/.appsec/state.json"
+  echo "$PROJECT_ROOT/.appsec/state.json"
+}
+
+cmd_evidence_append() {
+  need_arg "release-tag" "${1:-}"
+  need_arg "layer" "${2:-}"
+  validate_safe_name "release-tag" "$1"
+  validate_safe_name "layer" "$2"
+  local tag="$1" layer="$2" file="${3:-}"
+  ensure_project_root
+  local dir="$PROJECT_ROOT/.appsec/evidence/$tag/$layer"
+  mkdir -p "$dir"
+  ensure_under_root "$dir" "$PROJECT_ROOT/.appsec/evidence/$tag"
+  # ★ P7 fix (code-reviewer HIGH #2): random hex suffix to avoid collision under rapid CI calls
+  local stamp; stamp=$(date -u +"%Y%m%d-%H%M%S")
+  local rand; rand=$(printf "%04x" $((RANDOM % 65536)))
+  local out="$dir/${stamp}-${rand}.yaml"
+  ensure_under_root "$out" "$dir"
+
+  local content
+  if [[ -n "$file" ]]; then
+    if [[ ! -f "$file" ]]; then echo "appsec-sdk: file not found: $file" >&2; exit 1; fi
+    content=$(cat "$file")
+  else
+    content=$(cat)
+  fi
+
+  # Always run through redaction before persisting
+  local redacted; redacted=$(printf '%s' "$content" | redact_stdin)
+
+  {
+    echo "# written-by: appsec-sdk@3.0.0"
+    echo "# appsec-sdk evidence.append"
+    echo "# layer: $layer"
+    echo "# release_tag: $tag"
+    echo "# appended_at: $(iso_now)"
+    printf '%s\n' "$redacted"
+  } > "$out"
+  echo "$out"
+}
+
+cmd_evidence_list() {
+  need_arg "release-tag" "${1:-}"
+  validate_safe_name "release-tag" "$1"
+  ensure_project_root
+  local dir="$PROJECT_ROOT/.appsec/evidence/$1"
+  if [[ ! -d "$dir" ]]; then echo "appsec-sdk: no evidence dir for tag $1" >&2; exit 1; fi
+  find "$dir" -type f -printf '%P\n' 2>/dev/null || (cd "$dir" && find . -type f | sed 's|^\./||')
+}
+
+cmd_evidence_validate_presence() {
+  need_arg "release-tag" "${1:-}"
+  validate_safe_name "release-tag" "$1"
+  local tag="$1"; shift
+  ensure_project_root
+  local dir="$PROJECT_ROOT/.appsec/evidence/$tag"
+  if [[ ! -d "$dir" ]]; then echo "appsec-sdk: no evidence dir for tag $tag" >&2; exit 2; fi
+  # ★ D2 SDK adapter: parse remaining args (positional expected-layers-csv OR --legacy-path <path>)
+  local expected_csv="" legacy_path=""
+  while (( "$#" )); do
+    case "$1" in
+      --legacy-path)
+        if [[ -z "${2:-}" ]]; then echo "appsec-sdk evidence.validate-presence: --legacy-path requires <path>" >&2; exit 2; fi
+        legacy_path="$2"; shift 2;;
+      --legacy-path=*)
+        legacy_path="${1#--legacy-path=}"; shift;;
+      *)
+        # First non-flag positional is the expected-layers CSV (legacy positional contract)
+        if [[ -z "$expected_csv" ]]; then expected_csv="$1"; shift
+        else echo "appsec-sdk evidence.validate-presence: unexpected arg '$1'" >&2; exit 2; fi;;
+    esac
+  done
+  # Required layers per §16 Dispatch Contract
+  local required=(threat-model sca secret-scan sast code-review headers-cookies csf2-coverage)
+  if [[ -n "$expected_csv" ]]; then
+    IFS=',' read -ra extra <<< "$expected_csv"
+    for layer in "${extra[@]}"; do
+      layer="${layer// /}"
+      [[ -n "$layer" ]] && required+=("$layer")
+    done
+  fi
+  local missing=()
+  for layer in "${required[@]}"; do
+    if [[ ! -d "$dir/$layer" ]] || [[ -z "$(ls -A "$dir/$layer" 2>/dev/null)" ]]; then
+      missing+=("$layer")
+    fi
+  done
+  # ★ D2 SDK adapter: if --legacy-path was given, ALSO scan the deprecated alias
+  # and emit a WARN to stderr when legacy content is found. Does NOT block on
+  # legacy content; that's the migration warning, not a release block.
+  local legacy_warn=""
+  if [[ -n "$legacy_path" ]]; then
+    local legacy_dir="$PROJECT_ROOT/$legacy_path"
+    [[ "$legacy_path" = /* ]] && legacy_dir="$legacy_path"
+    if [[ -d "$legacy_dir" ]] && [[ -n "$(ls -A "$legacy_dir" 2>/dev/null)" ]]; then
+      legacy_warn="$legacy_dir"
+      echo "appsec-sdk evidence.validate-presence: WARN — legacy evidence found at $legacy_dir; run 'appsec-sdk migrate-evidence' to relocate into canonical .appsec/evidence/$tag/" >&2
+    fi
+  fi
+  if (( ${#missing[@]} > 0 )); then
+    echo "appsec-sdk: missing required evidence layers:" >&2
+    for layer in "${missing[@]}"; do echo "  - $layer" >&2; done
+    [[ -n "$legacy_warn" ]] && echo "  (note: legacy content present at $legacy_warn — migrate before release)" >&2
+    exit 2
+  fi
+  echo "all required evidence layers present"
+  [[ -n "$legacy_warn" ]] && echo "evidence_migration_required: true (legacy alias: $legacy_warn)"
+  exit 0
+}
+
+# Extract the scalar value of a top-level YAML key, stripping inline `# comment` suffixes
+# and surrounding quotes. Returns empty if key not found.
+extract_scalar() {
+  local content="$1" key="$2"
+  printf '%s' "$content" \
+    | grep -E "^[[:space:]]{0,4}${key}[[:space:]]*:" \
+    | head -n1 \
+    | sed -E "s/^[[:space:]]*${key}[[:space:]]*:[[:space:]]*//" \
+    | sed -E 's/[[:space:]]+#.*$//' \
+    | sed -E 's/^"(.*)"$/\1/' \
+    | sed -E "s/^'(.*)'\$/\1/" \
+    | sed -E 's/[[:space:]]+$//'
+}
+
+# Validate finding YAML against schema v1.0
+# Returns 0 if valid; non-zero with stderr explanation otherwise.
+validate_finding_yaml() {
+  local content="$1"
+  local missing=()
+  for k in schema_version id source detector severity confidence asvs_mapping csf_function description; do
+    if ! printf '%s' "$content" | grep -qE "^[[:space:]]{0,4}${k}[[:space:]]*:"; then
+      missing+=("$k")
+    fi
+  done
+  if (( ${#missing[@]} > 0 )); then
+    echo "appsec-sdk finding.add: missing required fields: ${missing[*]}" >&2
+    return 2
+  fi
+  # schema_version must be 1.0
+  local sv; sv=$(extract_scalar "$content" "schema_version")
+  if [[ "$sv" != "1.0" ]]; then
+    echo "appsec-sdk finding.add: schema_version must be 1.0 (got '$sv')" >&2
+    return 2
+  fi
+  # severity enum
+  local sev; sev=$(extract_scalar "$content" "severity")
+  case "$sev" in
+    critical|high|medium|low) :;;
+    *) echo "appsec-sdk finding.add: severity must be critical|high|medium|low (got '$sev')" >&2; return 2;;
+  esac
+  # confidence enum
+  local cf; cf=$(extract_scalar "$content" "confidence")
+  case "$cf" in
+    high|medium|low) :;;
+    *) echo "appsec-sdk finding.add: confidence must be high|medium|low (got '$cf')" >&2; return 2;;
+  esac
+  # csf_function enum
+  local csf; csf=$(extract_scalar "$content" "csf_function")
+  case "$csf" in
+    GV|ID|PR|DE|RS|RC) :;;
+    *) echo "appsec-sdk finding.add: csf_function must be GV|ID|PR|DE|RS|RC (got '$csf')" >&2; return 2;;
+  esac
+  # source enum
+  local src; src=$(extract_scalar "$content" "source")
+  case "$src" in
+    sast|dast|sca|secret_scan|manual_review|pentest|external_disclosure|threat_model|iac_scan|container_scan|cloud_posture|secrets_engineering) :;;
+    *) echo "appsec-sdk finding.add: source enum violation (got '$src')" >&2; return 2;;
+  esac
+  # ASVS regex — every entry under asvs_mapping must match ^v5\.0\.0-\d+\.\d+\.\d+$
+  # Extract list items robustly (inline [v5.0.0-1.2.3, ...] or block "- v5.0.0-...")
+  # ★ P7 fix (code-reviewer MEDIUM): track in_asvs_block so list items from OTHER fields
+  # (e.g. affected_urls, cwe) do NOT bleed into the asvs_mapping check.
+  local asvs_entries
+  asvs_entries=$(printf '%s' "$content" | awk '
+    BEGIN{in_asvs_block=0}
+    /^[[:space:]]{0,4}asvs_mapping[[:space:]]*:[[:space:]]*\[/ {
+      # Inline form: extract and dont enter block mode
+      in_asvs_block=0
+      line=$0
+      sub(/^[^\[]*\[/, "", line)
+      sub(/\].*$/, "", line)
+      n=split(line, parts, ",")
+      for (i=1;i<=n;i++) {
+        gsub(/^[[:space:]"'\'']+|[[:space:]"'\'']+$/, "", parts[i])
+        if (length(parts[i])>0) print parts[i]
+      }
+      next
+    }
+    /^[[:space:]]{0,4}asvs_mapping[[:space:]]*:[[:space:]]*$/ {
+      in_asvs_block=1
+      next
+    }
+    # Exit block on any other top-level key (start-of-line word followed by colon)
+    in_asvs_block==1 && /^[[:space:]]{0,4}[a-zA-Z_][a-zA-Z0-9_]*[[:space:]]*:/ {
+      in_asvs_block=0
+    }
+    in_asvs_block==1 && /^[[:space:]]+-[[:space:]]+/ {
+      v=$0
+      sub(/^[[:space:]]+-[[:space:]]+/, "", v)
+      gsub(/[[:space:]"'\'']/, "", v)
+      if (length(v)>0) print v
+    }
+  ')
+  # Detect ASVS 4.x style identifiers anywhere → hard reject (after stripping YAML comments
+  # so example references like "ASVS 4.x V2.1.1 deprecated" inside docstrings don't trip)
+  local stripped_for_asvs
+  stripped_for_asvs=$(printf '%s' "$content" | strip_yaml_comments)
+  if printf '%s' "$stripped_for_asvs" | grep -qE '\bV[0-9]+\.[0-9]+\.[0-9]+\b'; then
+    echo "appsec-sdk finding.add: ASVS 4.x identifier (V<n>.<n>.<n>) detected — must migrate to ASVS 5.0 format (v5.0.0-<chapter>.<section>.<requirement>)" >&2
+    return 2
+  fi
+  if [[ -z "$asvs_entries" ]]; then
+    echo "appsec-sdk finding.add: asvs_mapping must list at least one ASVS 5.0 identifier" >&2
+    return 2
+  fi
+  while IFS= read -r entry; do
+    [[ -z "$entry" ]] && continue
+    if ! [[ "$entry" =~ ^v5\.0\.0-[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "appsec-sdk finding.add: asvs_mapping entry '$entry' does not match ^v5\\.0\\.0-\\d+\\.\\d+\\.\\d+\$" >&2
+      return 2
+    fi
+  done <<< "$asvs_entries"
+  return 0
+}
+
+cmd_finding_add() {
+  ensure_project_root
+  local file="${1:-}"
+  local content
+  if [[ -n "$file" ]]; then
+    if [[ ! -f "$file" ]]; then echo "appsec-sdk: file not found: $file" >&2; exit 1; fi
+    content=$(cat "$file")
+  else
+    content=$(cat)
+  fi
+
+  # Raw secret in finding body → reject (force user to redact first)
+  if ! contains_raw_secret "$content"; then
+    echo "appsec-sdk finding.add: raw secret pattern detected in finding body — pipe through 'appsec-sdk redact' first" >&2
+    exit 2
+  fi
+
+  if ! validate_finding_yaml "$content"; then
+    exit 2
+  fi
+
+  # Determine active tag
+  local tag=""
+  if [[ -f "$PROJECT_ROOT/.appsec/state.json" ]]; then
+    tag=$(grep -oE '"active_release_tag"[[:space:]]*:[[:space:]]*"[^"]+"' "$PROJECT_ROOT/.appsec/state.json" \
+          | head -n1 | sed -E 's/.*"active_release_tag"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
+  fi
+  if [[ -z "$tag" ]]; then
+    echo "appsec-sdk finding.add: no active release tag — run 'appsec-sdk init <tag>' first" >&2
+    exit 2
+  fi
+  validate_safe_name "release-tag" "$tag"
+
+  local fnd_dir="$PROJECT_ROOT/.appsec/findings/$tag"
+  mkdir -p "$fnd_dir"
+  ensure_under_root "$fnd_dir" "$PROJECT_ROOT/.appsec/findings"
+  local stamp; stamp=$(date -u +"%Y%m%d-%H%M%S")
+  local rand; rand=$(printf "%04x" $((RANDOM % 65536)))
+  local out="$fnd_dir/${stamp}-${rand}.yaml"
+  ensure_under_root "$out" "$fnd_dir"
+
+  {
+    echo "# written-by: appsec-sdk@3.0.0"
+    echo "# released_tag: $tag"
+    echo "# added_at: $(iso_now)"
+    printf '%s\n' "$content"
+  } > "$out"
+  echo "$out"
+}
+
+# ───── gate.check helpers (ADDITIVE — A1 canonical-schema + D2 freshness/STALE) ─────
+#
+# A1 — canonical gate-decision vocabulary validation.
+# WHY: the existing decision extraction + case block can be satisfied by a malformed
+# decision value (typo'd enum, calendar-invalid decided_at) that still parses by grep.
+# This closes that hole by re-using the installed canonical validator
+# (~/.claude/schemas/verdict-validator.js) instead of re-implementing schema logic.
+#
+# NOTE on shape: appsec_release_decision.yaml is a RICH nested release artifact (csf2_coverage,
+# nested redaction{}, risk_acceptance[] …) and is intentionally NOT the flat canonical
+# gate-result shape ({reason, evidence_refs, gate_tag}). Running the validator against the raw
+# file with the default schema would false-reject every valid file (additionalProperties:false +
+# missing reason/evidence_refs/gate_tag + nested seq-of-maps the flat-YAML reader rejects).
+# So A1 synthesizes a MINIMAL canonical object from the fields that DO map
+# (decision → enum, decided_at → timestamp, release_tag → gate_tag) and validates THAT.
+# It runs WITHOUT --release-context on purpose: release semantics (STRATEGY_READY rejection,
+# CONDITIONAL_PASS gating) remain owned by the existing case block below — A1 is pure
+# vocabulary + format validation, so it can never double-block an already-approved flow.
+NODE_BIN="${NODE_BIN:-node}"
+VERDICT_VALIDATOR="${VERDICT_VALIDATOR:-$CLAUDE_HOME/schemas/verdict-validator.js}"
+
+# json_escape <string> — minimal JSON string-body escaper for synthesized object.
+json_escape() {
+  local s="$1"
+  s="${s//\\/\\\\}"   # backslash first
+  s="${s//\"/\\\"}"   # double quote
+  s="${s//	/\\t}"    # tab
+  printf '%s' "$s"
+}
+
+# gate_check_a1_canonical <decision_value> <timestamp> <gate_tag> <mode>
+# Validates the canonical decision vocabulary via the installed validator.
+# strict (default): BLOCK exit 2 on invalid / unavailable (fail-closed, mirrors validator design).
+# lax: WARN only, never blocks.
+gate_check_a1_canonical() {
+  local d="$1" ts="$2" gt="$3" mode="$4"
+  # Tooling availability — fail-closed in strict, WARN in lax.
+  if ! command -v "$NODE_BIN" >/dev/null 2>&1 || [[ ! -f "$VERDICT_VALIDATOR" ]]; then
+    if [[ "$mode" == "lax" ]]; then
+      echo "appsec-sdk gate.check: WARN (lax) — canonical validator unavailable (node='$NODE_BIN', validator='$VERDICT_VALIDATOR'); skipping A1 schema check" >&2
+      return 0
+    fi
+    echo "appsec-sdk gate.check: BLOCKED — canonical validator unavailable (node='$NODE_BIN', validator='$VERDICT_VALIDATOR'); cannot verify gate-decision schema (fail-closed)" >&2
+    exit 2
+  fi
+  # Fallbacks so the synthesized object is always schema-shaped even if a field was unparsed.
+  [[ -z "$ts" ]] && ts="1970-01-01T00:00:00Z"
+  [[ -z "$gt" ]] && gt="unknown"
+  local tmp; tmp=$(mktemp 2>/dev/null) || tmp="${TMPDIR:-/tmp}/appsec-a1-$$-$RANDOM"
+  local tmp_json="${tmp}.json"
+  printf '{"decision":"%s","reason":"appsec release decision: %s","evidence_refs":[],"timestamp":"%s","gate_tag":"%s","subsystem":"appsec","schema_version":"1.0.0"}\n' \
+    "$(json_escape "$d")" "$(json_escape "$d")" "$(json_escape "$ts")" "$(json_escape "$gt")" > "$tmp_json"
+  local out rc
+  out=$("$NODE_BIN" "$VERDICT_VALIDATOR" "$tmp_json" 2>&1); rc=$?
+  rm -f "$tmp" "$tmp_json" 2>/dev/null
+  if (( rc != 0 )); then
+    if [[ "$mode" == "lax" ]]; then
+      echo "appsec-sdk gate.check: WARN (lax) — decision failed canonical gate-decision schema:" >&2
+      printf '%s\n' "$out" >&2
+      return 0
+    fi
+    echo "appsec-sdk gate.check: BLOCKED — decision failed canonical gate-decision schema validation:" >&2
+    printf '%s\n' "$out" >&2
+    exit 2
+  fi
+  return 0
+}
+
+# D2 — evidence freshness / STALE.
+# WHY: a decision can be schema-valid and PASS yet be days/weeks old, no longer reflecting the
+# current codebase/deps. This ages the decision against a configurable window and emits STALE
+# (the canonical decision value for freshness expiry — see gate-decision.schema.yaml example).
+# Window source: .appsec/config.json "evidence_freshness_hours". Conservative default below.
+APPSEC_DEFAULT_FRESHNESS_HOURS=168   # 168h = 7 days; conservative default (matches canonical STALE example) when config omits evidence_freshness_hours
+
+# read_freshness_hours — echo the configured window (positive integer) or the default.
+read_freshness_hours() {
+  local cfg="$PROJECT_ROOT/.appsec/config.json" hours=""
+  if [[ -f "$cfg" ]]; then
+    hours=$(grep -oE '"evidence_freshness_hours"[[:space:]]*:[[:space:]]*[0-9]+' "$cfg" \
+            | head -n1 | sed -E 's/.*:[[:space:]]*([0-9]+).*/\1/')
+  fi
+  if [[ -n "$hours" && "$hours" =~ ^[0-9]+$ && "$hours" -gt 0 ]]; then
+    printf '%s' "$hours"
+  else
+    printf '%s' "$APPSEC_DEFAULT_FRESHNESS_HOURS"
+  fi
+}
+
+# epoch_of_iso <iso8601> — best-effort UTC epoch seconds; echoes empty on failure.
+# E7 codex finding 4 (2026-06-05): prefer Node Date.parse for cross-platform robustness — it
+# accepts fractional seconds (…:56.789Z) and numeric offsets (+00:00) that the BSD `date -j`
+# fixed format string rejects, matching qa-sdk D2 exactly and removing the macOS/BSD false-BLOCK.
+# Shell `date` is kept ONLY as a fallback if node is unavailable (A1 already fail-closes on no node).
+epoch_of_iso() {
+  local iso="$1" e=""
+  if command -v "$NODE_BIN" >/dev/null 2>&1; then
+    e=$("$NODE_BIN" -e 'const t=Date.parse(process.argv[1]); if(Number.isNaN(t))process.exit(1); process.stdout.write(String(Math.floor(t/1000)));' "$iso" 2>/dev/null) \
+      && [[ -n "$e" ]] && { printf '%s' "$e"; return 0; }
+  fi
+  # GNU date (Linux / Git-Bash on Windows ships GNU date)
+  e=$(date -u -d "$iso" +%s 2>/dev/null) && { printf '%s' "$e"; return 0; }
+  # BSD/macOS date (strict format only; the node path above handles the richer ISO forms)
+  e=$(date -u -j -f "%Y-%m-%dT%H:%M:%SZ" "$iso" +%s 2>/dev/null) && { printf '%s' "$e"; return 0; }
+  return 1
+}
+
+# gate_check_d2_freshness <decided_at> <mode>
+# strict (default): STALE → exit 2 when decision is older than the window.
+# lax: WARN only, never blocks. Unparseable/missing decided_at: BLOCK in strict (cannot prove
+# freshness → fail-closed), WARN in lax.
+gate_check_d2_freshness() {
+  local decided_at="$1" mode="$2"
+  local hours; hours=$(read_freshness_hours)
+  if [[ -z "$decided_at" ]]; then
+    if [[ "$mode" == "lax" ]]; then
+      echo "appsec-sdk gate.check: WARN (lax) — decided_at missing; cannot verify freshness (window=${hours}h)" >&2
+      return 0
+    fi
+    echo "appsec-sdk gate.check: BLOCKED — decided_at missing; cannot verify freshness against ${hours}h window (fail-closed)" >&2
+    exit 2
+  fi
+  local decided_epoch now_epoch age_h max_s
+  decided_epoch=$(epoch_of_iso "$decided_at") || decided_epoch=""
+  now_epoch=$(date -u +%s 2>/dev/null)
+  if [[ -z "$decided_epoch" || -z "$now_epoch" ]]; then
+    if [[ "$mode" == "lax" ]]; then
+      echo "appsec-sdk gate.check: WARN (lax) — could not compute decision age from decided_at='$decided_at'" >&2
+      return 0
+    fi
+    echo "appsec-sdk gate.check: BLOCKED — could not compute decision age from decided_at='$decided_at' (fail-closed)" >&2
+    exit 2
+  fi
+  max_s=$(( hours * 3600 ))
+  if (( now_epoch - decided_epoch > max_s )); then
+    age_h=$(( (now_epoch - decided_epoch) / 3600 ))
+    if [[ "$mode" == "lax" ]]; then
+      echo "appsec-sdk gate.check: WARN (lax) — STALE: decision is ${age_h}h old (> ${hours}h freshness window); re-run release decision before shipping" >&2
+      return 0
+    fi
+    echo "appsec-sdk gate.check: STALE — decision is ${age_h}h old (> ${hours}h freshness window); re-run release decision before shipping" >&2
+    exit 2
+  fi
+  return 0
+}
+
+cmd_gate_check() {
+  need_arg "release-tag" "${1:-}"
+  validate_safe_name "release-tag" "$1"
+  local tag="$1"; shift
+  local mode="strict" allow_conditional="false" legacy_path=""
+  while (( "$#" )); do
+    case "$1" in
+      --strict)            mode="strict"; shift;;
+      --lax)               mode="lax"; shift;;
+      --allow-conditional) allow_conditional="true"; shift;;
+      --legacy-path)
+        # ★ D2 SDK adapter: scan deprecated .planning/security/ alias and emit WARN
+        if [[ -z "${2:-}" ]]; then echo "appsec-sdk gate.check: --legacy-path requires <path>" >&2; exit 2; fi
+        legacy_path="$2"; shift 2;;
+      --legacy-path=*)     legacy_path="${1#--legacy-path=}"; shift;;
+      *) echo "appsec-sdk gate.check: unknown arg $1" >&2; exit 2;;
+    esac
+  done
+  ensure_project_root
+  # ★ D2 SDK adapter: WARN (but do not block) when legacy evidence content is observed
+  if [[ -n "$legacy_path" ]]; then
+    local legacy_dir="$PROJECT_ROOT/$legacy_path"
+    [[ "$legacy_path" = /* ]] && legacy_dir="$legacy_path"
+    if [[ -d "$legacy_dir" ]] && [[ -n "$(ls -A "$legacy_dir" 2>/dev/null)" ]]; then
+      echo "appsec-sdk gate.check: WARN — legacy evidence found at $legacy_dir; run 'appsec-sdk migrate-evidence' before release. Gate not blocked on legacy alone." >&2
+    fi
+  fi
+  local decision_file="$PROJECT_ROOT/.appsec/decisions/$tag/appsec_release_decision.yaml"
+  if [[ ! -f "$decision_file" ]]; then
+    echo "appsec-sdk gate.check: BLOCKED — $decision_file missing" >&2
+    exit 2
+  fi
+
+  local decision
+  decision=$(grep -v '^[[:space:]]*#' "$decision_file" \
+    | grep -E '^[[:space:]]{0,4}decision[[:space:]]*:' | head -n1 \
+    | sed -E 's/^[[:space:]]*decision[[:space:]]*:[[:space:]]*"?([A-Z_]+)"?.*/\1/')
+  if [[ -z "$decision" ]]; then
+    echo "appsec-sdk gate.check: BLOCKED — decision field missing in $decision_file" >&2
+    exit 2
+  fi
+
+  # ★ A1 + D2 (ADDITIVE) — run AFTER decision extraction, BEFORE redaction/case judgment.
+  # Both honor existing --strict (default) / --lax semantics: strict blocks, lax WARNs only.
+  local decided_at_val
+  decided_at_val=$(grep -v '^[[:space:]]*#' "$decision_file" \
+    | grep -E '^[[:space:]]{0,4}decided_at[[:space:]]*:' | head -n1 \
+    | sed -E 's/^[[:space:]]*decided_at[[:space:]]*:[[:space:]]*"?([^"#[:space:]]+)"?.*/\1/')
+  # E7 codex finding 3 (2026-06-05): canonical gate-decision-shaped files use `timestamp:` rather
+  # than the rich decision's `decided_at:`. Prefer decided_at, fall back to a top-level timestamp
+  # before D2 fail-closes — defensive, never loosens (still requires SOME parseable timestamp).
+  # E7 round-2 (codex): anchor the fallback to column 0 (`^timestamp:`) — a 0-4-space-indented
+  # match would wrongly pick up a NESTED `timestamp:` (e.g. inside an evidence block) and age the
+  # gate against the wrong time. A canonical top-level timestamp is always at column 0.
+  if [[ -z "$decided_at_val" ]]; then
+    decided_at_val=$(grep -v '^[[:space:]]*#' "$decision_file" \
+      | grep -E '^timestamp[[:space:]]*:' | head -n1 \
+      | sed -E 's/^timestamp[[:space:]]*:[[:space:]]*"?([^"#[:space:]]+)"?.*/\1/')
+  fi
+  # ★ A1 — canonical gate-decision schema/vocabulary validation via installed validator
+  gate_check_a1_canonical "$decision" "$decided_at_val" "$tag" "$mode"
+  # ★ D2 — evidence freshness / STALE against .appsec/config.json evidence_freshness_hours
+  gate_check_d2_freshness "$decided_at_val" "$mode"
+
+  local redaction_attested
+  redaction_attested=$(grep -v '^[[:space:]]*#' "$decision_file" \
+    | awk '/^[[:space:]]{0,4}redaction[[:space:]]*:/{in_block=1; next} in_block && /^[^[:space:]]/{in_block=0} in_block' \
+    | grep -E '^[[:space:]]+attested[[:space:]]*:' | head -n1 \
+    | sed -E 's/^[[:space:]]+attested[[:space:]]*:[[:space:]]*(true|false).*/\1/')
+  if [[ "$redaction_attested" != "true" ]]; then
+    echo "appsec-sdk gate.check: BLOCKED — redaction.attested != true (got '$redaction_attested')" >&2
+    exit 2
+  fi
+
+  case "$decision" in
+    PASS)
+      echo "appsec-sdk gate.check: PASS"; exit 0;;
+    FAIL)
+      echo "appsec-sdk gate.check: FAIL" >&2; exit 1;;
+    BLOCKED)
+      echo "appsec-sdk gate.check: BLOCKED" >&2; exit 2;;
+    CONDITIONAL_PASS)
+      # Verify risk_acceptance section is present and non-empty
+      local ra_present
+      ra_present=$(grep -E '^[[:space:]]{0,4}risk_acceptance[[:space:]]*:' "$decision_file" | head -n1)
+      if [[ -z "$ra_present" ]]; then
+        echo "appsec-sdk gate.check: BLOCKED — CONDITIONAL_PASS requires risk_acceptance: in decision YAML" >&2
+        exit 2
+      fi
+      # Need at least one entry with approver + approval_date + review_date
+      local ra_items
+      ra_items=$(awk '/^[[:space:]]{0,4}risk_acceptance[[:space:]]*:/{in_block=1; next} in_block && /^[^[:space:]]/{in_block=0} in_block' "$decision_file")
+      if ! printf '%s' "$ra_items" | grep -qE 'approver[[:space:]]*:' || \
+         ! printf '%s' "$ra_items" | grep -qE 'approval_date[[:space:]]*:' || \
+         ! printf '%s' "$ra_items" | grep -qE 'review_date[[:space:]]*:'; then
+        echo "appsec-sdk gate.check: BLOCKED — risk_acceptance missing approver/approval_date/review_date" >&2
+        exit 2
+      fi
+      echo "appsec-sdk gate.check: CONDITIONAL_PASS (risk-acceptance validated)"
+      if [[ "$allow_conditional" == "true" ]]; then exit 0; else exit 3; fi
+      ;;
+    *)
+      echo "appsec-sdk gate.check: BLOCKED — unknown decision='$decision'" >&2; exit 2;;
+  esac
+}
+
+cmd_redact() { redact_stdin; }
+
+cmd_roe_verify() {
+  need_arg "roe-file" "${1:-}"
+  local roe="$1"
+  if [[ ! -f "$roe" ]]; then echo "appsec-sdk roe.verify: file not found: $roe" >&2; exit 2; fi
+  # 11-item ROE checklist (canonical names from §17.1 / pentest-scope-and-roe)
+  local required=(target_identification authorization_proof environment scope \
+                  allowed_methods disallowed_methods time_window rate_limits \
+                  test_accounts data_handling emergency_contact rollback reporting_format)
+  local missing=()
+  for k in "${required[@]}"; do
+    if ! grep -qE "^[[:space:]]{0,4}${k}[[:space:]]*:" "$roe" && \
+       ! grep -qiE "^#+[[:space:]]*${k//_/ }" "$roe"; then
+      missing+=("$k")
+    fi
+  done
+  if (( ${#missing[@]} > 0 )); then
+    echo "appsec-sdk roe.verify: ROE missing required items:" >&2
+    for k in "${missing[@]}"; do echo "  - $k" >&2; done
+    exit 2
+  fi
+  echo "appsec-sdk roe.verify: ROE 11-item checklist OK"
+  exit 0
+}
+
+cmd_csf_coverage() {
+  need_arg "release-tag" "${1:-}"
+  validate_safe_name "release-tag" "$1"
+  ensure_project_root
+  local tag="$1"
+  local ev_dir="$PROJECT_ROOT/.appsec/evidence/$tag"
+  if [[ ! -d "$ev_dir" ]]; then echo "appsec-sdk csf.coverage: no evidence for tag $tag" >&2; exit 2; fi
+  # Heuristic mapping from layer presence to CSF function status
+  declare -A layer_for
+  layer_for[GV]="threat-model"
+  layer_for[ID]="threat-model"
+  layer_for[PR]="sast code-review headers-cookies"
+  layer_for[DE]="secret-scan sca"
+  layer_for[RS]="pentest"
+  layer_for[RC]="recovery"
+
+  echo "# appsec-sdk csf.coverage"
+  echo "# release_tag: $tag"
+  echo "# generated_at: $(iso_now)"
+  echo "# note: Internal evidence completeness gate per SKILL.md §3; not a NIST CSF release checklist claim."
+  echo "csf2_coverage:"
+  local f layers status paths
+  for f in GV ID PR DE RS RC; do
+    layers="${layer_for[$f]}"
+    paths=()
+    local any_present=0 all_present=1
+    for layer in $layers; do
+      if [[ -d "$ev_dir/$layer" ]] && [[ -n "$(ls -A "$ev_dir/$layer" 2>/dev/null)" ]]; then
+        paths+=(".appsec/evidence/$tag/$layer/")
+        any_present=1
+      else
+        all_present=0
+      fi
+    done
+    if (( any_present == 0 )); then
+      status="MISSING"
+    elif (( all_present == 1 )); then
+      status="PASS"
+    else
+      status="PARTIAL"
+    fi
+    echo "  $f:"
+    echo "    status: $status"
+    if (( ${#paths[@]} == 0 )); then
+      echo "    evidence_paths: []"
+    else
+      echo "    evidence_paths:"
+      for p in "${paths[@]}"; do echo "      - $p"; done
+    fi
+  done
+}
+
+cmd_overlay_activate() {
+  need_arg "release-tag" "${1:-}"
+  need_arg "overlay-name" "${2:-}"
+  validate_safe_name "release-tag" "$1"
+  validate_safe_name "overlay-name" "$2"
+  ensure_project_root
+  local tag="$1" overlay="$2"
+  case "$overlay" in
+    mobile|llm|multitenant|websocket|file_upload|payment|cn_data) :;;
+    *) echo "appsec-sdk overlay.activate: unknown overlay '$overlay' (allowed: mobile|llm|multitenant|websocket|file_upload|payment|cn_data)" >&2; exit 2;;
+  esac
+  local dir="$PROJECT_ROOT/.appsec/evidence/$tag/overlay-$overlay"
+  mkdir -p "$dir"
+  ensure_under_root "$dir" "$PROJECT_ROOT/.appsec/evidence/$tag"
+  printf 'activated_at: %s\noverlay: %s\nstatus: activated\n' "$(iso_now)" "$overlay" > "$dir/.activated"
+  echo "$dir/.activated"
+}
+
+# ───── D2 SDK adapter: migrate-evidence ─────
+# Relocates content from the deprecated alias .planning/security/ to the canonical
+# .appsec/evidence/<active-tag>/ layout. Preserves sub-structure under each layer.
+# Active tag is read from .appsec/state.json unless --to is given as an explicit path.
+#
+# Usage:
+#   appsec-sdk migrate-evidence [--from <path>] [--to <path>] [--dry-run]
+# Defaults:
+#   --from .planning/security/
+#   --to   .appsec/evidence/<active_release_tag>/
+cmd_migrate_evidence() {
+  ensure_project_root
+  local from="" to="" dry_run="false"
+  while (( "$#" )); do
+    case "$1" in
+      --from)      if [[ -z "${2:-}" ]]; then echo "appsec-sdk migrate-evidence: --from requires <path>" >&2; exit 2; fi
+                   from="$2"; shift 2;;
+      --from=*)    from="${1#--from=}"; shift;;
+      --to)        if [[ -z "${2:-}" ]]; then echo "appsec-sdk migrate-evidence: --to requires <path>" >&2; exit 2; fi
+                   to="$2"; shift 2;;
+      --to=*)      to="${1#--to=}"; shift;;
+      --dry-run)   dry_run="true"; shift;;
+      *) echo "appsec-sdk migrate-evidence: unknown arg $1" >&2; exit 2;;
+    esac
+  done
+
+  # Default --from = .planning/security/
+  if [[ -z "$from" ]]; then from=".planning/security"; fi
+  local from_dir="$PROJECT_ROOT/$from"
+  [[ "$from" = /* ]] && from_dir="$from"
+
+  # Default --to = .appsec/evidence/<active-tag>/ — read active tag from state.json
+  local to_dir=""
+  if [[ -n "$to" ]]; then
+    to_dir="$PROJECT_ROOT/$to"
+    [[ "$to" = /* ]] && to_dir="$to"
+  else
+    local tag=""
+    if [[ -f "$PROJECT_ROOT/.appsec/state.json" ]]; then
+      tag=$(grep -oE '"active_release_tag"[[:space:]]*:[[:space:]]*"[^"]+"' "$PROJECT_ROOT/.appsec/state.json" \
+            | head -n1 | sed -E 's/.*"active_release_tag"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
+    fi
+    if [[ -z "$tag" ]]; then
+      echo "appsec-sdk migrate-evidence: no --to given and no active_release_tag in .appsec/state.json — run 'appsec-sdk init <tag>' or pass --to <path>" >&2
+      exit 2
+    fi
+    validate_safe_name "release-tag" "$tag"
+    to_dir="$PROJECT_ROOT/.appsec/evidence/$tag"
+  fi
+
+  if [[ ! -d "$from_dir" ]]; then
+    echo "appsec-sdk migrate-evidence: source not found: $from_dir (nothing to migrate)" >&2
+    exit 0
+  fi
+  if [[ -z "$(ls -A "$from_dir" 2>/dev/null)" ]]; then
+    echo "appsec-sdk migrate-evidence: source empty: $from_dir (nothing to migrate)"
+    exit 0
+  fi
+
+  ensure_under_root "$to_dir" "$PROJECT_ROOT/.appsec"
+  if [[ "$dry_run" == "false" ]]; then
+    mkdir -p "$to_dir"
+  fi
+
+  # Walk source; for each file, compute the relative path under from_dir and
+  # mirror it under to_dir. Preserve sub-structure so a layer like
+  # .planning/security/sast/foo.json becomes .appsec/evidence/<tag>/sast/foo.json.
+  local moved=0 skipped=0 collisions=0
+  local f rel target target_parent
+  while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    rel="${f#"$from_dir"/}"
+    target="$to_dir/$rel"
+    target_parent="$(dirname "$target")"
+    ensure_under_root "$target" "$to_dir"
+    if [[ -e "$target" ]]; then
+      echo "  COLLIDE $rel  (canonical wins, leaving $f in place)"
+      collisions=$((collisions+1))
+      skipped=$((skipped+1))
+      continue
+    fi
+    if [[ "$dry_run" == "true" ]]; then
+      echo "  DRY-RUN $rel -> $target"
+    else
+      mkdir -p "$target_parent"
+      if mv "$f" "$target" 2>/dev/null; then
+        echo "  MOVED   $rel"
+        moved=$((moved+1))
+      else
+        echo "  FAIL    $rel (mv failed, source kept)" >&2
+        skipped=$((skipped+1))
+      fi
+    fi
+  done < <(find "$from_dir" -type f 2>/dev/null)
+
+  echo ""
+  echo "appsec-sdk migrate-evidence summary:"
+  echo "  from: $from_dir"
+  echo "  to:   $to_dir"
+  echo "  moved:      $moved"
+  echo "  skipped:    $skipped"
+  echo "  collisions: $collisions (canonical preferred)"
+  if [[ "$dry_run" == "true" ]]; then
+    echo "  mode:       DRY-RUN (no files changed)"
+  else
+    # Stamp the migration so the validator can see legacy was processed.
+    local stamp_file="$PROJECT_ROOT/.appsec/.migrate-evidence.log"
+    {
+      echo "# appsec-sdk migrate-evidence"
+      echo "migrated_at: $(iso_now)"
+      echo "from: $from_dir"
+      echo "to:   $to_dir"
+      echo "moved: $moved"
+      echo "collisions: $collisions"
+    } >> "$stamp_file"
+    echo "  log:        $stamp_file"
+  fi
+  exit 0
+}
+
+main() {
+  if (( $# < 1 )); then usage; exit 2; fi
+  local cmd="$1"; shift
+  case "$cmd" in
+    init)                         cmd_init "$@";;
+    set-active)                   cmd_set_active "$@";;
+    evidence.append)              cmd_evidence_append "$@";;
+    evidence.list)                cmd_evidence_list "$@";;
+    evidence.validate-presence)   cmd_evidence_validate_presence "$@";;
+    finding.add)                  cmd_finding_add "$@";;
+    gate.check)                   cmd_gate_check "$@";;
+    redact)                       cmd_redact;;
+    roe.verify)                   cmd_roe_verify "$@";;
+    csf.coverage)                 cmd_csf_coverage "$@";;
+    overlay.activate)             cmd_overlay_activate "$@";;
+    migrate-evidence)             cmd_migrate_evidence "$@";;
+    -h|--help|help)               usage; exit 0;;
+    *) echo "appsec-sdk: unknown command $cmd" >&2; usage; exit 2;;
+  esac
+}
+
+main "$@"

@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/EVIDENCE_BUNDLE_SCHEMA.v1",
+  "title": "Evidence Bundle / Release Decision Output",
+  "description": "Output of EvidenceBundle node (qa-evidence-validator). Final aggregation + release decision. Includes dispatch_failures populated by map_null_outputs_to_missing invariant per reviewer R7.",
+  "type": "object",
+  "required": ["release_tag", "per_layer_decisions", "release_decision"],
+  "properties": {
+    "release_tag": { "type": "string" },
+    "spec_hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "run_id": { "type": "string" },
+    "per_layer_decisions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["decision"],
+        "properties": {
+          "decision": { "type": "string", "enum": ["PASS", "FAIL", "BLOCKED", "CONDITIONAL_PASS", "MISSING"] },
+          "evidence_path": { "type": "string" },
+          "command_evidence_present": { "type": "boolean" },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "dispatch_failures": {
+      "type": "array",
+      "description": "Reviewer R7 — every null/skipped/timed-out fanout or pipeline item is recorded here, NOT silently filtered.",
+      "items": {
+        "type": "object",
+        "required": ["node", "item_id", "status", "decision", "blocks_release"],
+        "properties": {
+          "node": { "type": "string" },
+          "item_id": { "type": ["string", "integer"] },
+          "status": { "type": "string", "enum": ["DISPATCH_FAILED_OR_SKIPPED", "STALL_EXCEEDED", "BUDGET_DROPPED", "AGENT_ERROR"] },
+          "decision": { "type": "string", "enum": ["MISSING"] },
+          "blocks_release": { "type": "boolean" },
+          "stderr_excerpt": { "type": "string" }
+        }
+      }
+    },
+    "hard_rule_violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule", "evidence"],
+        "properties": {
+          "rule": { "type": "string", "description": "enterprise-qa-testing §2 Hard Rule reference" },
+          "evidence": { "type": "string" }
+        }
+      }
+    },
+    "floor_rule_action": {
+      "type": "object",
+      "properties": {
+        "triggered": { "type": "boolean" },
+        "missing_mandated_layers": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "release_decision": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "BLOCKED", "CONDITIONAL_PASS"]
+    },
+    "sdk_persist_outcome": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "failed_layers": { "type": "array", "items": { "type": "string" } },
+        "warning": { "type": "string", "description": "RUN-COMPLETED-BUT-PERSISTENCE-FAILED per A.1.2 R8 if ok==false" }
+      }
+    }
+  }
+}

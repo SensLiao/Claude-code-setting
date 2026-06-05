@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "MAP_SCHEMA.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "findings"
+  ],
+  "properties": {
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "csf",
+          "cwe",
+          "asvs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "csf": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "Govern",
+                "Identify",
+                "Protect",
+                "Detect",
+                "Respond",
+                "Recover"
+              ]
+            },
+            "minItems": 1
+          },
+          "cwe": {
+            "type": "string",
+            "pattern": "^CWE-[0-9]+$"
+          },
+          "asvs": {
+            "type": "string",
+            "pattern": "^v5\\.0\\.0-[0-9]+(\\.[0-9]+(\\.[0-9]+)?)?$"
+          },
+          "owasp": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

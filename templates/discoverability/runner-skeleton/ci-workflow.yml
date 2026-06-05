@@ -1,0 +1,201 @@
+# ==============================================================================
+# .github/workflows/discoverability.yml
+# ------------------------------------------------------------------------------
+# L12 Discoverability gate — runs on PRs, on a weekly schedule (baseline audit),
+# and on manual dispatch (for spot checks). Aggregates evidence from all 4
+# narrow skills (web-seo / web-aeo / web-local-seo / app-aso) and fails the build
+# on any blocker-level finding.
+#
+# Place this file at: .github/workflows/discoverability.yml
+#
+# Required repository configuration:
+#   - vars.DISCOVERABILITY_BASE_URL — fully-qualified URL to audit, e.g.
+#     https://preview-pr-1234.example.com or https://example.com
+#
+# Optional configuration:
+#   - vars.DISCOVERABILITY_CONFIG_PATH — override default config location
+#   - secrets.SEARCH_CONSOLE_OAUTH_JSON — Google Search Console OAuth creds
+#   - secrets.APP_STORE_CONNECT_API_KEY — App Store Connect API key
+#   - secrets.GOOGLE_PLAY_DEVELOPER_KEY — Google Play Developer API key
+# ==============================================================================
+
+name: Discoverability Gate
+
+on:
+  # Run on every PR — preview deployment is audited before merge.
+  pull_request:
+    paths:
+      - "discoverability.config.yaml"
+      - "src/**"
+      - "app/**"
+      - "pages/**"
+      - "public/**"
+      - "fastlane/**"
+      - ".github/workflows/discoverability.yml"
+
+  # Allow on-demand manual runs from the Actions tab (e.g. against production).
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "URL to audit (overrides vars.DISCOVERABILITY_BASE_URL)"
+        required: false
+        type: string
+      modules:
+        description: "Modules to audit (comma-separated: seo,aeo,geo,aso or 'all')"
+        required: false
+        default: "all"
+        type: string
+
+  # Weekly baseline audit against production — catches drift.
+  schedule:
+    - cron: "0 6 * * 1"  # Monday 06:00 UTC
+
+# Concurrency: cancel in-progress runs on the same ref to avoid evidence races.
+concurrency:
+  group: discoverability-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  discoverability:
+    name: Discoverability Audit + Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read         # only need to read source + vendor submodules
+      pull-requests: write   # to post the gate summary as a PR comment
+
+    steps:
+      # ---------------------------------------------------------------------
+      # 1. Checkout — submodules:recursive pulls in tools/vendor/geo-seo-claude
+      #    (pinned commit for AEO citability scoring + llms.txt validation).
+      # ---------------------------------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # ---------------------------------------------------------------------
+      # 2. Toolchain setup — Node for the runner, Python for the vendor adapter.
+      # ---------------------------------------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Python (geo-seo-claude vendor adapter)
+        if: hashFiles('tools/vendor/geo-seo-claude/requirements.txt') != ''
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      # ---------------------------------------------------------------------
+      # 3. Install dependencies — Node first (required), Python only if vendor.
+      # ---------------------------------------------------------------------
+      - name: Install Node dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Python dependencies (geo-seo-claude adapter)
+        if: hashFiles('tools/vendor/geo-seo-claude/requirements.txt') != ''
+        run: |
+          python -m venv .venv-discoverability
+          source .venv-discoverability/bin/activate
+          pip install --upgrade pip
+          pip install -r tools/vendor/geo-seo-claude/requirements.txt
+
+      # ---------------------------------------------------------------------
+      # 4. Build the runner if it's not pre-built.
+      # ---------------------------------------------------------------------
+      - name: Build discoverability runner
+        run: pnpm build
+
+      # ---------------------------------------------------------------------
+      # 5. Resolve base URL — manual input > vars > default.
+      #    For PR runs, you probably want to deploy a preview and pass its URL.
+      # ---------------------------------------------------------------------
+      - name: Resolve BASE_URL
+        id: resolve-url
+        run: |
+          if [ -n "${{ inputs.base_url }}" ]; then
+            echo "url=${{ inputs.base_url }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=${{ vars.DISCOVERABILITY_BASE_URL }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ---------------------------------------------------------------------
+      # 6. Run audit. Activate venv if it exists so the AEO runner can shell
+      #    out to the geo-seo-claude Python scripts.
+      # ---------------------------------------------------------------------
+      - name: Run Discoverability Audit
+        env:
+          # Secrets are optional — runner gracefully degrades if missing.
+          SEARCH_CONSOLE_OAUTH_JSON: ${{ secrets.SEARCH_CONSOLE_OAUTH_JSON }}
+          APP_STORE_CONNECT_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY }}
+          GOOGLE_PLAY_DEVELOPER_KEY: ${{ secrets.GOOGLE_PLAY_DEVELOPER_KEY }}
+        run: |
+          if [ -d .venv-discoverability ]; then
+            source .venv-discoverability/bin/activate
+          fi
+
+          pnpm discoverability:audit \
+            --url "${{ steps.resolve-url.outputs.url }}" \
+            --config "${{ vars.DISCOVERABILITY_CONFIG_PATH || 'discoverability.config.yaml' }}" \
+            --out evidence/discoverability \
+            --skip-manual
+
+      # ---------------------------------------------------------------------
+      # 7. Apply gate — fails the workflow on any blocker.
+      # ---------------------------------------------------------------------
+      - name: Run Discoverability Gate
+        run: pnpm discoverability:gate
+
+      # ---------------------------------------------------------------------
+      # 8. Always build the report — useful for both pass and fail outcomes.
+      # ---------------------------------------------------------------------
+      - name: Build Discoverability Report
+        if: always()
+        run: pnpm discoverability:report
+
+      # ---------------------------------------------------------------------
+      # 9. Upload evidence as a build artifact — retained for audit / debugging.
+      #    Keep retention conservative (30 days) — escalate via your archive
+      #    policy if your compliance/legal team requires longer retention.
+      # ---------------------------------------------------------------------
+      - name: Upload Discoverability Evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: discoverability-evidence-${{ github.run_id }}
+          path: evidence/discoverability
+          retention-days: 30
+          if-no-files-found: warn
+
+      # ---------------------------------------------------------------------
+      # 10. (Optional) Post a gate summary as a PR comment for visibility.
+      #     Only runs on PR events — schedule + manual runs skip this step.
+      # ---------------------------------------------------------------------
+      - name: Comment Discoverability Summary on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'evidence/discoverability/report.md';
+            if (!fs.existsSync(path)) {
+              core.notice('No report.md generated; skipping PR comment.');
+              return;
+            }
+            const body = fs.readFileSync(path, 'utf8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '## Discoverability Gate\n\n' + body.slice(0, 60000)
+            });

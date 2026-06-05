@@ -1,0 +1,41 @@
+{
+  "_comment": "Project-level hook registration for the uiux subsystem. GENERATED from manifests/hook-registry.json by orchestrator-runtime/shared/install-subsystem-hooks.js --emit-snippet — DO NOT hand-edit. Preferred install path is the SDK init (it copies hooks project-local AND merges this); this snippet is the manual fallback: copy the hook .js + _<sub>-common.js into <project>/.claude/hooks/, then merge \"hooks\" into <project>/.claude/settings.json.",
+  "_config_gate": "<project>/.uiux/config.json",
+  "_install_command": "uiux-sdk init",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/uiux-gsd-plan-guard.js\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/uiux-style-mutex-guard.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/uiux-release-guard.js\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

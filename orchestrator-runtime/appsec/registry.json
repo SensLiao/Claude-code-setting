@@ -1,0 +1,181 @@
+{
+  "schema_version": "1.0",
+  "domain": "appsec",
+  "shared_runtime_version": "1.0.0",
+  "domain_runtime_version": "appsec-0.2.0",
+  "compatible_shared_versions": ["1.0.x"],
+  "purpose": "Capability inventory used by tests/preflight-check.sh. Skill main thread runs preflight BEFORE Workflow launch. Any missing capability → abort with structured error → 0 tokens spent.",
+  "_doc_ref": "ORCHESTRATION-MIGRATION-PLAN.md §1.10 + §A.1.6 + §1.11 (corrections 2026-05-28)",
+
+  "agents": {
+    "appsec-risk-classifier": {
+      "required": true,
+      "role": "scope + risk classification + finder selection",
+      "required_tools": ["Read", "Grep", "Glob", "Bash"],
+      "preferred_model_tier": "strongest_available",
+      "_file_hint": "~/.claude/agents/appsec-risk-classifier.md"
+    },
+    "appsec-reviewer": {
+      "required": true,
+      "role": "parallel security review worker (per finder)",
+      "required_tools": ["Read", "Grep", "Glob", "Bash"],
+      "preferred_model_tier": "cheap_fast",
+      "preload_skills": ["security-app-code-review"],
+      "_file_hint": "~/.claude/agents/appsec-reviewer.md"
+    },
+    "appsec-finding-triager": {
+      "required": true,
+      "role": "normalize raw candidates + verify vote",
+      "required_tools": ["Read", "Grep", "Glob"],
+      "preferred_model_tier": "cheap_fast",
+      "_file_hint": "~/.claude/agents/appsec-finding-triager.md"
+    },
+    "appsec-evidence-validator": {
+      "required": true,
+      "role": "synthesize + persist evidence + release decision",
+      "required_tools": ["Read", "Write", "Bash"],
+      "preferred_model_tier": "balanced",
+      "_file_hint": "~/.claude/agents/appsec-evidence-validator.md"
+    }
+  },
+
+  "skills": {
+    "security-app-mobile":             { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'mobile'" },
+    "security-app-llm":                { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'llm'" },
+    "security-app-multitenant":        { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'multitenant'" },
+    "security-app-websocket":          { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'websocket'" },
+    "security-app-file-upload":        { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'file_upload'" },
+    "security-compliance-payment":     { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'payment'" },
+    "security-compliance-cn-data":     { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'cn_data'" },
+    "security-platform-secrets":       { "required": false, "trigger_mode": "on-demand", "activated_when": "deployment surface present" },
+    "security-platform-iac-cloud":     { "required": false, "trigger_mode": "on-demand", "activated_when": "IaC files detected" },
+    "security-governance-threat-modeling": { "required": false, "trigger_mode": "on-demand", "activated_when": "release-gate or deep-sweep mode" },
+    "security-remediation":            { "required": false, "trigger_mode": "on-demand", "activated_when": "post-find remediation requested" },
+    "security-response-incident-response": { "required": false, "trigger_mode": "on-demand", "activated_when": "lifecycle_stage == 'incident'" },
+    "security-response-recovery":      { "required": false, "trigger_mode": "on-demand", "activated_when": "lifecycle_stage == 'incident'" },
+    "dast-baseline-scanning":          { "required": false, "trigger_mode": "manual", "activated_when": "user explicit /dast-baseline-scanning" },
+    "pentest-scope-and-roe":           { "required": false, "trigger_mode": "manual", "activated_when": "user explicit /pentest-scope-and-roe" }
+  },
+
+  "_doc_hook_classes": {
+    "_purpose": "§1.11 correction #8 (2026-05-28) — hook classification. quick-check mode should not require every safety hook installed; release-gate / deep-sweep / incident-response must.",
+    "launch_gate": "Always block. Without it the entire safety contract breaks. Example: preview-gate.",
+    "safety_guard": "Block in release-gate / deep-sweep / incident-response modes; warn in quick-check / focused-review. Example: active-scan-guard, pentest-authorization.",
+    "evidence_quality": "Warn in quick-check; block in release-gate. Example: finding-schema-prewrite, secret-redaction, evidence-required."
+  },
+  "hooks": {
+    "appsec-preview-gate": {
+      "event": "PreToolUse",
+      "matcher": "Workflow",
+      "required_when": "execution_mode == 'workflow-spec'",
+      "hook_class": "launch_gate",
+      "fail_policy": "block_always",
+      "install_scope": "project",
+      "path": "~/.claude/hooks/appsec-preview-gate.js",
+      "install_target": "<project>/.claude/settings.json"
+    },
+    "governed-gate-workflow-guard": {
+      "event": "PreToolUse",
+      "matcher": "Workflow",
+      "required_when": "always (NO-OP unless cwd is a governed .appsec/.qa project)",
+      "hook_class": "launch_gate",
+      "fail_policy": "block_inline_dynamic_workflow_during_active_gate",
+      "install_scope": "project_or_user",
+      "path": "~/.claude/hooks/governed-gate-workflow-guard.js",
+      "install_target": "<project>/.claude/settings.json",
+      "_purpose": "Governed Gate Mode (CLAUDE.md §3.7, post-4.8). Blocks inline model-authored Workflow `script` (Dynamic Workflow / ultracode auto-orchestration) when an AppSec gate is active; allows deterministic appsec-orchestrator scriptPath/name launches. governed_gate_mode in .appsec/config.json: off|active-gate|always (default active-gate). Closes the hole appsec-preview-gate leaves: inline scripts have no name/scriptPath so the preview-gate waves them through."
+    },
+    "appsec-active-scan-guard": {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "required": true,
+      "hook_class": "safety_guard",
+      "fail_policy": "block_in_release_or_higher_warn_in_quick_check",
+      "install_scope": "project_or_user",
+      "path": "~/.claude/hooks/appsec-active-scan-guard.js"
+    },
+    "appsec-secret-access-guard": {
+      "event": "PreToolUse",
+      "matcher": "Read",
+      "required": true,
+      "hook_class": "safety_guard",
+      "fail_policy": "block_in_release_or_higher_warn_in_quick_check",
+      "install_scope": "project_or_user",
+      "path": "~/.claude/hooks/appsec-secret-access-guard.js"
+    },
+    "appsec-finding-schema-prewrite": {
+      "event": "PreToolUse",
+      "matcher": "Write|Edit",
+      "required": true,
+      "hook_class": "evidence_quality",
+      "fail_policy": "block_in_release_warn_in_quick_check",
+      "install_scope": "project_or_user",
+      "path": "~/.claude/hooks/appsec-finding-schema-prewrite.js"
+    },
+    "appsec-finding-schema-postverify": {
+      "event": "PostToolUse",
+      "matcher": "Write|Edit",
+      "required": true,
+      "hook_class": "evidence_quality",
+      "fail_policy": "block_in_release_warn_in_quick_check",
+      "install_scope": "project_or_user",
+      "path": "~/.claude/hooks/appsec-finding-schema-postverify.js"
+    },
+    "appsec-pentest-authorization": {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "required_when": "lifecycle_stage in {pentest, preprod_release}",
+      "hook_class": "safety_guard",
+      "fail_policy": "block_always_when_required",
+      "install_scope": "project",
+      "path": "~/.claude/hooks/appsec-pentest-authorization.js"
+    },
+    "appsec-evidence-required": {
+      "event": "Stop",
+      "matcher": "*",
+      "required": true,
+      "hook_class": "evidence_quality",
+      "fail_policy": "block_in_release_warn_in_quick_check",
+      "install_scope": "project_or_user",
+      "path": "~/.claude/hooks/appsec-evidence-required.js"
+    },
+    "appsec-secret-redaction": {
+      "event": "PostToolUse",
+      "matcher": "Write",
+      "required": true,
+      "hook_class": "evidence_quality",
+      "fail_policy": "block_in_release_warn_in_quick_check",
+      "install_scope": "project_or_user",
+      "path": "~/.claude/hooks/appsec-secret-redaction.js"
+    }
+  },
+
+  "sdk": {
+    "appsec-sdk": {
+      "path": "~/.claude/scripts/appsec-sdk.sh",
+      "required": true,
+      "commands": [
+        "init", "set-active",
+        "evidence.append", "evidence.list", "evidence.validate-presence",
+        "finding.add",
+        "gate.check",
+        "redact",
+        "roe.verify",
+        "csf.coverage",
+        "overlay.activate"
+      ],
+      "smoke_command": "bash ~/.claude/scripts/appsec-sdk.sh --help"
+    }
+  },
+
+  "model_aliases": ["cheap_fast", "balanced", "strongest_available", "inherit"],
+
+  "_doc_model_acceptance_matrix": {
+    "_purpose": "Cross-review Item J (2026-05-28) — document the asymmetry between the 3 sources of truth for model field acceptance.",
+    "registry.json.model_aliases (this file)": "ONLY modern aliases — the authoritative list for preset authors and preflight reporting",
+    "validate-spec.js.VALID_MODELS": "Aliases + bare legacy (haiku/sonnet/opus) + versioned legacy (haiku-4.5, sonnet-5.0). Pre-launch authoring gate.",
+    "preflight-check.sh.LEGACY_LITERALS_RE": "Same as validate-spec — accepts aliases + bare + versioned. Pre-launch capability gate.",
+    "workflow-body.resolveModel": "Resolves alias → literal, passes legacy literals through unchanged. Runtime resolution.",
+    "rule": "Preset authors SHOULD use aliases. Versioning belongs in the per-project override map (model_policy_overrides). Bare-legacy and versioned-literal acceptance exists for backward compatibility and rare opt-out cases."
+  }
+}

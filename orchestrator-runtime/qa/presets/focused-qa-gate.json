@@ -1,0 +1,116 @@
+{
+  "engine_version": "1.0",
+  "orchestrator": "qa",
+  "domain_runtime_version": "qa-0.1.0",
+  "preset_name": "focused-qa-gate",
+  "mode": "focused-qa-gate",
+  "_doc_ref": "QA-PHASE-B-BLUEPRINT.md §1 focused-qa-gate + §22 R4/R5",
+  "_when": "PR-to-main / feature complete / changed_surface in {component, api-contract, single-feature} OR component-behavior surface changed OR user-facing behavior changed (R5) / no visual or perf signal",
+  "context": {
+    "_skill_fills": [
+      "risk_snapshot (per R4)",
+      "release_tag",
+      "run_id",
+      "critical_release_paths",
+      "policy"
+    ]
+  },
+  "phases": [
+    {
+      "name": "LayerSelect",
+      "type": "single",
+      "model": "strongest_available",
+      "resolved_model": "opus",
+      "agentType": "qa-risk-classifier",
+      "prompt_ref": "layer-select.v1",
+      "schema_ref": "LAYER_SELECT_SCHEMA.v1",
+      "stall_ms": 180000
+    },
+    {
+      "name": "StaticBaseline",
+      "type": "single",
+      "model": "balanced",
+      "resolved_model": "sonnet",
+      "agentType": "qa-static-baseline-runner",
+      "prompt_ref": "static-baseline.v1",
+      "schema_ref": "STATIC_BASELINE_SCHEMA.v1",
+      "stall_ms": 600000
+    },
+    {
+      "name": "StaticGate",
+      "type": "deterministic",
+      "op": "run_static_baseline_policy"
+    },
+    {
+      "name": "ComponentOrContract",
+      "type": "fanout",
+      "items_from": "state.LayerSelect.changed_surfaces",
+      "_width_range": [
+        2,
+        4
+      ],
+      "_width_note": "Skill picks N within [2,4] based on changed_surfaces count (dynamic). Prompt handles both component and api-contract kinds via internal branching on surface.kind.",
+      "_dispatch_note": "qa-component-runner takes both component and api-contract kinds — for api-contract kind, prompt instructs runner to emit CONTRACT_TEST_SCHEMA.v1 via _dispatched_schema routing field. R2 roadmap notes a future split into pure qa-component-runner + qa-contract-runner phases.",
+      "model": "balanced",
+      "resolved_model": "sonnet",
+      "agentType": "qa-component-runner",
+      "prompt_ref": "component-or-contract.v1",
+      "schema_ref": "COMPONENT_TEST_SCHEMA.v1",
+      "stall_ms": 600000,
+      "timeout_policy": "component_or_contract_external_commands"
+    },
+    {
+      "name": "Gate",
+      "type": "deterministic",
+      "op": "qa_gate_policy"
+    },
+    {
+      "name": "EvidenceBundle",
+      "type": "single",
+      "model": "strongest_available",
+      "resolved_model": "opus",
+      "agentType": "qa-evidence-validator",
+      "prompt_ref": "evidence-bundle.v1",
+      "schema_ref": "EVIDENCE_BUNDLE_SCHEMA.v1",
+      "stall_ms": 300000,
+      "post_invariants": [
+        "ensure_evidence_bundle_layers",
+        "map_null_outputs_to_missing"
+      ]
+    }
+  ],
+  "prompts": {},
+  "schemas": {},
+  "ops_allowed": {
+    "deterministic": [
+      "run_static_baseline_policy",
+      "qa_gate_policy",
+      "compute_critical_path_coverage"
+    ],
+    "predicates": [
+      "no_layers_active",
+      "critical_path_not_covered",
+      "evidence_bundle_incomplete",
+      "fanout_item_dropped"
+    ],
+    "invariants": [
+      "ensure_evidence_bundle_layers",
+      "map_null_outputs_to_missing"
+    ]
+  },
+  "_estimate": {
+    "token_estimate_low": 100000,
+    "token_estimate_high": 250000,
+    "hard_budget_cap": 300000,
+    "wallclock_estimate_minutes": 5,
+    "evidence_layers": [
+      ".qa/evidence/<tag>/02-layer-selection.yaml",
+      ".qa/evidence/<tag>/static.yaml",
+      ".qa/evidence/<tag>/component.yaml",
+      ".qa/evidence/<tag>/contract.yaml",
+      ".qa/evidence/<tag>/qa_evidence_bundle.yaml",
+      ".qa/evidence/<tag>/workflow-state.yaml",
+      ".qa/evidence/<tag>/dispatch_failures.yaml"
+    ]
+  }
+}

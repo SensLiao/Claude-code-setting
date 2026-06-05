@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/FLAKY_TRIAGE_SCHEMA.v1",
+  "title": "Flaky Triage Output",
+  "description": "Output of FlakyTriage agent (qa-flaky-triager). 8-category classification + 8-field accountable quarantine. Critical-path tests are refused quarantine per §3.6 + §9.",
+  "type": "object",
+  "required": ["tests"],
+  "properties": {
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "class_8_category"],
+        "properties": {
+          "name": { "type": "string", "description": "Fully-qualified test id" },
+          "class_8_category": {
+            "type": "string",
+            "enum": ["timing", "ordering", "shared_state", "external_dependency", "data_pollution", "environment", "concurrency", "true_bug_intermittent"]
+          },
+          "evidence_refs": { "type": "array", "items": { "type": "string" } },
+          "is_critical_release_path": { "type": "boolean" },
+          "critical_path_category": { "type": "string" },
+          "rejected_critical_path": {
+            "type": "boolean",
+            "description": "True => quarantine refused per §3.6 Floor Rule (set by critical_release_paths_have_owner invariant)"
+          },
+          "quarantine": {
+            "type": "object",
+            "required": ["owner", "issue_url", "expiry_iso", "reproducer", "unblock_criteria", "rollback_plan", "compensating_test", "scope_note"],
+            "properties": {
+              "owner": { "type": "string", "description": "Field 1 of 8 — accountable engineer" },
+              "issue_url": { "type": "string", "description": "Field 2 — tracker link" },
+              "expiry_iso": { "type": "string", "format": "date-time", "description": "Field 3 — quarantine sunset date" },
+              "reproducer": { "type": "string", "description": "Field 4 — repro steps" },
+              "unblock_criteria": { "type": "string", "description": "Field 5 — exit conditions" },
+              "rollback_plan": { "type": "string", "description": "Field 6 — what to do if quarantine unblock fails" },
+              "compensating_test": { "type": "string", "description": "Field 7 — replacement coverage" },
+              "scope_note": { "type": "string", "description": "Field 8 — blast radius assessment" }
+            }
+          }
+        }
+      }
+    },
+    "admissible_quarantines": { "type": "integer", "minimum": 0 },
+    "rejected_critical_path_count": { "type": "integer", "minimum": 0 }
+  }
+}

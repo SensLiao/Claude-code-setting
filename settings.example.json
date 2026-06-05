@@ -1,0 +1,727 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_WORKFLOWS": "1",
+    "DISABLE_TELEMETRY": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm audit)",
+      "Bash(npm audit fix --dry-run)",
+      "Bash(pnpm audit)",
+      "Bash(yarn audit)",
+      "Bash(pip-audit)",
+      "Bash(cargo audit)",
+      "Bash(trivy fs .)",
+      "Bash(trivy fs --severity HIGH,CRITICAL .)",
+      "Bash(semgrep scan --config p/ci .)",
+      "Bash(semgrep scan --config p/owasp-top-ten .)",
+      "Bash(gitleaks detect *)",
+      "Bash(git-secrets --scan *)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run lint)",
+      "Bash(npm run test)",
+      "Bash(npm run test:unit)",
+      "Bash(npm run test:component)",
+      "Bash(npm run test:integration)",
+      "Bash(npm run test:e2e)",
+      "Bash(npm run test:smoke)",
+      "Bash(npm run security:audit)",
+      "Bash(npm run security:scan)",
+      "Bash(npx vitest run *)",
+      "Bash(npx vitest --run *)",
+      "Bash(npx playwright test *)"
+    ],
+    "deny": [
+      "Read(./secrets/**)",
+      "Read(./config/credentials.json)",
+      "Read(./**/id_rsa)",
+      "Read(./**/id_ed25519)",
+      "Bash(hydra *)",
+      "Bash(medusa *)",
+      "Bash(ncrack *)",
+      "Bash(msfconsole *)",
+      "Bash(msfvenom *)",
+      "Bash(meterpreter *)",
+      "Bash(sqlmap *)",
+      "Bash(nikto *)",
+      "Bash(wpscan *)",
+      "Bash(masscan *)",
+      "Bash(zap-full-scan.py *)",
+      "Bash(docker run *zaproxy*active*)",
+      "Bash(docker run *zaproxy*full-scan*)",
+      "Bash(ffuf -u http://*)",
+      "Bash(dirsearch -u http://*)",
+      "Bash(wfuzz *http://*)",
+      "Bash(gobuster *http://*)",
+      "Bash(beef-xss *)",
+      "Bash(empire *)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf /*)",
+      "Bash(dd if=/dev/zero of=/dev/sd*)",
+      "Bash(mkfs.* /dev/sd*)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.gcp/**)",
+      "Read(~/.azure/**)",
+      "Read(~/.config/gh/**)",
+      "Read(~/.docker/config.json)",
+      "Read(~/.npmrc)",
+      "Read(~/.pypirc)",
+      "Read(~/.netrc)",
+      "Read(C:/Users/*/.ssh/**)",
+      "Read(C:/Users/*/.aws/**)",
+      "Read(C:/Users/*/.gcp/**)",
+      "Read(C:/Users/*/.azure/**)",
+      "Read(C:/Users/*/.config/gh/**)",
+      "Read(C:/Users/*/.npmrc)",
+      "Read(C:/Users/*/.pypirc)",
+      "Read(C:/Users/*/.netrc)",
+      "Read(C:/Users/*/AppData/Roaming/**/credentials*)",
+      "Read(**/id_rsa)",
+      "Read(**/id_ed25519)",
+      "Read(**/id_ecdsa)",
+      "Read(**/known_hosts)",
+      "Read(**/credentials)",
+      "Read(**/credentials.json)",
+      "Read(**/*.p12)",
+      "Read(**/*.pfx)",
+      "Read(**/private*.pem)",
+      "Read(**/private*.key)",
+      "Read(**/server*.key)",
+      "Read(**/secret*.key)",
+      "Write(~/.ssh/**)",
+      "Write(~/.aws/**)",
+      "Write(~/.gcp/**)",
+      "Write(~/.azure/**)",
+      "Write(~/.config/gh/**)",
+      "Write(C:/Users/*/.ssh/**)",
+      "Write(C:/Users/*/.aws/**)",
+      "Write(C:/Users/*/.gcp/**)",
+      "Write(**/credentials)",
+      "Write(**/credentials.json)",
+      "Edit(~/.ssh/**)",
+      "Edit(~/.aws/**)",
+      "Edit(~/.gcp/**)",
+      "Edit(C:/Users/*/.ssh/**)",
+      "Edit(C:/Users/*/.aws/**)",
+      "Bash(cat /etc/shadow*)",
+      "Bash(cat /etc/passwd*)",
+      "Bash(cat ~/.aws/*)",
+      "Bash(cat ~/.ssh/*)",
+      "Bash(grep -R API_KEY *)",
+      "Bash(grep -r API_KEY *)",
+      "Bash(grep -R SECRET *)",
+      "Bash(grep -r SECRET *)",
+      "Bash(curl * --data*@*)",
+      "Bash(curl * -d @*)",
+      "Bash(wget * --post-data*)",
+      "Bash(scp *)",
+      "Bash(ssh *)",
+      "Bash(nc *)",
+      "Bash(ncat *)",
+      "Bash(socat *)",
+      "Bash(Get-Content ~/.aws/*)",
+      "Bash(Get-Content ~/.ssh/*)",
+      "Bash(Get-Content C:/Users/*/.aws/*)",
+      "Bash(Get-Content C:/Users/*/.ssh/*)",
+      "Bash(Invoke-WebRequest * -Body *)",
+      "Bash(powershell *credentials*)",
+      "Bash(powershell *id_rsa*)",
+      "Bash(powershell *id_ed25519*)",
+      "Bash(powershell *id_ecdsa*)",
+      "Bash(powershell *known_hosts*)",
+      "Bash(powershell *.ssh*)",
+      "Bash(powershell *.aws*)",
+      "Bash(powershell *.gcp*)",
+      "Bash(powershell *.azure*)",
+      "Bash(powershell *.pem*)",
+      "Bash(powershell *.p12*)",
+      "Bash(powershell *.pfx*)",
+      "Bash(powershell *.npmrc*)",
+      "Bash(powershell *.pypirc*)",
+      "Bash(powershell *.netrc*)",
+      "Bash(powershell *EncodedCommand*)",
+      "Bash(pwsh *credentials*)",
+      "Bash(pwsh *id_rsa*)",
+      "Bash(pwsh *id_ed25519*)",
+      "Bash(pwsh *.ssh*)",
+      "Bash(pwsh *.aws*)",
+      "Bash(pwsh *.pem*)",
+      "Bash(pwsh *EncodedCommand*)",
+      "Bash(cmd *credentials*)",
+      "Bash(cmd *.ssh*)",
+      "Bash(cmd *.aws*)",
+      "Bash(cmd *id_rsa*)",
+      "Bash(node -e *readFileSync*credentials*)",
+      "Bash(node -e *readFileSync*.ssh*)",
+      "Bash(node -e *readFileSync*.aws*)",
+      "Bash(node -e *readFileSync*id_rsa*)",
+      "Bash(node -e *readFileSync*.pem*)",
+      "Bash(node -e *readFile *credentials*)",
+      "Bash(node -e *.ssh*)",
+      "Bash(node -e *.aws*)",
+      "Bash(node -e *credentials*)",
+      "Bash(node -e *id_rsa*)",
+      "Bash(python -c *open*credentials*)",
+      "Bash(python -c *open*.ssh*)",
+      "Bash(python -c *open*.aws*)",
+      "Bash(python -c *open*id_rsa*)",
+      "Bash(python -c *.ssh*)",
+      "Bash(python -c *.aws*)",
+      "Bash(python -c *credentials*)",
+      "Bash(python -c *id_rsa*)",
+      "Bash(python3 -c *open*credentials*)",
+      "Bash(python3 -c *.ssh*)",
+      "Bash(python3 -c *.aws*)",
+      "Bash(python3 -c *credentials*)",
+      "Bash(py -c *.ssh*)",
+      "Bash(py -c *credentials*)",
+      "Bash(bash -c *cat *credentials*)",
+      "Bash(bash -c *cat *.ssh*)",
+      "Bash(bash -c *cat *.aws*)",
+      "Bash(bash -c *cat *id_rsa*)",
+      "Bash(bash -c *grep *credentials*)",
+      "Bash(bash -c *Get-Content*)",
+      "Bash(sh -c *cat *credentials*)",
+      "Bash(ruby -e *credentials*)",
+      "Bash(perl -e *credentials*)",
+      "Bash(curl *credentials*)",
+      "Bash(curl *id_rsa*)",
+      "Bash(curl *.ssh*)",
+      "Bash(curl *.aws*)",
+      "Bash(wget *credentials*)"
+    ],
+    "ask": [
+      "Bash(npm run security:baseline *)",
+      "Bash(npm run dast:baseline *)",
+      "Bash(scripts/security/zap-baseline.sh *)",
+      "Bash(scripts/security/run-baseline-dast *)",
+      "Bash(scripts/security/run-authorized-active-validation *)",
+      "Bash(scripts/security/check-roe *)",
+      "Bash(docker run *zaproxy* *zap-baseline*)",
+      "Bash(zap-baseline.py *)",
+      "Bash(npx playwright test --update-snapshots *)",
+      "Bash(npm run deploy *)",
+      "Bash(npm run db:migrate *)",
+      "Bash(npm run db:reset *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)"
+    ]
+  },
+  "skillOverrides": {
+    "claude-env-bootstrap": "user-invocable-only",
+    "authorized-pentest-validation": "user-invocable-only",
+    "pentest-scope-and-roe": "on",
+    "frontend-pipeline": "user-invocable-only",
+    "anchor-prototype-wave": "user-invocable-only",
+    "brutalist-skill": "user-invocable-only",
+    "gpt-tasteskill": "user-invocable-only",
+    "stitch-skill": "name-only",
+    "imagegen-frontend-mobile": "name-only",
+    "output-skill": "user-invocable-only",
+    "skill-creator": "name-only",
+    "codex-dispatch": "name-only",
+    "brand-guidelines": "user-invocable-only",
+    "app-store-screenshots": "user-invocable-only"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx block-no-verify@1.1.2"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/auto-tmux-dev.js\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:bash:tmux-reminder\" \"scripts/hooks/pre-bash-tmux-reminder.js\" \"strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:bash:git-push-reminder\" \"scripts/hooks/pre-bash-git-push-reminder.js\" \"strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:bash:commit-quality\" \"scripts/hooks/pre-bash-commit-quality.js\" \"strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:write:doc-file-warning\" \"scripts/hooks/doc-file-warning.js\" \"standard,strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:edit-write:suggest-compact\" \"scripts/hooks/suggest-compact.js\" \"standard,strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags-shell.sh\" \"pre:observe\" \"skills/continuous-learning-v2/hooks/observe.sh\" \"standard,strict\"",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:governance-capture\" \"scripts/hooks/governance-capture.js\" \"standard,strict\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:config-protection\" \"scripts/hooks/config-protection.js\" \"standard,strict\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:mcp-health-check\" \"scripts/hooks/mcp-health-check.js\" \"standard,strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-prompt-guard.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-read-guard.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-workflow-guard.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"C:/Users/<USER>/.claude/hooks/gsd-validate-commit.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:compact\" \"scripts/hooks/pre-compact.js\" \"standard,strict\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/session-start-bootstrap.js\""
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/detect-bootstrap-needed.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-check-update.js\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"C:/Users/<USER>/.claude/hooks/gsd-session-state.sh\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/post-bash-command-log.js\" audit"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/post-bash-command-log.js\" cost"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:bash:pr-created\" \"scripts/hooks/post-bash-pr-created.js\" \"standard,strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:bash:build-complete\" \"scripts/hooks/post-bash-build-complete.js\" \"standard,strict\"",
+            "timeout": 30,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:quality-gate\" \"scripts/hooks/quality-gate.js\" \"standard,strict\"",
+            "timeout": 30,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:edit:design-quality-check\" \"scripts/hooks/design-quality-check.js\" \"standard,strict\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:edit:accumulate\" \"scripts/hooks/post-edit-accumulator.js\" \"standard,strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:edit:console-warn\" \"scripts/hooks/post-edit-console-warn.js\" \"standard,strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:governance-capture\" \"scripts/hooks/governance-capture.js\" \"standard,strict\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags-shell.sh\" \"post:observe\" \"skills/continuous-learning-v2/hooks/observe.sh\" \"standard,strict\"",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Edit|Write|MultiEdit|Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-context-monitor.js\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-read-injection-scanner.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"C:/Users/<USER>/.claude/hooks/gsd-phase-boundary.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:mcp-health-check\" \"scripts/hooks/mcp-health-check.js\" \"standard,strict\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const path=require('path');const {spawnSync}=require('child_process');const raw=fs.readFileSync(0,'utf8');const rel=path.join('scripts','hooks','run-with-flags.js');const hasRunnerRoot=candidate=>{const value=typeof candidate==='string'?candidate.trim():'';return value.length>0&&fs.existsSync(path.join(path.resolve(value),rel));};const root=(()=>{const envRoot=process.env.CLAUDE_PLUGIN_ROOT||'';if(hasRunnerRoot(envRoot))return path.resolve(envRoot.trim());const home=require('os').homedir();const claudeDir=path.join(home,'.claude');if(hasRunnerRoot(claudeDir))return claudeDir;for(const candidate of [path.join(claudeDir,'plugins','everything-claude-code'),path.join(claudeDir,'plugins','everything-claude-code@everything-claude-code'),path.join(claudeDir,'plugins','marketplace','everything-claude-code')]){if(hasRunnerRoot(candidate))return candidate;}try{const cacheBase=path.join(claudeDir,'plugins','cache','everything-claude-code');for(const org of fs.readdirSync(cacheBase,{withFileTypes:true})){if(!org.isDirectory())continue;for(const version of fs.readdirSync(path.join(cacheBase,org.name),{withFileTypes:true})){if(!version.isDirectory())continue;const candidate=path.join(cacheBase,org.name,version.name);if(hasRunnerRoot(candidate))return candidate;}}}catch{}return claudeDir;})();const script=path.join(root,rel);if(fs.existsSync(script)){const result=spawnSync(process.execPath,[script,'stop:format-typecheck','scripts/hooks/stop-format-typecheck.js','standard,strict'],{input:raw,encoding:'utf8',env:process.env,cwd:process.cwd(),timeout:300000});const stdout=typeof result.stdout==='string'?result.stdout:'';if(stdout)process.stdout.write(stdout);else process.stdout.write(raw);if(result.stderr)process.stderr.write(result.stderr);if(result.error||result.status===null||result.signal){const reason=result.error?result.error.message:(result.signal?'signal '+result.signal:'missing exit status');process.stderr.write('[Stop] ERROR: hook runner failed: '+reason+String.fromCharCode(10));process.exit(1);}process.exit(Number.isInteger(result.status)?result.status:0);}process.stderr.write('[Stop] WARNING: could not resolve ECC plugin root; skipping hook'+String.fromCharCode(10));process.stdout.write(raw);\"",
+            "timeout": 300
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const path=require('path');const {spawnSync}=require('child_process');const raw=fs.readFileSync(0,'utf8');const rel=path.join('scripts','hooks','run-with-flags.js');const hasRunnerRoot=candidate=>{const value=typeof candidate==='string'?candidate.trim():'';return value.length>0&&fs.existsSync(path.join(path.resolve(value),rel));};const root=(()=>{const envRoot=process.env.CLAUDE_PLUGIN_ROOT||'';if(hasRunnerRoot(envRoot))return path.resolve(envRoot.trim());const home=require('os').homedir();const claudeDir=path.join(home,'.claude');if(hasRunnerRoot(claudeDir))return claudeDir;for(const candidate of [path.join(claudeDir,'plugins','everything-claude-code'),path.join(claudeDir,'plugins','everything-claude-code@everything-claude-code'),path.join(claudeDir,'plugins','marketplace','everything-claude-code')]){if(hasRunnerRoot(candidate))return candidate;}try{const cacheBase=path.join(claudeDir,'plugins','cache','everything-claude-code');for(const org of fs.readdirSync(cacheBase,{withFileTypes:true})){if(!org.isDirectory())continue;for(const version of fs.readdirSync(path.join(cacheBase,org.name),{withFileTypes:true})){if(!version.isDirectory())continue;const candidate=path.join(cacheBase,org.name,version.name);if(hasRunnerRoot(candidate))return candidate;}}}catch{}return claudeDir;})();const script=path.join(root,rel);if(fs.existsSync(script)){const result=spawnSync(process.execPath,[script,'stop:check-console-log','scripts/hooks/check-console-log.js','standard,strict'],{input:raw,encoding:'utf8',env:process.env,cwd:process.cwd(),timeout:30000});const stdout=typeof result.stdout==='string'?result.stdout:'';if(stdout)process.stdout.write(stdout);else process.stdout.write(raw);if(result.stderr)process.stderr.write(result.stderr);if(result.error||result.status===null||result.signal){const reason=result.error?result.error.message:(result.signal?'signal '+result.signal:'missing exit status');process.stderr.write('[Stop] ERROR: hook runner failed: '+reason+String.fromCharCode(10));process.exit(1);}process.exit(Number.isInteger(result.status)?result.status:0);}process.stderr.write('[Stop] WARNING: could not resolve ECC plugin root; skipping hook'+String.fromCharCode(10));process.stdout.write(raw);\""
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const path=require('path');const {spawnSync}=require('child_process');const raw=fs.readFileSync(0,'utf8');const rel=path.join('scripts','hooks','run-with-flags.js');const hasRunnerRoot=candidate=>{const value=typeof candidate==='string'?candidate.trim():'';return value.length>0&&fs.existsSync(path.join(path.resolve(value),rel));};const root=(()=>{const envRoot=process.env.CLAUDE_PLUGIN_ROOT||'';if(hasRunnerRoot(envRoot))return path.resolve(envRoot.trim());const home=require('os').homedir();const claudeDir=path.join(home,'.claude');if(hasRunnerRoot(claudeDir))return claudeDir;for(const candidate of [path.join(claudeDir,'plugins','everything-claude-code'),path.join(claudeDir,'plugins','everything-claude-code@everything-claude-code'),path.join(claudeDir,'plugins','marketplace','everything-claude-code')]){if(hasRunnerRoot(candidate))return candidate;}try{const cacheBase=path.join(claudeDir,'plugins','cache','everything-claude-code');for(const org of fs.readdirSync(cacheBase,{withFileTypes:true})){if(!org.isDirectory())continue;for(const version of fs.readdirSync(path.join(cacheBase,org.name),{withFileTypes:true})){if(!version.isDirectory())continue;const candidate=path.join(cacheBase,org.name,version.name);if(hasRunnerRoot(candidate))return candidate;}}}catch{}return claudeDir;})();const script=path.join(root,rel);if(fs.existsSync(script)){const result=spawnSync(process.execPath,[script,'stop:session-end','scripts/hooks/session-end.js','minimal,standard,strict'],{input:raw,encoding:'utf8',env:process.env,cwd:process.cwd(),timeout:30000});const stdout=typeof result.stdout==='string'?result.stdout:'';if(stdout)process.stdout.write(stdout);else process.stdout.write(raw);if(result.stderr)process.stderr.write(result.stderr);if(result.error||result.status===null||result.signal){const reason=result.error?result.error.message:(result.signal?'signal '+result.signal:'missing exit status');process.stderr.write('[Stop] ERROR: hook runner failed: '+reason+String.fromCharCode(10));process.exit(1);}process.exit(Number.isInteger(result.status)?result.status:0);}process.stderr.write('[Stop] WARNING: could not resolve ECC plugin root; skipping hook'+String.fromCharCode(10));process.stdout.write(raw);\"",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const path=require('path');const {spawnSync}=require('child_process');const raw=fs.readFileSync(0,'utf8');const rel=path.join('scripts','hooks','run-with-flags.js');const hasRunnerRoot=candidate=>{const value=typeof candidate==='string'?candidate.trim():'';return value.length>0&&fs.existsSync(path.join(path.resolve(value),rel));};const root=(()=>{const envRoot=process.env.CLAUDE_PLUGIN_ROOT||'';if(hasRunnerRoot(envRoot))return path.resolve(envRoot.trim());const home=require('os').homedir();const claudeDir=path.join(home,'.claude');if(hasRunnerRoot(claudeDir))return claudeDir;for(const candidate of [path.join(claudeDir,'plugins','everything-claude-code'),path.join(claudeDir,'plugins','everything-claude-code@everything-claude-code'),path.join(claudeDir,'plugins','marketplace','everything-claude-code')]){if(hasRunnerRoot(candidate))return candidate;}try{const cacheBase=path.join(claudeDir,'plugins','cache','everything-claude-code');for(const org of fs.readdirSync(cacheBase,{withFileTypes:true})){if(!org.isDirectory())continue;for(const version of fs.readdirSync(path.join(cacheBase,org.name),{withFileTypes:true})){if(!version.isDirectory())continue;const candidate=path.join(cacheBase,org.name,version.name);if(hasRunnerRoot(candidate))return candidate;}}}catch{}return claudeDir;})();const script=path.join(root,rel);if(fs.existsSync(script)){const result=spawnSync(process.execPath,[script,'stop:evaluate-session','scripts/hooks/evaluate-session.js','minimal,standard,strict'],{input:raw,encoding:'utf8',env:process.env,cwd:process.cwd(),timeout:30000});const stdout=typeof result.stdout==='string'?result.stdout:'';if(stdout)process.stdout.write(stdout);else process.stdout.write(raw);if(result.stderr)process.stderr.write(result.stderr);if(result.error||result.status===null||result.signal){const reason=result.error?result.error.message:(result.signal?'signal '+result.signal:'missing exit status');process.stderr.write('[Stop] ERROR: hook runner failed: '+reason+String.fromCharCode(10));process.exit(1);}process.exit(Number.isInteger(result.status)?result.status:0);}process.stderr.write('[Stop] WARNING: could not resolve ECC plugin root; skipping hook'+String.fromCharCode(10));process.stdout.write(raw);\"",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const path=require('path');const {spawnSync}=require('child_process');const raw=fs.readFileSync(0,'utf8');const rel=path.join('scripts','hooks','run-with-flags.js');const hasRunnerRoot=candidate=>{const value=typeof candidate==='string'?candidate.trim():'';return value.length>0&&fs.existsSync(path.join(path.resolve(value),rel));};const root=(()=>{const envRoot=process.env.CLAUDE_PLUGIN_ROOT||'';if(hasRunnerRoot(envRoot))return path.resolve(envRoot.trim());const home=require('os').homedir();const claudeDir=path.join(home,'.claude');if(hasRunnerRoot(claudeDir))return claudeDir;for(const candidate of [path.join(claudeDir,'plugins','everything-claude-code'),path.join(claudeDir,'plugins','everything-claude-code@everything-claude-code'),path.join(claudeDir,'plugins','marketplace','everything-claude-code')]){if(hasRunnerRoot(candidate))return candidate;}try{const cacheBase=path.join(claudeDir,'plugins','cache','everything-claude-code');for(const org of fs.readdirSync(cacheBase,{withFileTypes:true})){if(!org.isDirectory())continue;for(const version of fs.readdirSync(path.join(cacheBase,org.name),{withFileTypes:true})){if(!version.isDirectory())continue;const candidate=path.join(cacheBase,org.name,version.name);if(hasRunnerRoot(candidate))return candidate;}}}catch{}return claudeDir;})();const script=path.join(root,rel);if(fs.existsSync(script)){const result=spawnSync(process.execPath,[script,'stop:cost-tracker','scripts/hooks/cost-tracker.js','minimal,standard,strict'],{input:raw,encoding:'utf8',env:process.env,cwd:process.cwd(),timeout:30000});const stdout=typeof result.stdout==='string'?result.stdout:'';if(stdout)process.stdout.write(stdout);else process.stdout.write(raw);if(result.stderr)process.stderr.write(result.stderr);if(result.error||result.status===null||result.signal){const reason=result.error?result.error.message:(result.signal?'signal '+result.signal:'missing exit status');process.stderr.write('[Stop] ERROR: hook runner failed: '+reason+String.fromCharCode(10));process.exit(1);}process.exit(Number.isInteger(result.status)?result.status:0);}process.stderr.write('[Stop] WARNING: could not resolve ECC plugin root; skipping hook'+String.fromCharCode(10));process.stdout.write(raw);\"",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const path=require('path');const {spawnSync}=require('child_process');const raw=fs.readFileSync(0,'utf8');const rel=path.join('scripts','hooks','run-with-flags.js');const hasRunnerRoot=candidate=>{const value=typeof candidate==='string'?candidate.trim():'';return value.length>0&&fs.existsSync(path.join(path.resolve(value),rel));};const root=(()=>{const envRoot=process.env.CLAUDE_PLUGIN_ROOT||'';if(hasRunnerRoot(envRoot))return path.resolve(envRoot.trim());const home=require('os').homedir();const claudeDir=path.join(home,'.claude');if(hasRunnerRoot(claudeDir))return claudeDir;for(const candidate of [path.join(claudeDir,'plugins','everything-claude-code'),path.join(claudeDir,'plugins','everything-claude-code@everything-claude-code'),path.join(claudeDir,'plugins','marketplace','everything-claude-code')]){if(hasRunnerRoot(candidate))return candidate;}try{const cacheBase=path.join(claudeDir,'plugins','cache','everything-claude-code');for(const org of fs.readdirSync(cacheBase,{withFileTypes:true})){if(!org.isDirectory())continue;for(const version of fs.readdirSync(path.join(cacheBase,org.name),{withFileTypes:true})){if(!version.isDirectory())continue;const candidate=path.join(cacheBase,org.name,version.name);if(hasRunnerRoot(candidate))return candidate;}}}catch{}return claudeDir;})();const script=path.join(root,rel);if(fs.existsSync(script)){const result=spawnSync(process.execPath,[script,'stop:desktop-notify','scripts/hooks/desktop-notify.js','standard,strict'],{input:raw,encoding:'utf8',env:process.env,cwd:process.cwd(),timeout:30000});const stdout=typeof result.stdout==='string'?result.stdout:'';if(stdout)process.stdout.write(stdout);else process.stdout.write(raw);if(result.stderr)process.stderr.write(result.stderr);if(result.error||result.status===null||result.signal){const reason=result.error?result.error.message:(result.signal?'signal '+result.signal:'missing exit status');process.stderr.write('[Stop] ERROR: hook runner failed: '+reason+String.fromCharCode(10));process.exit(1);}process.exit(Number.isInteger(result.status)?result.status:0);}process.stderr.write('[Stop] WARNING: could not resolve ECC plugin root; skipping hook'+String.fromCharCode(10));process.stdout.write(raw);\"",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const path=require('path');const {spawnSync}=require('child_process');const raw=fs.readFileSync(0,'utf8');const rel=path.join('scripts','hooks','run-with-flags.js');const hasRunnerRoot=candidate=>{const value=typeof candidate==='string'?candidate.trim():'';return value.length>0&&fs.existsSync(path.join(path.resolve(value),rel));};const root=(()=>{const envRoot=process.env.CLAUDE_PLUGIN_ROOT||'';if(hasRunnerRoot(envRoot))return path.resolve(envRoot.trim());const home=require('os').homedir();const claudeDir=path.join(home,'.claude');if(hasRunnerRoot(claudeDir))return claudeDir;for(const candidate of [path.join(claudeDir,'plugins','everything-claude-code'),path.join(claudeDir,'plugins','everything-claude-code@everything-claude-code'),path.join(claudeDir,'plugins','marketplace','everything-claude-code')]){if(hasRunnerRoot(candidate))return candidate;}try{const cacheBase=path.join(claudeDir,'plugins','cache','everything-claude-code');for(const org of fs.readdirSync(cacheBase,{withFileTypes:true})){if(!org.isDirectory())continue;for(const version of fs.readdirSync(path.join(cacheBase,org.name),{withFileTypes:true})){if(!version.isDirectory())continue;const candidate=path.join(cacheBase,org.name,version.name);if(hasRunnerRoot(candidate))return candidate;}}}catch{}return claudeDir;})();const script=path.join(root,rel);if(fs.existsSync(script)){const result=spawnSync(process.execPath,[script,'session:end:marker','scripts/hooks/session-end-marker.js','minimal,standard,strict'],{input:raw,encoding:'utf8',env:process.env,cwd:process.cwd(),timeout:30000});const stdout=typeof result.stdout==='string'?result.stdout:'';if(stdout)process.stdout.write(stdout);else process.stdout.write(raw);if(result.stderr)process.stderr.write(result.stderr);if(result.error||result.status===null||result.signal){const reason=result.error?result.error.message:(result.signal?'signal '+result.signal:'missing exit status');process.stderr.write('[SessionEnd] ERROR: hook runner failed: '+reason+String.fromCharCode(10));process.exit(1);}process.exit(Number.isInteger(result.status)?result.status:0);}process.stderr.write('[SessionEnd] WARNING: could not resolve ECC plugin root; skipping hook'+String.fromCharCode(10));process.stdout.write(raw);\"",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
+  "disableSkillShellExecution": true,
+  "statusLine": {
+    "type": "command",
+    "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-statusline.js\""
+  },
+  "enabledPlugins": {
+    "cli-anything@cli-anything": true,
+    "frontend-design@claude-plugins-official": true,
+    "vercel@claude-plugins-official": true,
+    "bencium-controlled-ux-designer@bencium-marketplace": false,
+    "bencium-innovative-ux-designer@bencium-marketplace": true,
+    "design-research@designer-skills": false,
+    "design-systems@designer-skills": true,
+    "ux-strategy@designer-skills": false,
+    "ui-design@designer-skills": true,
+    "interaction-design@designer-skills": true,
+    "prototyping-testing@designer-skills": false,
+    "design-ops@designer-skills": false,
+    "designer-toolkit@designer-skills": false,
+    "visual-critique@designer-skills": true,
+    "interface-design@interface-design": true,
+    "ui-ux-pro-max@ui-ux-pro-max-skill": false,
+    "frontend-design-pro@frontend-design-pro": false,
+    "ux-design@wondelai-skills": false
+  },
+  "extraKnownMarketplaces": {
+    "cli-anything": {
+      "source": {
+        "source": "github",
+        "repo": "HKUDS/CLI-Anything"
+      }
+    },
+    "bencium-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "bencium/bencium-claude-code-design-skill"
+      }
+    },
+    "designer-skills": {
+      "source": {
+        "source": "github",
+        "repo": "Owl-Listener/designer-skills"
+      }
+    },
+    "interface-design": {
+      "source": {
+        "source": "github",
+        "repo": "Dammyjay93/interface-design"
+      }
+    },
+    "ui-ux-pro-max-skill": {
+      "source": {
+        "source": "github",
+        "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
+      }
+    },
+    "frontend-design-pro": {
+      "source": {
+        "source": "github",
+        "repo": "claudekit/frontend-design-pro-demo"
+      }
+    },
+    "wondelai-skills": {
+      "source": {
+        "source": "github",
+        "repo": "wondelai/skills"
+      }
+    }
+  },
+  "effortLevel": "xhigh",
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark",
+  "mcpServers": {
+    "tavily": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "tavily-mcp@latest"
+      ],
+      "env": {
+        "TAVILY_API_KEY": "${TAVILY_API_KEY}"
+      }
+    }
+  }
+}

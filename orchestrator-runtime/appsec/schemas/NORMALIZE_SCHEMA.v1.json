@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "NORMALIZE_SCHEMA.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "findings"
+  ],
+  "properties": {
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "severity",
+          "file"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{4,12}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "enum": [
+              "info",
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "file": {
+            "type": "string",
+            "minLength": 1
+          },
+          "oracle_ref": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

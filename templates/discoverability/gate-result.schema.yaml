@@ -1,0 +1,211 @@
+# ==============================================================================
+# gate-result.yaml — Schema Reference
+# ==============================================================================
+# This file is REFERENCE DOCUMENTATION, not a config to copy.
+# It describes the structure of:
+#   evidence/discoverability/<tag>/gate-result.yaml
+# emitted by `discoverability-sdk gate.check <tag>`.
+#
+# CI / hooks / agents consume gate-result.yaml as the L12 release-gate verdict.
+# See: ~/.claude/templates/discoverability/harness-contract.md §4 (binding)
+# Schema version of gate-result.yaml itself: 1.0.0
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# SECTION A — Field-by-field reference (annotated schema)
+# ------------------------------------------------------------------------------
+
+_schema_version: "1.0.0"   # semver of the gate-result schema itself; bump major on break
+tag: "v1.0.0-rc1"          # string; opaque release/run tag (e.g. git describe output)
+generated_at: "2026-05-25T15:30:00Z"  # ISO 8601 UTC timestamp; when gate.check ran
+generated_by: "discoverability-sdk gate.check v1.0.0"  # tool name + version that wrote this file
+
+# --- Top-level decision ------------------------------------------------------
+decision: PASS              # enum: PASS | WARN | FAIL | BLOCKED | STALE
+# Decision semantics:
+# - PASS    : all required channels passed; no findings of any severity OR only info-level
+# - WARN    : all required channels passed, but warn-level findings exist (release proceeds)
+# - FAIL    : a required channel has blocker-level findings AND evidence is complete
+# - BLOCKED : evidence missing, schema invalid, OR required channel has no deterministic source
+#             (i.e. only manual_ai_scan evidence — see contract §4.2)
+# - STALE   : state.gate_status was STALE when gate.check ran; must rerun audit first
+
+hard_block_reasons: []      # list of strings; non-empty iff decision == BLOCKED
+                            # examples: "channel seo: no deterministic evidence",
+                            #           "channel local: schema validation failed",
+                            #           "step-3 failed: web-seo skill threw"
+
+fail_reasons: []            # list of strings; non-empty iff decision == FAIL
+                            # each reason is a blocker-finding-id from required channel
+
+warn_reasons: []            # list of strings; informational
+                            # populated whenever any channel has warn-level findings
+                            # contributes to decision == WARN if no FAIL/BLOCKED present
+
+# --- Per-channel breakdown ---------------------------------------------------
+# Dict keyed by CANONICAL channel: seo | ai-search | local | aso
+# (NOTE: config-side keys `seo / aeo / geo / aso` are aliased to canonical
+#        evidence channels by orchestrator + SDK before writing this file.)
+channels:
+  seo:
+    state: required           # enum: required | optional | disabled | warn_only | conditional_local
+                              # (mirrors discoverability.config.yaml channels.seo.state)
+    enabled: true             # bool (mirrors config channels.seo.enabled)
+    decision: PASS            # enum: PASS | WARN | FAIL | BLOCKED | SKIPPED
+                              # per-channel decision; aggregates into top-level decision
+
+    blockers: []              # list of finding-refs; non-empty iff this channel triggered FAIL
+                              # each entry: {id: string, detail: string, evidence_ref: string}
+
+    warnings:                 # list of finding-refs with severity=warn
+      - id: lh-seo-score-89    # finding ID; stable across runs
+        detail: "Lighthouse SEO score 0.89 < target 0.90 on /pricing"
+
+    evidence_path: "evidence/discoverability/v1.0.0-rc1/seo.json"
+                              # relative-to-project-root path to evidence file
+
+    source: script            # enum: script | api | framework_adapter | manual_ai_scan
+                              # how this channel's evidence was produced
+                              # manual_ai_scan WITHOUT a deterministic fallback
+                              #   → flagged in evidence-validation + may force BLOCKED
+
+    deterministic_source_present: true
+                              # bool; true iff at least one of {script, api, framework_adapter}
+                              # contributed to this channel's evidence
+
+    finding_count:            # tally of findings by severity for this channel
+      blocker: 0
+      warn: 2
+      info: 5
+
+  ai-search:                  # canonical key for web-aeo channel
+    state: warn_only
+    enabled: true
+    decision: WARN
+    blockers: []
+    warnings:
+      - id: aeo-llms-txt-missing
+        detail: "Project type 'b2b_saas_marketing' — llms.txt is optional warn_only."
+    evidence_path: "evidence/discoverability/v1.0.0-rc1/ai-search.json"
+    source: manual_ai_scan    # flagged in evidence-validation as low-confidence
+    deterministic_source_present: false
+    finding_count:
+      blocker: 0
+      warn: 3
+      info: 1
+
+  local:                      # canonical key for web-local-seo channel
+    state: disabled
+    enabled: false
+    decision: SKIPPED         # channel not active; no evidence expected
+    skipped_reason: "conditional_local trigger evaluated FALSE (no physical_locations and no service_areas)"
+
+  aso:
+    state: disabled
+    enabled: false
+    decision: SKIPPED
+    skipped_reason: "project type is b2b_saas_marketing, no mobile app"
+
+# --- Remediation handoff (populated by disc-remediation-planner agent) -------
+# Routes findings to the appropriate downstream owner. Each list entry is
+# a task ID matching tasks[*].id in remediation-plan.yaml.
+remediation_handoff:
+  frontend: [seo-canonical-loop-fix]
+  uiux: []
+  growth: [ai-search-content-clarity]
+  mobile: []
+  appsec: []                  # populated ONLY when private-leak finding present
+                              # (e.g. authenticated content indexed, llms.txt has secret)
+  qa: [include-gate-result-in-release-bundle]
+
+# --- Stale detection (used by disc-mark-stale and disc-deploy-gate) ----------
+config_hash: "sha256:def456..."   # SHA-256 of discoverability.config.yaml at gate.check time
+                                  # config change → mark stale
+evidence_hashes:                  # per-channel evidence file hashes
+  seo: "sha256:abc..."
+  ai-search: "sha256:def..."
+  local: null                     # null when channel skipped
+  aso: null
+
+# --- Cross-reference (paths for AI / human / CI to follow up) ---------------
+config_path: "discoverability.config.yaml"
+scope_path: "evidence/discoverability/v1.0.0-rc1/00-scope.yaml"
+validation_path: "evidence/discoverability/v1.0.0-rc1/evidence-validation.yaml"
+
+
+# ------------------------------------------------------------------------------
+# SECTION B — Decision algorithm (verbatim from harness-contract.md §4.1)
+# ------------------------------------------------------------------------------
+# This is the EXACT algorithm `discoverability-sdk gate.check <tag>` runs.
+# CI / hooks / consumers must reproduce these rules when interpreting result.
+#
+# 1. If state.json.gate_status == STALE → decision=STALE, exit 3
+# 2. For each channel where channels[c].state == required:
+#    - If evidence_path missing OR all source==manual_ai_scan → decision=BLOCKED
+#    - If evidence has blocker findings → decision=FAIL
+# 3. Accumulate all warn findings → warn_reasons[]
+# 4. If decision still PASS and warn_reasons non-empty → decision=WARN, exit 0
+# 5. Otherwise → decision=PASS, exit 0
+#
+# Exit code mapping (gate.check):
+#   0 + decision=PASS   →  green
+#   0 + decision=WARN   →  green-with-warnings (CI proceeds; report uploaded)
+#   1 + decision=FAIL   →  red (required channel has blockers, evidence complete)
+#   2 + decision=BLOCKED →  red (evidence missing / schema invalid / no deterministic source)
+#   3 + decision=STALE  →  red (rerun audit before claiming gate verdict)
+
+
+# ------------------------------------------------------------------------------
+# SECTION C — Hard rules (verbatim from harness-contract.md §4.2 + notes)
+# ------------------------------------------------------------------------------
+# These rules constrain WHAT can be a blocker. They prevent over-reach (turning
+# advisory signals into release-breakers) and under-reach (silently downgrading
+# compliance-critical findings).
+#
+# RULE 1. AEO/GEO heuristic scores NEVER blocker
+#   Any `ai-search` channel finding whose source is an internal heuristic
+#   score (citability_score, aeo_score, geo_score, "AI-readiness score",
+#   etc.) MUST be severity=warn or severity=info. NEVER blocker.
+#   Rationale: AI search ranking factors are not officially published by
+#   OpenAI / Anthropic / Perplexity / Google. Treating internal heuristics
+#   as release-breakers creates false confidence and unmaintainable gates.
+#
+# RULE 2. llms.txt grading depends on project type
+#   - api_with_public_docs / explicitly-docs-heavy projects → llms.txt missing = blocker
+#   - All other project types                              → llms.txt missing = warn_only
+#   Matches rules/discoverability-l12.md §llms.txt grading table.
+#   Rationale: llms.txt is a Mintlify proposal still gaining adoption; only
+#   docs-/API-centric projects have a strong case for it as a hard requirement.
+#
+# RULE 3. Local SEO compliance redlines = blocker (no exceptions)
+#   The following local findings are ALWAYS blocker regardless of channel state:
+#     - fake_or_virtual_location_used_as_physical_location
+#     - review_gating_detected (selective review solicitation)
+#     - nap_conflicts_with_business_profile
+#     - service_area_pages_are_doorway_pages
+#     - business_profile_requested_but_business_not_eligible
+#   Rationale: these violate Google Business Profile guidelines, FTC review
+#   rules, and risk permanent listing suspension. They are non-negotiable.
+#
+# RULE 4. ASO listing required fields = blocker
+#   The following app-store findings are ALWAYS blocker:
+#     - app_store_listing_missing_required_metadata (title / subtitle / description)
+#     - app_store_listing_missing_icon
+#     - app_store_listing_missing_screenshots (Apple min 1/device class; Android min 2)
+#     - privacy_policy_missing_for_app_distribution
+#     - data_safety_form_incomplete (Google Play)
+#     - feature_graphic_missing (Google Play)
+#   Rationale: listings will be rejected at submission. Treating these as
+#   warn-only would defeat the purpose of a pre-submission gate.
+#
+# RULE 5. Manual AI scan WITHOUT deterministic fallback → BLOCKED, not FAIL
+#   If a required channel's evidence is exclusively manual_ai_scan (no script,
+#   API, or framework_adapter contribution), the channel decision is BLOCKED.
+#   This forces script-first discipline (see L12 Execution Constitution).
+#   gate.check exits 2 in this case (BLOCKED), NOT 1 (FAIL).
+#
+# RULE 6. Decision can NEVER be silently promoted or demoted
+#   - A configured `gate_level: warn-only` can NEVER produce a FAIL decision.
+#   - A configured `gate_level: blocker` finding can NEVER be silently demoted.
+#   To change gate level, you must edit discoverability.config.yaml AND keep
+#   the change in git history. SDK refuses to override config-declared levels.

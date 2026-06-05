@@ -1,0 +1,126 @@
+# AppSec Routing — Activation Test Fixtures
+# Format: declarative YAML test cases consumed by validators / subagents
+# Spec: tests/appsec-routing/expected-routes.json categories `activation`
+
+schema_version: "1.0"
+category: activation
+description: |
+  Tests that verify the correct skill activates for various trigger phrases.
+  Each test passes if the expected_skill's frontmatter trigger_phrases / aliases
+  / canonical_id / manifest sub_orchestrators routes the prompt correctly.
+
+tests:
+  - id: ACT-001
+    prompt: "I'm building a new Node.js API. Help me with security review."
+    expected_skill: appsec-security-orchestrator
+    expected_canonical_id: security.orchestrator
+    expected_downstream_consideration:
+      - security-governance-threat-modeling
+    must_not_activate:
+      - authorized-pentest-validation
+    rationale: Generic AppSec → orchestrator entry; pentest never auto.
+
+  - id: ACT-002
+    prompt: "需要做威胁建模 / Help me with STRIDE threat modeling for a new payment service."
+    expected_skill: security-governance-threat-modeling
+    expected_canonical_id: security.governance.threat_modeling
+    expected_downstream_consideration:
+      - security-compliance-payment
+    must_not_activate:
+      - pentest-scope-and-roe
+      - authorized-pentest-validation
+
+  - id: ACT-003
+    prompt: "We need to handle secrets for our CI/CD pipeline. Migrate from long-lived AWS keys to OIDC."
+    expected_skill: security-platform-secrets
+    expected_canonical_id: security.platform.secrets
+    expected_downstream_consideration:
+      - appsec-security-orchestrator
+
+  - id: ACT-004
+    prompt: "Audit our Terraform configs + Kubernetes manifests for security misconfigurations."
+    expected_skill: security-platform-iac-cloud
+    expected_canonical_id: security.platform.iac_cloud
+    notes: Runtime commands (kube-bench / prowler / terraform plan) Tier B require user 'yes'.
+
+  - id: ACT-005
+    prompt: "We have an iOS app handling health data. Need MASVS review."
+    expected_skill: security-app-mobile
+    expected_canonical_id: security.app.mobile
+    expected_downstream_consideration:
+      - apple-ios-hig
+      - security-platform-secrets
+    notes: MUST cover all 8 MASVS 2.x control groups including PRIVACY.
+
+  - id: ACT-006
+    prompt: "Building a chatbot that calls external APIs via function calling. Security review of the agent."
+    expected_skill: security-app-llm
+    expected_canonical_id: security.app.llm
+    must_cover:
+      - LLM Top 10 (LLM01-LLM10)
+      - Agentic ASI01-ASI10
+    notes: LLM Top 10 ALONE is insufficient.
+
+  - id: ACT-007
+    prompt: "We're a B2B SaaS with shared infrastructure. Audit tenant isolation."
+    expected_skill: security-app-multitenant
+    expected_canonical_id: security.app.multitenant
+
+  - id: ACT-008
+    prompt: "Our chat app uses WebSocket. Security review."
+    expected_skill: security-app-websocket
+    expected_canonical_id: security.app.websocket
+    must_cover:
+      - CSWSH defense
+      - Frame-level rate limit
+      - Channel authz
+    notes: HTTP access log INSUFFICIENT for WS.
+
+  - id: ACT-009
+    prompt: "Users can upload images and PDFs to my app. Security review."
+    expected_skill: security-app-file-upload
+    expected_canonical_id: security.app.file_upload
+    must_cover:
+      - 12-step checklist
+      - polyglot detection
+      - archive bomb
+      - parser hardening
+
+  - id: ACT-010
+    prompt: "We accept credit cards via Stripe Checkout. PCI DSS compliance?"
+    expected_skill: security-compliance-payment
+    expected_canonical_id: security.compliance.payment
+    must_cover:
+      - SAQ decision tree (iframe ≠ blanket A-EP)
+      - PCI 6.4.3 script governance (8 sub-controls)
+      - PCI 11.6.1 browser-side tamper detection + cadence
+
+  - id: ACT-011
+    prompt: "我们处理中国大陆用户个人信息，要把数据同步到美国分析平台。合规吗？"
+    expected_skill: security-compliance-cn-data
+    expected_canonical_id: security.compliance.cn_data
+    must_cover:
+      - PIPL + DSL + CSL (2025 amend)
+      - Cross-border 4-path decision
+      - Sensitive PI export NEVER under 100k exemption
+      - PIPIA mandatory
+
+  - id: ACT-012
+    prompt: "We just confirmed a data breach. Help with incident response."
+    expected_skill: security-response-incident-response
+    expected_canonical_id: security.response.incident_response
+    must_cover:
+      - NIST SP 800-61 R3 alignment
+      - IC declaration
+      - templates/incident-response-initial.md
+      - Forensics bridge (NIST SP 800-86)
+
+  - id: ACT-013
+    prompt: "Incident has been contained and eradicated. What's next?"
+    expected_skill: security-response-recovery
+    expected_canonical_id: security.response.recovery
+    expected_precondition: RS→RC transition criteria all met
+    must_cover:
+      - Backup integrity verification
+      - Isolated restore test
+      - Customer/regulator recovery comm

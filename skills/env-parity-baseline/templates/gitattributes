@@ -1,0 +1,74 @@
+# === env-parity-baseline: .gitattributes ===
+# 行尾符策略：仓库统一存储 LF。Windows 工作树由 .editorconfig 控制工具行为。
+# git 自动识别文本/二进制，但显式声明 shell / config 避免误判。
+
+* text=auto eol=lf
+
+# ---- 强制 LF（无视用户 core.autocrlf） ----
+*.sh        text eol=lf
+*.bash      text eol=lf
+*.zsh       text eol=lf
+*.fish      text eol=lf
+Dockerfile  text eol=lf
+*.Dockerfile text eol=lf
+*.dockerfile text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.json      text eol=lf
+*.toml      text eol=lf
+*.lock      text eol=lf
+
+# ---- 强制 CRLF（Windows 工具链原生格式） ----
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# ---- 二进制（防 git 误改 / 误 merge） ----
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.webp      binary
+*.avif      binary
+*.ico       binary
+*.pdf       binary
+*.zip       binary
+*.tar.gz    binary
+*.tgz       binary
+*.7z        binary
+*.rar       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.otf       binary
+*.mp3       binary
+*.mp4       binary
+*.mov       binary
+*.webm      binary
+*.wasm      binary
+
+# ---- 大文件 / 生成产物：不进 diff，linguist 跳过统计 ----
+*.lock              linguist-generated=true
+package-lock.json   linguist-generated=true
+pnpm-lock.yaml      linguist-generated=true
+yarn.lock           linguist-generated=true
+poetry.lock         linguist-generated=true
+uv.lock             linguist-generated=true
+Cargo.lock          linguist-generated=true
+go.sum              linguist-generated=true
+Gemfile.lock        linguist-generated=true
+composer.lock       linguist-generated=true
+
+# ---- export-ignore：git archive 不打包这些 ----
+.github/            export-ignore
+.gitattributes      export-ignore
+.gitignore          export-ignore
+.editorconfig       export-ignore
+.devcontainer/      export-ignore
+tests/              export-ignore
+test/               export-ignore
+__tests__/          export-ignore
+docs/               export-ignore
+*.test.ts           export-ignore
+*.test.tsx          export-ignore
+*.spec.ts           export-ignore

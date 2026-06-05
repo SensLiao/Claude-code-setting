@@ -1,0 +1,254 @@
+# activation-rules.yaml
+# L12 Discoverability — 按 project_type 决定 4 个 narrow skill 的激活规则
+#
+# Schema 与 templates/discoverability/discoverability.config.yaml 一致
+# (canonical source of truth)。Channel keys (seo / aeo / geo / aso) map to narrow
+# skills (web-seo / web-aeo / web-local-seo / app-aso)。注意：channel key
+# 仍然叫 "geo" 是历史原因，语义 = Local SEO，runner 必须 dispatch 到 web-local-seo。
+#
+# 字段:
+#   seo / aeo / geo / aso 取值:
+#     required          - 必须激活，blocker 默认 ON
+#     optional          - 建议激活，gate 默认 warn-only
+#     disabled          - 关闭，不生成 evidence，但需在 00-activation.json 记录原因
+#     conditional_local - 仅当存在 brick-and-mortar / service-area-business 时激活
+#                         详细 evaluation logic 见下面 `conditional_local_logic:` 节
+#
+# 每条规则携带 reasoning (一句话)，用于 00-activation.json 的 reason 字段。
+#
+# 注: 此 YAML 由 discoverability-orchestrator 在 Step 1-2 读取，
+#     调用方实现的 runner 可以读它生成 default config，
+#     project-level discoverability.config.yaml 内 `channels.*` 块 OVERRIDE 此处。
+
+_schema_version: "1.0.0"
+version: 1
+schema_version: "2026-05-25"
+
+# ============================================================
+# conditional_local activation logic (runner 实现参考)
+# ------------------------------------------------------------
+# Trigger TRUE iff one of:
+#   project.physical_locations > 0      (config field, integer)
+#   len(project.service_areas) > 0       (config field, list of strings)
+#
+# Trigger FALSE 时即便此处标 conditional_local，runner 必须:
+#   - 在 evidence/discoverability/00-activation.json 记录 web-local-seo: disabled
+#   - reason = "conditional_local trigger evaluated FALSE
+#               (physical_locations=0 AND service_areas=[])"
+#   - 不调用 web-local-seo skill
+#
+# 这两个 config 字段定义在 templates/discoverability/discoverability.config.yaml
+# 的 `project:` 节。
+# ============================================================
+conditional_local_logic:
+  trigger_when_any:
+    - "project.physical_locations > 0"
+    - "len(project.service_areas) > 0"
+  fallback_state: disabled
+  fallback_reason: "conditional_local trigger evaluated FALSE (no physical_locations and no service_areas)"
+
+# ============================================================
+# project_type: content_site
+# 例: 个人博客 / 媒体站 / 公开文章库 / 技术博客 / newsletter web 镜像
+# ============================================================
+content_site:
+  seo:
+    state: required
+    reasoning: "公开内容站点的核心流量来源，必须有 sitemap / metadata / canonical / structured data"
+  aeo:
+    state: required
+    reasoning: "AI search 已成为内容站的主要新增流量来源，FAQ/HowTo schema + crawler policy 必备"
+  geo:
+    state: disabled
+    reasoning: "纯内容站无 brick-and-mortar，无 local intent"
+  aso:
+    state: disabled
+    reasoning: "纯 web 项目，无 app store presence"
+
+# ============================================================
+# project_type: ecommerce
+# 例: Shopify / 独立站 / DTC / B2C / 海外购 (含商品页 + 购物车 + 结算)
+# ============================================================
+ecommerce:
+  seo:
+    state: required
+    reasoning: "商品搜索是核心获客路径，Product schema + breadcrumb + canonical 关键"
+  aeo:
+    state: optional
+    reasoning: "AI search 在购物比较场景刚起步，有价值但不阻断 release"
+  geo:
+    state: conditional_local
+    reasoning: "如有线下门店或 service-area 配送，激活；纯 dropshipping 关闭"
+  aso:
+    state: disabled
+    reasoning: "若同时有 app 应改用 web_app_plus_mobile_app 分类"
+
+# ============================================================
+# project_type: local_service
+# 例: 律师 / 牙医 / 诊所 / 餐厅 / 美容 / 修车 / 上门服务 / 实体门店
+# ============================================================
+local_service:
+  seo:
+    state: required
+    reasoning: "本地服务站基础 SEO 必须，service area 页 + 业务描述 + 评价 schema"
+  aeo:
+    state: optional
+    reasoning: "near me 类查询逐步进入 AI search，但非核心入口，warn-only"
+  geo:
+    state: required
+    reasoning: "Local SEO 是本类型项目的主要流量来源，GBP/Apple Maps/NAP 一致性必查"
+  aso:
+    state: disabled
+    reasoning: "本地服务通常无独立 app"
+
+# ============================================================
+# project_type: b2b_saas_marketing
+# 例: SaaS 官网 + 定价 + 文档 + blog (含 marketing site 和可能的 product docs)
+# ============================================================
+b2b_saas_marketing:
+  seo:
+    state: required
+    reasoning: "B2B 决策路径长，organic search 是关键 inbound 渠道"
+  aeo:
+    # AEO 默认 warn-only；如团队决定 AI 引用 critical，可在项目 config 单独 override 为 required
+    # 与 templates/discoverability/discoverability.config.yaml L132-139 注释保持一致
+    # (AI search 生态仍在 maturing，无任何 AI vendor 公开 official ranking factor)
+    state: warn_only
+    reasoning: "B2B 评估期重度依赖 AI search 做技术对比，建议 citable + llms.txt，但 AI 生态未稳定故默认 warn-only，团队可显式 override 为 required"
+  geo:
+    state: disabled
+    reasoning: "SaaS 通常无地理边界，除非有线下办公室或行业相关的本地市场策略"
+  aso:
+    state: disabled
+    reasoning: "纯 marketing site，无 mobile app"
+
+# ============================================================
+# project_type: api_with_public_docs
+# 例: API 平台 / developer tool / 公开 SDK + reference doc 站
+# ============================================================
+api_with_public_docs:
+  seo:
+    state: required
+    reasoning: "developer 通过 Google 搜索 API 解决方案，docs SEO 关键"
+  aeo:
+    state: required
+    reasoning: "developer 越来越多用 ChatGPT/Claude/Perplexity 找 API 用法，llms.txt + 高 citability 是核心"
+  geo:
+    state: disabled
+    reasoning: "API 服务通常无地理边界"
+  aso:
+    state: disabled
+    reasoning: "无 mobile app surface"
+
+# ============================================================
+# project_type: pure_backend_api_no_public_surface
+# 例: 内部 API / B2B private API / 仅供已注册客户调用 / 无 marketing 页
+# ============================================================
+pure_backend_api_no_public_surface:
+  seo:
+    state: disabled
+    reasoning: "无 public surface，搜索引擎无可索引内容；公开端点应 noindex + robots disallow"
+  aeo:
+    state: disabled
+    reasoning: "无公开 docs / 不希望被 AI 抓取，crawler policy 应全部 disallow"
+  geo:
+    state: disabled
+    reasoning: "无 public storefront"
+  aso:
+    state: disabled
+    reasoning: "无 app surface"
+
+# ============================================================
+# project_type: mobile_app
+# 例: 纯 iOS / Android app 项目，可能仅有 landing page 用于 download
+# ============================================================
+mobile_app:
+  seo:
+    state: optional
+    reasoning: "如有 landing/download page，做基础 SEO；否则可关闭"
+  aeo:
+    state: disabled
+    reasoning: "无重内容，AI search 收益有限"
+  geo:
+    state: conditional_local
+    reasoning: "默认 disabled；仅当 app 有 physical_locations > 0（如合作门店列表）时升级 conditional_local。外卖/打车类 app 通常 physical_locations=0、service_areas=[]，故默认不激活 Local SEO"
+  aso:
+    state: required
+    reasoning: "App Store + Google Play 是 app 类项目核心可发现性，必须全套 listing 优化"
+
+# ============================================================
+# project_type: web_app_plus_mobile_app
+# 例: web SaaS 产品 + 配套 iOS/Android app (Notion / Linear / Figma 模式)
+# ============================================================
+web_app_plus_mobile_app:
+  seo:
+    state: required
+    reasoning: "web 产品 + marketing 站需 SEO，与 b2b_saas_marketing 相同"
+  aeo:
+    state: optional
+    reasoning: "产品评估期会出现在 AI search，建议激活但非 blocker"
+  geo:
+    state: conditional_local
+    reasoning: "若产品涉及本地业务（同 mobile_app 规则）激活，否则关闭"
+  aso:
+    state: required
+    reasoning: "app 端独立可发现性必须，与 mobile_app 相同要求"
+
+# ============================================================
+# 默认 fallback (project_type 未知或新类型)
+# 当用户未声明 project_type 且也未提供足够信息时
+# ============================================================
+__default__:
+  seo:
+    state: optional
+    reasoning: "无法判断 project_type，默认 optional 等待用户确认"
+  aeo:
+    state: optional
+    reasoning: "无法判断 project_type，默认 optional 等待用户确认"
+  geo:
+    state: disabled
+    reasoning: "Local SEO 影响重大，默认不激活，需用户显式开启"
+  aso:
+    state: disabled
+    reasoning: "无 app 信号时默认不激活，避免 false positive"
+
+# ============================================================
+# Gate level 默认值（可被 discoverability.config.yaml 的
+# channels.<domain>.gate_level 覆盖）
+# ============================================================
+gate_defaults:
+  seo: blocker      # 公开 web 项目缺基础 SEO 视为 blocker
+  aeo: warn-only    # AEO 生态尚新，标准未稳定，默认 warn-only
+  geo: blocker      # 本地业务缺 GBP 直接影响营收，blocker
+  aso: blocker      # app store 拒审或 listing 不完整即阻断 release
+
+# ============================================================
+# 互斥与同时激活规则
+# ------------------------------------------------------------
+# co_activation_hints 是 mini-evaluator 期望支持的 expression 语法:
+#   - 左侧 (if):   `<channel>.state == <value>` 形式的单条件表达式
+#                  例: "aeo.state == required"
+#                  支持的 operator: ==, !=
+#                  支持的 channel: seo / aeo / geo / aso
+#                  支持的 value: required / optional / disabled / conditional_local / warn_only
+#   - 复合条件:    使用 && 连接 (AND), || 连接 (OR)
+#                  例: "aso.state == required && project.has_web_landing == true"
+#   - 项目字段引用: `project.<field>` 形式
+#                  例: "project.physical_locations > 0"
+#                  支持 numeric comparison: >, <, >=, <=, ==
+#   - 右侧 (then): 自然语言 hint，runner 写入 evidence summary，不强制执行
+#
+# runner 实现要点:
+#   1. 解析 co_activation_hints 时按顺序求值
+#   2. if 求值为 true，append then 文本到 evidence/discoverability/00-activation.json
+#      的 `co_activation_hints[].triggered_hints` 数组
+#   3. 这些 hint 不修改 state，只是 surface advisory
+# ============================================================
+mutual_exclusion: []   # 4 域无互斥，可任意组合同时激活
+co_activation_hints:
+  - if: "aeo.state == required"
+    then: "建议同时检查 seo（AEO citability 高度依赖 SEO 基础设施）"
+  - if: "geo.state == required"
+    then: "建议同时检查 seo（local SEO 仍需 web SEO 基础）"
+  - if: "aso.state == required && project.has_web_landing == true"
+    then: "建议至少 seo: optional 覆盖 download landing"
