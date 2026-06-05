@@ -72,7 +72,7 @@ $skipNames = @(
 $preserveAlways = @(
     ".credentials.json", "settings.json", "settings.local.json",
     "memory", "projects", "sessions", "tasks", "history.jsonl",
-    "plugins", "tools", "mcp-servers"
+    "plugins"   # tools / mcp-servers 已移出本名单：它们含需随配置迁移的源码工具，全新机器要部署；目标已存在则走下方"存在即跳过(除非 -Force)"逻辑，不覆盖你本地的改动
 )
 
 # ──── 部署主循环 ───────────────────────────────────────────────────────────
