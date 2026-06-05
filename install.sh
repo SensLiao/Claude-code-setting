@@ -74,7 +74,7 @@ SKIP_NAMES=("install.sh" "install.ps1" "README.md" ".gitignore" ".git" ".github"
 # ──── 永不覆盖的目标（即使 --force） ──────────────────────────────────────
 PRESERVE_ALWAYS=(".credentials.json" "settings.json" "settings.local.json"
                  "memory" "projects" "sessions" "tasks" "history.jsonl"
-                 "plugins" "tools" "mcp-servers")
+                 "plugins")   # tools/mcp-servers 已移出：含需迁移的源码，新机器要部署(已存在则不覆盖)
 
 # ──── 帮助函数 ─────────────────────────────────────────────────────────────
 in_array() {

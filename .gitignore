@@ -55,11 +55,26 @@ bash-commands.log
 cost-tracker.log
 history.jsonl
 
-# === 🟡 大体积二进制（在新机器上由各自工具重新安装） ===
-plugins/
-tools/
-mcp-servers/
+# === 🟡 大体积二进制 / 下载物 / 独立 repo（精确排除，保留同目录下的配置源码）===
+# 说明：不再整目录排除 tools/ mcp-servers/ plugins/ —— 它们含必须随配置迁移的
+#       自写工具源码 / 自建 MCP server 源码 / 装机清单。只排除其中可重装或本机生成的部分。
 homunculus/
+
+# tools/ : 保留 ccswitch-guard / docs-drift / hooks / relocation-integrity 脚本；
+#          排除独立 git 项目 gstack、Python 缓存、本机运行时快照
+tools/gstack/
+tools/**/__pycache__/
+tools/**/*.snapshot.json
+
+# mcp-servers/ : 保留自建 server 源码(package.json + src/dist)；排除可重装依赖
+mcp-servers/**/node_modules/
+
+# plugins/ : 保留装机清单(installed_plugins.json / known_marketplaces.json / blocklist.json)；
+#            排除下载的 marketplace 仓库与缓存（新机器用 /plugin 重新拉取）
+plugins/cache/
+plugins/marketplaces/
+plugins/data/
+plugins/*-cache.json
 
 # === 🟡 旧备份 ===
 backups/

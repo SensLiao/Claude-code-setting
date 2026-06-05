@@ -1,0 +1,42 @@
+{
+  "claude-plugins-official": {
+    "source": {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    },
+    "installLocation": "__CLAUDE_HOME_JSON__\\plugins\\marketplaces\\claude-plugins-official",
+    "lastUpdated": "2026-05-26T14:37:32.204Z"
+  },
+  "cli-anything": {
+    "source": {
+      "source": "github",
+      "repo": "HKUDS/CLI-Anything"
+    },
+    "installLocation": "__CLAUDE_HOME_JSON__\\plugins\\marketplaces\\cli-anything",
+    "lastUpdated": "2026-05-18T08:18:17.488Z"
+  },
+  "bencium-marketplace": {
+    "source": {
+      "source": "github",
+      "repo": "bencium/bencium-claude-code-design-skill"
+    },
+    "installLocation": "__CLAUDE_HOME_JSON__\\plugins\\marketplaces\\bencium-marketplace",
+    "lastUpdated": "2026-05-21T12:59:08.684Z"
+  },
+  "designer-skills": {
+    "source": {
+      "source": "github",
+      "repo": "Owl-Listener/designer-skills"
+    },
+    "installLocation": "__CLAUDE_HOME_JSON__\\plugins\\marketplaces\\designer-skills",
+    "lastUpdated": "2026-05-21T12:59:24.953Z"
+  },
+  "interface-design": {
+    "source": {
+      "source": "github",
+      "repo": "Dammyjay93/interface-design"
+    },
+    "installLocation": "__CLAUDE_HOME_JSON__\\plugins\\marketplaces\\interface-design",
+    "lastUpdated": "2026-05-21T12:59:29.557Z"
+  }
+}
