@@ -1,0 +1,54 @@
+{
+  "version": "0.2.0",
+  "project_id": "<YYYY-MM-DD>-<nickname>",
+  "current_stage": "stage_-1",
+  "stage_0": {
+    "status": "pending",
+    "artifacts": {
+      "idea_brief": null,
+      "dimension_priorities": null,
+      "archetype_choice": null,
+      "surface_map_draft": null
+    },
+    "gate_owner": null,
+    "gate_passed_at": null
+  },
+  "stage_1": {
+    "status": "pending",
+    "candidate_list": [],
+    "cloned": [],
+    "failed": [],
+    "manifest": null,
+    "gate_owner": null,
+    "gate_passed_at": null
+  },
+  "stage_2": {
+    "status": "pending",
+    "extract_cards": [],
+    "cross_reference_matrix": null,
+    "direction_candidates": [],
+    "user_chosen_directions": [],
+    "gate_owner": null,
+    "gate_passed_at": null
+  },
+  "stage_3": {
+    "status": "pending",
+    "variants": [],
+    "index_html_total": null,
+    "user_accepted": [],
+    "user_rejected": [],
+    "gate_owner": null,
+    "gate_passed_at": null
+  },
+  "companion_skills_detected": {
+    "grill-with-docs": false,
+    "taste-skill": false,
+    "frontend-design": false,
+    "design-system": false,
+    "competitive-teardown": false,
+    "codex-dispatch": false
+  },
+  "output_root": "output/<YYYY-MM-DD>-<nickname>/",
+  "last_updated": null,
+  "log_file": "state/log.md"
+}

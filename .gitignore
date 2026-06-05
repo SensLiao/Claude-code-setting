@@ -112,3 +112,9 @@ node_modules/
 # extra hygiene (2026-06-05 re-export)
 *.bak-*
 skills/arch-viz-workspace/
+
+# skill 内从上游 clone 带来的 git 残留（统一不传，2026-06-06）
+skills/**/.git/
+skills/**/.gitignore
+skills/**/.gitattributes
+skills/**/.github/
