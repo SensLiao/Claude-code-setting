@@ -118,3 +118,11 @@ skills/**/.git/
 skills/**/.gitignore
 skills/**/.gitattributes
 skills/**/.github/
+
+# skill 运行时产物 / 状态（原 skill 子 .gitignore 规则提升至根，删子 .gitignore 后仍不传）
+skills/**/state/checkpoint.json
+skills/**/state/log.md
+skills/**/output/
+skills/**/ui-lab/
+skills/**/audits/manifest.json.bak
+skills/**/*.local
