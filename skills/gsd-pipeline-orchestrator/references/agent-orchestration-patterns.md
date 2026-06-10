@@ -160,7 +160,7 @@ Converge before /gsd-ship.
 - `SECURITY_SENSITIVE` is true and the plan touches the threat model
 - New persistence model / new integration boundary / cross-service contract
 
-**Shape:** Codex CLI (GPT-5.4) reviews the Claude-produced PLAN.md; Claude re-plans against feedback; loop until no HIGH concerns remain.
+**Shape:** Codex CLI (GPT 系列模型) reviews the Claude-produced PLAN.md; Claude re-plans against feedback; loop until no HIGH concerns remain.
 
 ```
 /gsd-plan-review-convergence N --codex --max-cycles 3

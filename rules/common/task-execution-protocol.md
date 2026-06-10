@@ -49,7 +49,7 @@
 
 #### 3.1 内部执行者路由
 
-为每个子任务决定由谁执行。Codex 走 **官方 plugin `codex@openai-codex`**（review 用 `/codex:review` 只读 / `/codex:adversarial-review` 对抗式；委派执行用 `/codex:rescue`，支持 `--model` / `--effort` / `--background`），不再走旧的 local skill：
+为每个子任务决定由谁执行。Codex 走 **官方 plugin `codex@openai-codex`**（review 用 `/codex:review` 只读 / `/codex:adversarial-review` 对抗式；委派执行用 `/codex:rescue`，支持 `--model` / `--effort` / `--background`），不再走旧的 local skill。**何时用 Codex、用哪个命令、带什么纪律（切尺度 caps / wave 强制 cross-review / Windows UTF-8 / 版本号不写死 / governed-gate 边界 / 施工单模板）的完整 playbook 见 `~/.claude/skills/codex-dispatch/SKILL.md`** —— 本节是其速查，细则以该 skill 为准：
 
 | 判断维度 | Codex（`codex@openai-codex` plugin） | Claude subagent | Claude 主线程 |
 |---------|------------------------|-----------------|--------------|

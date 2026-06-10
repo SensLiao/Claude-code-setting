@@ -1,7 +1,7 @@
 {
   "schema_version": "2.0.0",
   "generated_date": "2026-06-10",
-  "generated_by": "harness drift normalization Wave 2 Agent A2 (PR-1); 2026-06-10 refresh: +3 AppSec skills (security-app-api / security-platform-supply-chain / security-compliance-privacy), hook-enumeration pointer",
+  "generated_by": "harness drift normalization Wave 2 Agent A2 (PR-1); 2026-06-10 refresh: +3 AppSec skills (security-app-api / security-platform-supply-chain / security-compliance-privacy), hook-enumeration pointer; 2026-06-10 +cross_ai_dispatch (codex-dispatch — decision/discipline playbook over official codex@openai-codex plugin, NOT a codex-exec wrapper)",
   "description": "Global ~/.claude/ skill manifest. Defines 5 primary orchestrators (1 manual-first bootstrap + 4 commercial-grade three-mainline) and how supporting skills are tiered beneath them. v2.0.0 adds hooks/sdks/evidence_roots/name_freeze top-level blocks for harness-level coverage of AppSec v3.0 GSD-lite engine + L12 discoverability + QA layered matrix + UIUX subsystem. Claude routes through primary orchestrators first; supporting skills are invoked by orchestrators or by explicit user request.",
 
   "primary_orchestrators": [
@@ -142,7 +142,8 @@
       "codegraph-cli",
       "arch-viz"
     ],
-    "deployment_parity": ["env-parity-baseline"]
+    "deployment_parity": ["env-parity-baseline"],
+    "cross_ai_dispatch": ["codex-dispatch"]
   },
 
   "agent_families": {

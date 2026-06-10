@@ -90,7 +90,9 @@ Use the first available CLI:
 
 **Codex CLI** (if installed)
 ```bash
-codex exec --sandbox read-only -m gpt-5.4 -C "$(pwd)" - < "$PROMPT_FILE"
+# 模型版本不写死（version-lock，user lock 2026-05-02）：默认用 codex 当前版本（GPT 系列最新），
+# 需要钉某个 reviewer 模型时设 CODEX_REVIEW_MODEL 环境变量。Windows 非 git 目录加 --skip-git-repo-check。
+codex exec --sandbox read-only ${CODEX_REVIEW_MODEL:+-m "$CODEX_REVIEW_MODEL"} -C "$(pwd)" - < "$PROMPT_FILE"
 rm -f "$PROMPT_FILE"
 ```
 
@@ -166,7 +168,7 @@ Result:     [PUSHED / ESCALATED TO USER]
 ## Notes
 
 - Reviewer A (Claude Opus) always runs — guarantees at least one strong reviewer regardless of tooling.
-- Model diversity is the goal for Reviewer B. GPT-5.4 or Gemini 2.5 Pro gives true independence — different training data, different biases, different blind spots. The Claude-only fallback still provides value via context isolation but loses model diversity.
+- Model diversity is the goal for Reviewer B. Codex (GPT 系列) or Gemini gives true independence — different training data, different biases, different blind spots. The Claude-only fallback still provides value via context isolation but loses model diversity.
 - Strongest available models are used: Opus for Reviewer A, GPT-5.4 or Gemini 2.5 Pro for Reviewer B.
 - External reviewers run with `--sandbox read-only` (Codex) to prevent repo mutation during review.
 - Fresh reviewers each round prevents anchoring bias from prior findings.
