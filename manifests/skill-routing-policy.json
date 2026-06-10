@@ -397,6 +397,20 @@
         "CI test strategy — route to enterprise-qa-testing"
       ]
     },
+    "codex-dispatch": {
+      "purpose": "Cross-AI dispatch playbook — the harness decision + discipline layer for using Codex (OpenAI codex CLI, GPT 系列) as a second model family. Does NOT shell out to `codex exec`; routes all execution to the official codex@openai-codex plugin commands (/codex:rescue delegate · /codex:review · /codex:adversarial-review · /codex:status · /codex:result · /codex:cancel · /codex:setup). Owns the harness-specific discipline the generic plugin lacks: when-to-delegate decision tree, work-order template, chunking/scope caps, mandatory wave cross-review, Windows UTF-8 caveat, quota fallback, model-version lock, governed-gate boundary (Codex review = advisory, NEVER release verdict).",
+      "keywords": [
+        "用 codex", "让 codex", "派给 codex", "codex 调度", "codex 跑一下", "codex 委派", "codex 怎么调用",
+        "delegate to codex", "codex rescue", "cross-review with codex", "跨模型 review", "第二个模型审",
+        "该不该用 codex", "codex 还能不能", "codex dispatch"
+      ],
+      "do_not_use_for": [
+        "Running codex itself — execution is the official codex@openai-codex plugin's job (this skill only decides + routes)",
+        "Release / security / QA gate verdict — Codex review is advisory-only scout; verdict stays in the deterministic spec-runner + spec_hash approval (CLAUDE.md §3.7)",
+        "Codex prompt drafting internals — that is the plugin's built-in gpt-5-4-prompting skill",
+        "Enabling the review-gate stop hook — forbidden (burns quota; conflicts with governed-gate human sign-off)"
+      ]
+    },
     "pairing": {
       "rule": "Both tools = repo reading / code context. They do NOT compete. On hard problems, GitNexus first (see the repo), then CodeGraph CLI (aim at a specific symbol).",
       "decision_card": {

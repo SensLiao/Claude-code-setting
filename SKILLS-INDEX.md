@@ -375,7 +375,8 @@ skillOverrides            8 overrides (user-invocable-only / name-only)
 | `remotion-best-practices` | auto | Remotion / 产品视频 |
 | `meeting-analyzer` | auto | meeting transcript / .vtt / .srt / 会后复盘 |
 | `skill-creator` | **name-only** | 用户明确"写新 skill / 优化 skill" |
-| Codex 官方 plugin (`codex@openai-codex`) | plugin（非 skill） | 用户明确"用 Codex" / 跨模型 review / 委派：`/codex:review`（只读 review）· `/codex:adversarial-review`（对抗式 / santa-loop 第二评审员）· `/codex:rescue`（委派执行）。Codex 额度耗尽 → fallback 到 Claude subagent。 |
+| Codex 官方 plugin (`codex@openai-codex`) | plugin（非 skill，执行引擎） | 用户明确"用 Codex" / 跨模型 review / 委派：`/codex:review`（只读 review）· `/codex:adversarial-review`（对抗式 / santa-loop 第二评审员）· `/codex:rescue`（委派执行，支持 `--background`/`--resume`/`--effort`）· `/codex:status`·`/codex:result`·`/codex:cancel`·`/codex:setup`。Codex 额度耗尽 → fallback 到 Claude subagent。 |
+| `codex-dispatch`（2026-06-10 新增 v2） | auto（窄，决策/纪律层，非执行） | "用 codex / 让 codex / 派给 codex / codex 调度 / cross-review with codex / 跨模型 review / 该不该用 codex"。**决定何时用 Codex、用哪个上面 plugin 命令、带什么纪律**（决策树 / 施工单模板 / 切尺度 caps / wave 强制 cross-review / Windows UTF-8 / fallback / 版本号不写死 / governed-gate 边界）。**不自己调 `codex exec`**——执行全部转交官方 plugin。详 `skills/codex-dispatch/SKILL.md`。 |
 | `gitnexus-repo-map` (2026-05-25 新增) | auto（窄） | "GitNexus / repo map / visual code graph / architecture topology / 读开源项目 / 仓库架构 / 模块地图 / clusters" — 看全局、看图、读陌生 repo |
 | `codegraph-cli` (2026-05-25 新增) | auto（窄） | "callers / callees / impact / blast radius / affected tests / who calls / what calls / code context / 调用链 / 影响面 / 受影响测试 / 读代码" — 查局部、查影响、辅助开发和测试 |
 
