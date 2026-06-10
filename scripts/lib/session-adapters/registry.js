@@ -1,11 +1,8 @@
 'use strict';
 
 const { createClaudeHistoryAdapter } = require('./claude-history');
-const { createDmuxTmuxAdapter } = require('./dmux-tmux');
 
 const TARGET_TYPE_TO_ADAPTER_ID = Object.freeze({
-  plan: 'dmux-tmux',
-  session: 'dmux-tmux',
   'claude-history': 'claude-history',
   'claude-alias': 'claude-history',
   'session-file': 'claude-history'
@@ -29,8 +26,7 @@ function buildDefaultAdapterOptions(options, adapterId) {
 
 function createDefaultAdapters(options = {}) {
   return [
-    createClaudeHistoryAdapter(buildDefaultAdapterOptions(options, 'claude-history')),
-    createDmuxTmuxAdapter(buildDefaultAdapterOptions(options, 'dmux-tmux'))
+    createClaudeHistoryAdapter(buildDefaultAdapterOptions(options, 'claude-history'))
   ];
 }
 

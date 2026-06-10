@@ -194,6 +194,70 @@ Step 6  Update runbook
 
 ---
 
+## 5.5 Standard Workflow — Mode C (Recovery Audit)
+
+```
+Step 1  Audit scope decision
+        → 哪些 system / business process 在范围
+        → 哪个 framework 做 reference（ISO 22301 / NIST CSF RC / SOC2 CC9.1 / 行业）
+        → audit period（过去 12 / 6 / 3 个月）
+        → 上次 audit 时间 + 改进项是否闭环
+
+Step 2  Recovery capability inventory
+        → 列每个 critical system 的：
+          - 当前 RTO / RPO target
+          - 上次 measured MTTR / MTBF
+          - Backup 策略（频率 / 加密 / immutability / 跨 region）
+          - Standby tier（hot / warm / cold）
+          - DR site / region 配置
+          - BCP plan 链接 + 最近 review date
+          - IR / RC runbook 链接
+
+Step 3  Evidence aggregation（按 audit framework）
+        → 收集过去 audit period 的：
+          - Backup validation 报告（每月 / 每季）
+          - Restore test 报告（每季 / 每年）
+          - DR drill 报告（每年至少 1 次）
+          - Real incident recovery reports + post-mortem
+          - Configuration baseline + drift 记录
+          - Vendor recovery commitments + SLAs
+
+Step 4  RTO / RPO evidence verification
+        → Actual vs target deltas
+        → Trend analysis（improving / stable / degrading）
+        → Tier 分类是否仍合适（business criticality 有变？）
+
+Step 5  BCP / DR plan review
+        → 与 actual business operations 是否对齐
+        → 关键人员 contact 是否最新
+        → Vendor + 3rd party 依赖是否仍准确
+        → 上次 review date（如 >12 个月 → red flag）
+
+Step 6  Compliance mapping
+        → 按 framework 逐 control:
+          - ISO 22301: 6.1, 8.4, 8.5, 9.1, 9.3
+          - NIST CSF 2.0 RC: RC.RP, RC.IM, RC.CO
+          - SOC2 CC9.1, CC9.2
+          - 行业（HIPAA / PCI / FFIEC / 等）
+        → 每条 control：evidence 存在 yes/no + audit-grade quality
+
+Step 7  Gap scoring + remediation roadmap
+        → 每个 gap：severity + effort + business impact + owner + due date
+        → 优先级矩阵（high-impact / low-effort 先做）
+        → 写入 risk-register.md
+
+Step 8  Audit package output
+        → 给 internal / external auditor 的完整 evidence 包：
+          - Executive summary
+          - Per-system capability inventory
+          - Per-framework control coverage
+          - Gap analysis + remediation roadmap
+          - Improvement metrics（vs last audit）
+        → 输出到 `.planning/security/recovery-audit-<date>/`
+```
+
+---
+
 ## 6. Backup Validation Checklist
 
 每个 backup 必须满足：
@@ -276,70 +340,6 @@ Step 6  Update runbook
 2. Evidence aggregation（drills + post-incident reviews）
 3. Compliance mapping（ISO 22301 / NIST CSF RC / SOC2 CC9.1）
 4. Gap analysis + remediation roadmap
-
----
-
-## 5.5 Standard Workflow — Mode C (Recovery Audit)
-
-```
-Step 1  Audit scope decision
-        → 哪些 system / business process 在范围
-        → 哪个 framework 做 reference（ISO 22301 / NIST CSF RC / SOC2 CC9.1 / 行业）
-        → audit period（过去 12 / 6 / 3 个月）
-        → 上次 audit 时间 + 改进项是否闭环
-
-Step 2  Recovery capability inventory
-        → 列每个 critical system 的：
-          - 当前 RTO / RPO target
-          - 上次 measured MTTR / MTBF
-          - Backup 策略（频率 / 加密 / immutability / 跨 region）
-          - Standby tier（hot / warm / cold）
-          - DR site / region 配置
-          - BCP plan 链接 + 最近 review date
-          - IR / RC runbook 链接
-
-Step 3  Evidence aggregation（按 audit framework）
-        → 收集过去 audit period 的：
-          - Backup validation 报告（每月 / 每季）
-          - Restore test 报告（每季 / 每年）
-          - DR drill 报告（每年至少 1 次）
-          - Real incident recovery reports + post-mortem
-          - Configuration baseline + drift 记录
-          - Vendor recovery commitments + SLAs
-
-Step 4  RTO / RPO evidence verification
-        → Actual vs target deltas
-        → Trend analysis（improving / stable / degrading）
-        → Tier 分类是否仍合适（business criticality 有变？）
-
-Step 5  BCP / DR plan review
-        → 与 actual business operations 是否对齐
-        → 关键人员 contact 是否最新
-        → Vendor + 3rd party 依赖是否仍准确
-        → 上次 review date（如 >12 个月 → red flag）
-
-Step 6  Compliance mapping
-        → 按 framework 逐 control:
-          - ISO 22301: 6.1, 8.4, 8.5, 9.1, 9.3
-          - NIST CSF 2.0 RC: RC.RP, RC.IM, RC.CO
-          - SOC2 CC9.1, CC9.2
-          - 行业（HIPAA / PCI / FFIEC / 等）
-        → 每条 control：evidence 存在 yes/no + audit-grade quality
-
-Step 7  Gap scoring + remediation roadmap
-        → 每个 gap：severity + effort + business impact + owner + due date
-        → 优先级矩阵（high-impact / low-effort 先做）
-        → 写入 risk-register.md
-
-Step 8  Audit package output
-        → 给 internal / external auditor 的完整 evidence 包：
-          - Executive summary
-          - Per-system capability inventory
-          - Per-framework control coverage
-          - Gap analysis + remediation roadmap
-          - Improvement metrics（vs last audit）
-        → 输出到 `.planning/security/recovery-audit-<date>/`
-```
 
 ---
 

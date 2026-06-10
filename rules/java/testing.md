@@ -124,8 +124,3 @@ Use descriptive names with `@DisplayName`:
 - Target 80%+ line coverage
 - Use JaCoCo for coverage reporting
 - Focus on service and domain logic — skip trivial getters/config classes
-
-## References
-
-See skill: `springboot-tdd` for Spring Boot TDD patterns with MockMvc and Testcontainers.
-See skill: `java-coding-standards` for testing expectations.

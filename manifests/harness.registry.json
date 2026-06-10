@@ -1,7 +1,7 @@
 {
-  "$schema": "../schemas/harness.registry.schema.json",
+  "$schema": "../schemas/harness-registry.schema.json",
   "schema_version": "2.0.0",
-  "generated_date": "2026-05-25",
+  "generated_date": "2026-06-10",
   "generated_by": "harness drift normalization Wave 2 Agent A2 (PR-1)",
   "description": "Comprehensive structured registry of the ~/.claude/ harness control surface: 5 primary orchestrators, 1 downstream gate (L12), subsystem agents/hooks/SDKs/evidence-roots/schemas/handoff-schemas/decision-semantics, and the safety-critical name freeze list. v2.0.0 declares AppSec v3.0 GSD-lite execution engine + L12 v1.2 tag-scoped evidence + per-project hook install pattern (D3 canonical).",
 
@@ -452,15 +452,9 @@
   },
 
   "schemas": {
-    "appsec_finding": "../schemas/appsec-finding.schema.json",
-    "appsec_evidence": "../schemas/appsec-evidence.schema.yaml",
-    "qa_evidence": "../schemas/qa-evidence.schema.yaml",
-    "uiux_evidence": "../schemas/uiux-evidence.schema.yaml",
-    "discoverability_evidence": "../schemas/discoverability-evidence.schema.yaml",
-    "gate_result": "../schemas/gate-result.schema.yaml",
-    "harness_registry": "../schemas/harness.registry.schema.json",
+    "harness_registry": "../schemas/harness-registry.schema.json",
     "hook_registry": "../schemas/hook-registry.schema.json",
-    "note": "Schema files are owned by Wave 2 Agent A3 (PR-4). References here are forward declarations; harness lint will assert existence."
+    "note": "Only schema files that actually exist on disk are listed. The 6 forward-declared evidence/finding schemas (appsec-finding / appsec-evidence / qa-evidence / uiux-evidence / discoverability-evidence / gate-result) from the 2026-05-25 draft were never created and were removed 2026-06-10. tests/harness/file-existence.test.js asserts every path-valued field in this schemas block exists. Note: a per-channel L12 gate schema lives at templates/discoverability/gate-result.schema.yaml (project-scoped), not under schemas/."
   },
 
   "handoff_schemas": {

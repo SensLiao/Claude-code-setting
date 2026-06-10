@@ -9,7 +9,8 @@
 >   ~/.claude/hooks/appsec-preview-gate.js \
 >   ~/.claude/orchestrator-runtime/shared/validate-spec.js \
 >   ~/.claude/orchestrator-runtime/shared/orchestrator-spec.v1.json \
->   ~/.claude/orchestrator-runtime/appsec/ops.manifest.json
+>   ~/.claude/orchestrator-runtime/appsec/ops.manifest.json \
+>   ~/.claude/orchestrator-runtime/appsec/registry.json
 > ```
 >
 > All entries below are SHA-256 (hex, lowercase). Sizes in bytes.
@@ -18,12 +19,12 @@
 
 | File | SHA-256 | Bytes | Last review | Date |
 |---|---|---|---|---|
-| `workflows/appsec-orchestrator.js` | `875ab62d0c6d2e325631beebc20e19ad028437994ce3910402ba011eac7a9460` | 26158 | §1.11 #2 (pickModel + resolved_model + model_policy_version in hashNode) | 2026-05-28 |
-| `hooks/appsec-preview-gate.js` | `38229f565c533544ee808d0365abdead2c0ea41b4a8f44cb35bae4a5134ce894` | 8657 | §1.11 #3 (SHA-256 spec_hash + backward-compat djb2 acceptance) | 2026-05-28 |
-| `orchestrator-runtime/shared/validate-spec.js` | `132c8bc4fc335f7586028ebe352d4108af8a64e84cbc994a4e2bf167c0a8a78f` | 19188 | Cross-review Item F (versioned literal) | 2026-05-28 |
-| `orchestrator-runtime/shared/orchestrator-spec.v1.json` | `548c7c7762a5566c168d0da67b97c3f8820ae46e25fea47edfe4a4abb02c6b53` | 7050 | §1.11 #2 (resolved_model + model_policy_version fields) | 2026-05-28 |
+| `workflows/appsec-orchestrator.js` | `3ca5944593c0a0ccde3abce3192ed7464ee9993f3a62a4b0c82ebcf6fe53abd1` | 30333 | runtime-appsec #1/#2/#3 (fanout string-item normalize + state_summary_json persist render + seeded_state channel for incident-response). hashNode/stableStringify/djb2 UNCHANGED → resume fingerprints stable. | 2026-06-10 |
+| `hooks/appsec-preview-gate.js` | `8b7a84ea10dc8b934d23614439dd00dc3b108c37aa56a7a2820d4f65d65d2c49` | 10078 | 2026-06-10 morning audit remediation (sign-off phrase fix + hardening); reconciled at round-2 final verification | 2026-06-10 |
+| `orchestrator-runtime/shared/validate-spec.js` | `32a3b7f4a7a3215aecad914fc4a3aa14b1337577679cb246c88e32f99557d09a` | 22705 | sdk-shared#1: structural fallback allow-lists now schema-derived from orchestrator-spec.v1.json (13/13 shipped presets pass fallback; strictness retained) | 2026-06-10 |
+| `orchestrator-runtime/shared/orchestrator-spec.v1.json` | `a474f52a697652e503a0f8575f9e0e0327ac715bf9725d399302cd00af6fcdd6` | 15464 | 2026-06-10 morning audit remediation; reconciled at round-2 final verification | 2026-06-10 |
 | `orchestrator-runtime/appsec/ops.manifest.json` | `cf0cf873fad3babbbac053c7cb555dc1177dbc9cc01d0770700b06c433602764` | 2459 | Round 3 ACCEPT | 2026-05-28 |
-| `orchestrator-runtime/appsec/registry.json` | `fc5530bb7dcfb9ca8c495bfc620d17e4bd5b13313d8e2866c5e6e00fec8e5ac4` | 8701 | §1.11 #8 (hook classification + version triplet) | 2026-05-28 |
+| `orchestrator-runtime/appsec/registry.json` | `7f31228d2761240cbd8b9f27293b84e077e315b71d5f0a125a1bbf836e3bda16` | 10153 | 2026-06-10 morning audit remediation (hook classification refresh); reconciled at round-2 final verification | 2026-06-10 |
 
 ## Drift detection workflow
 

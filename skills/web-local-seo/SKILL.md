@@ -602,10 +602,10 @@ Warn-only 不阻断 release，但 evidence 必须记录。
 ```bash
 pnpm discoverability:audit:geo \
   --config discoverability.config.yaml \
-  --out evidence/discoverability/geo
+  --out "evidence/discoverability/$TAG/raw"
 ```
 
-> CLI 子命令路径 `discoverability:audit:geo` 与 evidence 目录 `evidence/discoverability/geo/` 保持与 `discoverability.config.yaml` template 一致（template 的 `quality_gates.geo.*` / `channels.geo` 等字段历史命名沿用）。本 skill 改名为 `web-local-seo` 不连带改 config schema，避免破坏已有 project 的 audit pipeline。
+> **路径约定（v1.2 harness）**：CLI 子命令名 `discoverability:audit:geo` 与 config 字段 `quality_gates.geo.*` / `channels.geo` 是 **config 端历史命名**，保留以免破坏已有 project pipeline（本 skill 改名 `web-local-seo` 不连带改 config schema）。但 **evidence 端是 canonical channel key `local`**：raw 脚本产物写 tag-scoped `evidence/discoverability/<tag>/raw/`，经 `discoverability-sdk evidence.append <tag> local <file>` 归一化进 `evidence/discoverability/<tag>/local.json`。**禁止**写 flat `evidence/discoverability/geo/`（无 `<tag>` + `geo` 是 forbidden evidence 文件名 / 目录名；canonical channel = `local`）。下例用 shell 变量 `TAG` 占位。
 
 ### 13.2 子命令拆分（按需调用）
 
@@ -656,9 +656,9 @@ evidence 输出必须标 `audit_mode: auto | manual | pending`，不要假装人
 
 ## 14. Evidence 输出
 
-`evidence/discoverability/geo/` 目录：
+归一化后的 channel evidence 落 `evidence/discoverability/<tag>/local.json`（canonical channel key `local`，由 `discoverability-sdk evidence.append <tag> local <file>` 写入，schema 见 harness contract §4）。下表 raw 脚本产物落同一 tag 的 `raw/` 工作目录，被 `local.json` 的 `findings[].evidence_path` 反查引用：
 
-| 文件 | 内容 |
+| raw 文件（在 `<tag>/raw/` 下） | 内容 |
 |---|---|
 | `business-profile-eligibility.json` | 业务类型 / 地址性质 / 接触模式 / eligibility verdict |
 | `business-profile-completeness.json` | 每个字段的 present / missing + completeness score |
@@ -667,7 +667,8 @@ evidence 输出必须标 `audit_mode: auto | manual | pending`，不要假装人
 | `service-area-pages.json` | 每 service area page 的 URL / unique word count / boilerplate ratio / 本地化信号数 / verdict |
 | `reviews.json` | review 数量 / 平均分 / 业主回复率 / 回复时效 / 异常模式 |
 | `maps-presence.json` | Google / Apple / Bing / 行业目录 listing 状态（present / missing / NAP-conflict / not-audited） |
-| `summary.json` | blockers / warns / overall verdict（ready / blocker_present / warn_only） |
+
+> **禁止** flat `evidence/discoverability/geo/`（无 `<tag>` + `geo` 是 forbidden evidence 文件名 / 目录名）、自产 `summary.json` / `gate-result.json`。blocker / warn / overall verdict 的聚合由 `discoverability-sdk gate.check` 写 `<tag>/gate-result.yaml`，narrow skill 不自产顶层 summary。
 
 ### 14.1 evidence schema 关键字段
 
@@ -777,7 +778,7 @@ evidence 输出必须标 `audit_mode: auto | manual | pending`，不要假装人
 | 项目是 pure SaaS / 全球分发 / online-only | 不激活 |
 | 项目是个人 blog / 作品集 | 不激活 |
 
-本 skill 输出的 evidence 会被 `discoverability-orchestrator` 聚合到顶层 `evidence/discoverability/summary.json`，作为 release readiness 的一部分。
+本 skill 输出的 channel evidence（`evidence/discoverability/<tag>/local.json`）会被 `discoverability-orchestrator` 经 `discoverability-sdk gate.check` 聚合进 `evidence/discoverability/<tag>/gate-result.yaml`，作为 release readiness 的一部分（顶层无 `summary.json` 这种文件）。
 
 ---
 
@@ -814,5 +815,5 @@ evidence 输出必须标 `audit_mode: auto | manual | pending`，不要假装人
 
 ## 21. Changelog
 
-- **2026-05-25 v1.1.0**: 改名 `web-geo` → `web-local-seo`（行业 2025-2026 把 "GEO" 100% 等同 Generative Engine Optimization，原名歧义严重）。frontmatter 补齐 15 字段（canonical_id / aliases / parent / layer / sibling-skills / children / upstream / downstream / forbidden-tools / disable-model-invocation），与 `app-aso` 同构。删除/合并 6 处冗余 GEO 命名澄清章节，合并为 §0 单 callout。quality_gates 字段映射补 3 项（require_localbusiness_subtype_specific / min_service_area_page_unique_words / min_owner_review_response_rate）。CLI 命令路径 `discoverability:audit:geo` 与 evidence 目录 `evidence/discoverability/geo/` 保留原名以避免破坏已有 project 的 audit pipeline（见 §13.1 说明）。
+- **2026-05-25 v1.1.0**: 改名 `web-geo` → `web-local-seo`（行业 2025-2026 把 "GEO" 100% 等同 Generative Engine Optimization，原名歧义严重）。frontmatter 补齐 15 字段（canonical_id / aliases / parent / layer / sibling-skills / children / upstream / downstream / forbidden-tools / disable-model-invocation），与 `app-aso` 同构。删除/合并 6 处冗余 GEO 命名澄清章节，合并为 §0 单 callout。quality_gates 字段映射补 3 项（require_localbusiness_subtype_specific / min_service_area_page_unique_words / min_owner_review_response_rate）。CLI 命令路径 `discoverability:audit:geo` 与 config 字段 `channels.geo` / `quality_gates.geo.*` 保留 config 端历史命名以避免破坏已有 project 的 audit pipeline（见 §13.1 说明）。注：自 v1.2 harness 起 **evidence 端** canonical channel key 为 `local`，evidence path 为 `evidence/discoverability/<tag>/local.json`（不再用 flat `evidence/discoverability/geo/`，见 §14 / §20）。
 - **2026-05-25 v1.0.0**: Initial release（原 `web-geo`）。建立 Geographic / Local SEO 命名约定；定义 4 个 L12 narrow skill 边界；产出 Business Profile eligibility / completeness / NAP / schema / service area pages / reviews / maps presence 七个 audit 维度；定义 6 个 BLOCKER + 9 个 WARN；明确自动化覆盖率边界与 evidence schema。

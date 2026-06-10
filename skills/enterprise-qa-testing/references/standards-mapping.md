@@ -11,7 +11,7 @@
 | **Test Pyramid (Fowler)** | unit/component/integration/E2E balance → §3+§4；fast feedback → §7 PR fast lane；broad-stack reserved → §3 High/Critical |
 | **Testing Library** | user-observable behavior over implementation details → §2 Hard Rule 4 + §14 |
 | **Playwright** | retries / traces / CI report artifacts → §4 Layer 6/7 + §7 + `qa-flaky-governance` + `qa-visual-regression` |
-| **Vitest** | reporters / json / junit / coverage → §4 Layer 2-4 + §6 Step 6/7 + `qa-evidence-bundle` |
+| **Vitest** | reporters / json / junit / coverage → §4 Layer 2-4 + §6 Step 5 (dispatch `qa-component-behavior`) + `qa-evidence-bundle` |
 | **Lighthouse CI** | persistent run / save / assert → §4 Layer 9 + `qa-performance-reliability` |
 | **WCAG 2.2** | a11y compliance → `qa-a11y-compliance` |
 | **OWASP ASVS / ZAP baseline** | security controls verification → `appsec-security-orchestrator`（§12 handoff） |

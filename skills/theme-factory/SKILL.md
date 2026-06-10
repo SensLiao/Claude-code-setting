@@ -25,6 +25,10 @@ To apply styling to a slide deck or other artifact:
 3. **Wait for selection**: Get explicit confirmation about the chosen theme
 4. **Apply the theme**: Once a theme has been chosen, apply the selected theme's colors and fonts to the deck/artifact
 
+## Font Sourcing Note (premium local fonts)
+
+When applying a theme's font pairing, **prefer the local premium fonts** bundled at `~/.claude/skills/canvas-design/canvas-fonts/` over generic system fallbacks (FreeSans / DejaVu / Liberation). Available families there include **Cormorant, CrimsonPro, IBMPlexSerif, Instrument Sans/Serif, JetBrains Mono, Geist Mono, Outfit, WorkSans, Bricolage Grotesque** (and more). Map each theme's intended header/body roles to the closest local family — e.g. an editorial serif → Cormorant / CrimsonPro / IBMPlexSerif, a clean sans → Outfit / WorkSans / Instrument Sans, a mono → JetBrains Mono / Geist Mono. This is a sourcing preference only; it does not change the themes' colors, identities, or the selection flow above.
+
 ## Themes Available
 
 The following 10 themes are available, each showcased in `theme-showcase.pdf`:

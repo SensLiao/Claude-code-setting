@@ -16,14 +16,13 @@
 # Net effect: when git-cmd.js is missing AND hooks.community=true is enabled,
 # this hook silently passes ALL commits without validating them.
 #
-# Status check (run once after setup):
-#   ls "$(dirname "$0")/lib/git-cmd.js" || echo "GATE BROKEN: see V403-CHANGES.md"
-#
-# Current expected state on this machine: hooks/lib/ does not exist; this hook
-# is INACTIVE for projects without hooks.community=true. Recommended path for
-# users opting in: file upstream gsd bug, OR inline the isGitSubcommand logic
-# (delete the if-block at line 29-32 and replace with a regex-based check
-# `if echo "$CMD" | grep -qE '^(env [^ ]+ )?git( -[^ ]+ [^ ]+)* commit'; then`).
+# ── 2026-06-10 (hooks-B#3 FIX): hooks/lib/git-cmd.js is now VENDORED in this repo,
+# so the gate actively classifies commits again (no longer a silent no-op when
+# hooks.community=true). The defensive `2>/dev/null` is RETAINED on purpose: if the
+# lib is ever deleted, the hook degrades to fail-open (passes commits) rather than
+# breaking every Bash call — the line below makes that degradation explicit instead
+# of silent. Status check (run once after setup):
+#   ls "$(dirname "$0")/lib/git-cmd.js" && echo "gate active" || echo "GATE DEGRADED (fail-open): hooks/lib/git-cmd.js missing"
 
 # Check opt-in config — exit silently if not enabled
 if [ -f .planning/config.json ]; then
@@ -43,6 +42,14 @@ CMD=$(echo "$INPUT" | node -e "let d='';process.stdin.on('data',c=>d+=c);process
 # classifier that handles env-prefix, -C path, and full-path git invocations.
 # A naive `^git\s+commit` regex misses all three; this guard fixes that (#3129).
 HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Make a missing classifier lib a VISIBLE downgrade, not a silent pass (hooks-B#3).
+# Only warns when opt-in is on (we already exited above otherwise), so non-opt-in
+# projects stay quiet. The hook then fails open (passes the commit) rather than
+# breaking every Bash call — but now you can see it happened.
+if [ ! -f "$HOOK_DIR/lib/git-cmd.js" ]; then
+  echo "[gsd-validate-commit] WARN: hooks/lib/git-cmd.js missing — Conventional Commits gate DEGRADED (passing commit unchecked)." >&2
+  exit 0
+fi
 if GIT_CMD_LIB="$HOOK_DIR/lib/git-cmd.js" node -e "
   const {isGitSubcommand}=require(process.env.GIT_CMD_LIB);
   process.exit(isGitSubcommand(process.argv[1],'commit')?0:1);

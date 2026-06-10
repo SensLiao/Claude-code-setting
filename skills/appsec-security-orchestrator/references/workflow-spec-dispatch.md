@@ -1,4 +1,4 @@
-<!-- CONTRACT-SENTINEL: appsec.workflow-spec-dispatch.v2026-05-29 -->
+<!-- CONTRACT-SENTINEL: appsec.workflow-spec-dispatch.v2026-06-10 -->
 
 # Relocated from appsec-security-orchestrator/SKILL.md — §16.10.2..16.10.6 workflow-spec operational elaboration
 
@@ -32,7 +32,7 @@ recall_metric:{minimum_acceptable:0}}`, `previous_results={}`.
 - Pick a preset matching `.appsec/config.json.{asvs_level, overlays, lifecycle_stage}`
 - Inline prompt bodies (`prompts/<ref>.md`) into `spec.prompts[<ref>]`
 - Inline schema bodies (`schemas/<REF>.json`) into `spec.schemas[<REF>]`
-- Build `ctx.finders` from §16.1 classifier output — DO NOT pass all 11 blindly
+- Build `ctx.finders` from §16.1 classifier output — DO NOT pass the full finder set blindly (always-on base + only the overlay finders the classifier actually selected; see step 5)
 - Build `oracle` from `.appsec/findings/<historical-tag>/` if exists; else empty
 - Build `previous_results` from `.appsec/evidence/<tag>/workflow-state/*.yaml` if exists
 - **Schema constraint** (P0 Step 2A finding, 2026-05-28): every inlined
@@ -151,10 +151,10 @@ tag will fail because `workflow-state` snapshot was never written.
   unavailable → §16.4–§16.9 prompt-only path unchanged.
 - v1.x / v2.x `.appsec/config.json` (no `execution_mode` field): default
   prompt-only — safer.
-- **workflow-static** (legacy `appsec-full-sweep.js`): 30-day deprecation window
-  starting at default-mode-switch in P2 (§16.12). After window, the file is
-  deleted in P3 and `execution_mode == "workflow-static"` becomes equivalent to
-  prompt-only with a log line.
+- **workflow-static** (legacy `appsec-full-sweep.js`): **DELETED 2026-06-10**
+  (deprecation done). `execution_mode == "workflow-static"` now falls back to
+  prompt-only with a log line; the canonical gate executor is
+  `appsec-orchestrator.js`.
 - §18 hooks fire identically in all three modes — they gate `.appsec/findings/`
   and `.appsec/evidence/` paths, not the dispatch surface. Plus the new
   `appsec-preview-gate.js` (§16.13) which only fires on `tool_name=="Workflow"`
@@ -166,7 +166,7 @@ tag will fail because `workflow-state` snapshot was never written.
 
 | Failure | Behavior | Recovery |
 |---|---|---|
-| `CLAUDE_CODE_WORKFLOWS` unset / Windows no `DISABLE_TELEMETRY` | Silent fallback §16.4–§16.9 | Set env vars and re-run if Workflow desired |
+| `CLAUDE_CODE_WORKFLOWS` unset / Windows no `DISABLE_TELEMETRY` | **Conditional (§16.0 correction #4)**: if `execution_mode` absent/`prompt-only` → silent fallback §16.4–§16.9. If `execution_mode == "workflow-spec"` (user explicitly asked) → do NOT silently downgrade — **ASK** the user (`fallback` vs `abort`) per §16.0 before falling back. | Set env vars and re-run if Workflow desired |
 | `validate-spec.js` exits 2 (spec invalid) | Skill aborts BEFORE Workflow launch — 0 token cost | Fix preset / Skill builder, re-run |
 | Spec validation passes but Workflow body throws (e.g. missing prompt body in spec.prompts) | Workflow tool reports error to Skill main thread | Cross-check `validate-spec.js` inline-ref coverage; fix Skill inliner |
 | Preview gate hook (§16.13) blocks (no sentinel / expired / hash mismatch) | exit 2, Workflow does NOT launch | Re-render preview, get explicit approval |
@@ -214,7 +214,7 @@ executes this 14-step authoring contract BEFORE any `Workflow()` call.
       schemas:  ~/.claude/orchestrator-runtime/appsec/schemas/<REF>.json
     Missing file = hard fail (do NOT silently skip).
 
- 5. Build ctx.finders from §16.1 classifier output (do NOT blindly pass all 11):
+ 5. Build ctx.finders from §16.1 classifier output (do NOT blindly pass the full finder set — base + only classifier-selected overlays):
     - Always include: sca, secret-scan, sast (if codebase), code-review, headers-cookies
     - Conditionally include per .appsec/state.json.overlays[]:
         mobile        → security-app-mobile
@@ -222,8 +222,10 @@ executes this 14-step authoring contract BEFORE any `Workflow()` call.
         multitenant   → security-app-multitenant
         websocket     → security-app-websocket
         file_upload   → security-app-file-upload
+        api           → security-app-api
         payment       → security-compliance-payment
         cn_data       → security-compliance-cn-data
+        privacy       → security-compliance-privacy
     - Schema per finder: {key, sub_skill, csf:[Govern|Identify|Protect|Detect|Respond|Recover], oracle_hints:[]}
 
  6. Build oracle from .appsec/findings/<historical-tag>/*.yaml (most-recent prior tag):
@@ -341,33 +343,33 @@ executes this 14-step authoring contract BEFORE any `Workflow()` call.
 
 # Relocated from appsec-security-orchestrator/SKILL.md — §16.12 Static to Spec Migration
 
-### §16.12 Static → Spec Migration（30-day window）
+### §16.12 Static → Spec Migration（DONE — legacy file removed 2026-06-10）
 
-`workflow-static` mode (legacy `~/.claude/workflows/appsec-full-sweep.js`) is
-DEPRECATED as of 2026-05-28. Migration timeline:
+`workflow-static` mode (legacy `~/.claude/workflows/appsec-full-sweep.js`) was
+DEPRECATED 2026-05-28 and **DELETED 2026-06-10**. The canonical gate executor is
+now `appsec-orchestrator.js`. Migration timeline (historical):
 
 | Phase | Date | Default mode | Legacy file | Action |
 |---|---|---|---|---|
-| **P0 (now)** | 2026-05-28 | `prompt-only` | exists, working | Build workflow-spec engine + presets + tests (this file) |
-| **P0 Step 2** | TBD (~+1 week, user approval) | `prompt-only` | exists | Smoke test l2-default preset live (~2.4M tokens) |
-| **P1** | TBD (~+2 weeks, user approval) | `prompt-only` | exists | Oracle compare 3-5 historical tags v2-static vs v1-spec (~24M tokens, expensive — explicit user budget required) |
+| **P0** | 2026-05-28 | `prompt-only` | exists, working | Build workflow-spec engine + presets + tests (this file) |
+| **P0 Step 2** | ~+1 week | `prompt-only` | exists | Smoke test l2-default preset live (~2.4M tokens) |
+| **P1** | ~+2 weeks | `prompt-only` | exists | Oracle compare 3-5 historical tags v2-static vs v1-spec (~24M tokens, expensive — explicit user budget required) |
 | **P2** | After P1 100% Gate-agreement | recommended `workflow-spec` | exists, marked DEPRECATED | Update §16.10.1 to recommend `workflow-spec`; default still `prompt-only` for fresh projects |
-| **P3** | P2 + 30 days, no fallback complaints | recommended `workflow-spec` | DELETED | Remove `~/.claude/workflows/appsec-full-sweep.js`, archive this section to references/ |
+| **P3** | **2026-06-10 (done)** | recommended `workflow-spec` | **DELETED** | `appsec-full-sweep.js` removed; `execution_mode == "workflow-static"` → prompt-only fallback with a log line |
 
-Migration path for a project currently using `execution_mode == "workflow-static"`:
+Migration path for a project still pinned to `execution_mode == "workflow-static"`:
 
-1. Verify `~/.claude/workflows/appsec-orchestrator.js` exists (P0 done).
+1. Verify `~/.claude/workflows/appsec-orchestrator.js` exists.
 2. Pick the closest preset (likely `l2-default.json`).
 3. Compare your current finder set vs preset's expected `ctx.finders` — adjust Skill builder.
 4. Change `.appsec/config.json.execution_mode` to `"workflow-spec"`.
-5. Run once. Compare evidence layers + gate decision vs prior `workflow-static` run.
-6. If gate decision matches → cutover complete. If not → file an issue, stay on `workflow-static`.
+5. Run once. Compare evidence layers + gate decision vs the canonical `appsec-orchestrator.js` run.
+6. If gate decision matches → cutover complete.
 
-Compatibility shim during migration: if `execution_mode == "workflow-static"`
-AND `~/.claude/workflows/appsec-full-sweep.js` exists → use it. If file deleted
-(P3) → log "workflow-static legacy file removed; falling back to prompt-only.
-Consider migration to workflow-spec per SKILL.md §16.12." and continue
-prompt-only.
+Post-deletion behavior: if `execution_mode == "workflow-static"`, the legacy file
+no longer exists → log "workflow-static legacy file removed; falling back to
+prompt-only. Consider migration to workflow-spec per SKILL.md §16.12." and
+continue prompt-only.
 
 
 ---

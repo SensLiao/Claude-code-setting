@@ -79,12 +79,14 @@ description: >
 - `source`: 完整 enum 见 orchestrator §9（含 sast / dast / sca / secret_scan / manual_review / pentest / external_disclosure / threat_model / iac_scan / container_scan / cloud_posture / secrets_engineering）
 - `asvs_mapping: [v5.0.0-<chapter>.<sub>]` — version-pinned，例：`v5.0.0-6.2.1`
 - `csf_function: GV | ID | PR | DE | RS | RC`
-- `severity / confidence / computed_risk`
+- `severity / confidence / computed_risk` — schema field values 是 lower-case（`critical|high|medium|low`）；UPPER-case 仅用于 human-display
 - `verification_status: pending | red_confirmed | fix_applied | green_confirmed | regression_in_ci`
 - `test_commands: [...]`
 - `risk_acceptance: { approver, approval_date, compensating_controls, review_date }`（仅 status: accepted）
 
 详见 [appsec-security-orchestrator §9](../appsec-security-orchestrator/SKILL.md#9-standardized-finding-schema)。
+
+> **v3.0 evidence sink**: machine-readable findings MUST be written via `appsec-sdk finding.add` (schema-validated against orchestrator §9, redacted first). Direct Write to `.appsec/findings/**` is blocked by the PreToolUse hook. The markdown report (vuln-report.md / SECURITY.md section) is the human-rendered view only.
 
 不符合 schema 的 finding 输入 → 本 skill 先用 normalize step 转格式（填默认值 + 推导 csf_function），再走 §3 workflow。绝不丢字段，绝不创建本 skill 私有的 schema 变体。
 
@@ -94,11 +96,16 @@ description: >
 
 ```
 Step 1 — 解析 finding
-          severity / location / category / CWE / CVSS（如有）
+          severity / location / category / CWE
+          CVSS 是 optional，不是 schema 字段；schema 的 risk 字段是
+          computed_risk / exploit_likelihood / business_impact
 
 Step 2 — 评估修复方案（四选一）
           Fix      → 修代码，本 skill 负责
           Accept   → 记录接受风险，更新 SECURITY.md，结束
+                     必须捕获 risk_acceptance{approver, approval_date,
+                     compensating_controls, review_date} 并设 status: accepted
+                     （orchestrator gate 要求这些字段才给 CONDITIONAL_PASS）
           Mitigate → 添加控制措施降低风险，非根因修复
           Transfer → 转给第三方（vendor / library upstream）
 

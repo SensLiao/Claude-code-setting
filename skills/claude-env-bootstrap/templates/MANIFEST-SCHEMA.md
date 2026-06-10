@@ -29,7 +29,7 @@
   "skills": [
     {
       "name": "sens-frontend-design",
-      "source_path": "C:/Users/<user>/.claude/skills/sens-frontend-design",
+      "source_path": "~/.claude/skills/sens-frontend-design",
       "target_path": ".claude/skills/sens-frontend-design",
       "global_version_at_install": "1.0.0",
       "global_version_at_last_update": "1.0.0",
@@ -42,7 +42,7 @@
     },
     {
       "name": "ux-principles",
-      "source_path": "C:/Users/<user>/.claude/skills/ux-principles",
+      "source_path": "~/.claude/skills/ux-principles",
       "target_path": ".claude/skills/ux-principles",
       "global_version_at_install": "1.x.x",
       "global_version_at_last_update": "1.x.x",
@@ -55,7 +55,7 @@
     },
     {
       "name": "gsd-new-project",
-      "source_path": "C:/Users/<user>/.claude/skills/gsd-new-project",
+      "source_path": "~/.claude/skills/gsd-new-project",
       "target_path": ".claude/skills/gsd-new-project",
       "global_version_at_install": "n/a",
       "global_version_at_last_update": "n/a",

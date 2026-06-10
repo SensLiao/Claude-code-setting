@@ -1,1 +1,0 @@
-# TODO: creative-eye archetype

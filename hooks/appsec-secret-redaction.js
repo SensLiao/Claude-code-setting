@@ -5,7 +5,7 @@
 
 'use strict';
 
-const { readInputSafe, preflight, detectSecrets, emitStopBlock } = require('./_appsec-common.js');
+const { readInputSafe, preflight, detectSecrets, readLastAssistantText, emitStopBlock } = require('./_appsec-common.js');
 
 // ★ P7 fix (Tier 1 #1): JSON.parse failure must NOT silently fall through.
 // Stop-hook fail-closed: emitStopBlock + exit 0 per SKILL.md §18.0 Stop block contract.
@@ -28,21 +28,14 @@ if (pre.mode === 'fail-closed') {
   process.exit(0);
 }
 
-// Scan last assistant message + any transcript-derived field we can see.
+// Scan the final assistant turn. On current Claude Code the Stop payload omits the
+// message text inline, so readLastAssistantText falls back to the transcript_path JSONL
+// tail — this is what lets the last-line defense actually see what the model said.
 const candidates = [];
-if (typeof input.last_assistant_message === 'string') candidates.push(input.last_assistant_message);
-if (typeof input.assistant_message === 'string') candidates.push(input.assistant_message);
-if (Array.isArray(input.messages)) {
-  for (const m of input.messages) {
-    if (m && typeof m.content === 'string') candidates.push(m.content);
-    if (m && Array.isArray(m.content)) {
-      for (const c of m.content) {
-        if (c && typeof c.text === 'string') candidates.push(c.text);
-      }
-    }
-  }
-}
-// As a fallback, dump entire raw input
+const finalText = readLastAssistantText(input, 256);
+if (finalText) candidates.push(finalText);
+// Defense-in-depth: also serialize the raw payload (catches secrets that leaked into
+// hook metadata even when transcript reading fails).
 candidates.push(JSON.stringify(input));
 
 const allHits = [];

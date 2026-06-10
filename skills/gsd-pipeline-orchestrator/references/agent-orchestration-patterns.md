@@ -141,7 +141,7 @@ All in one message for parallel execution.
 ```
 /santa-loop
   ├─ reviewer A (e.g., opus + code-reviewer agent)
-  └─ reviewer B (e.g., codex-dispatch → GPT-5.4)
+  └─ reviewer B (e.g., Codex official plugin → /codex:adversarial-review)
 
 Both must return APPROVE. If either returns CHANGES_REQUESTED → fix → re-review.
 Converge before /gsd-ship.
@@ -184,11 +184,12 @@ Converge before /gsd-ship.
 
 **Shape:**
 ```
-Skill("codex-dispatch", args="<task description with explicit IO contract>")
-  → Codex CLI executes (GPT-5.4)
+/codex:rescue "<task description with explicit IO contract>"  (--model / --effort / --background)
+  → Codex official plugin (codex@openai-codex) executes
   → Returns structured result
   → Falls back to Claude subagent if Codex quota is out
 ```
+(Cross-model review instead of execution → `/codex:review` or `/codex:adversarial-review`.)
 
 **Composition with other patterns:**
 - Pattern 6 santa-loop can use Codex as reviewer B

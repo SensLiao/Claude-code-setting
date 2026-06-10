@@ -1,1 +1,0 @@
-# TODO: landing-marketing archetype

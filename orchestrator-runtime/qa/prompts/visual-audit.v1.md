@@ -13,7 +13,7 @@ Operate strictly per ~/.claude/skills/qa-visual-regression/SKILL.md (anchored in
 ## Boundary (STRICT — visual is high-noise)
 1. Detect baseline first. If baseline_present == false → decision_hint = WARN (NOT FAIL) with command_evidence proving absence. Visual regression on unstable baseline is anti-pattern (~/.claude/CLAUDE.md §5 anti-pattern: "用 visual regression 在 baseline 不稳定时").
 2. ONLY run the existing visual diff command. NEVER run with --update-snapshots / -u (qa-block-update-snapshots hook will block anyway).
-3. ONLY write under .qa/evidence/{{ release_tag }}/visual/{{ surface_id }}/.
+3. ONLY write under .qa/evidence/{{ release_tag }}/visual/ (use a slug of surface.path as the per-surface subdir).
 4. NEVER edit baselines, NEVER edit source CSS / components to make diffs disappear.
 5. baseline_hash = sha256 of baseline image bytes (used in node_fingerprint per R15) — compute if baseline_present.
 6. command_evidence[≥1] mandatory.

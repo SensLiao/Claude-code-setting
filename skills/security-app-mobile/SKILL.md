@@ -113,7 +113,7 @@ trigger_phrases:
 ```
 Step 1  Project type detection
         → iOS / Android / cross-platform？
-        → MASVS Level 决定（L1 / L2 / L2+R）
+        → Pick Review Depth profile (Default / Enhanced / Enhanced+Resilience) per §3
 
 Step 2  Threat surface inventory
         → 列 entry points: launcher, deep links, IPC receivers, share extensions, widgets, watch apps, notifications
@@ -187,7 +187,7 @@ Step 9.5 MASVS-PRIVACY review（处理 PII / sensitive data 必检）
           - Android Data Safety form 与实际行为一致（不 aspirational）
           - Android scoped storage + 敏感权限 (READ_PHONE_STATE / READ_CONTACTS / location) 必须 justify
         → 用户控制：opt-out 机制易用、export 数据、delete 账号
-        → 与 operations.privacy + compliance.cn_data + compliance.payment 协作
+        → 与 orchestrator §5.4 privacy capability + compliance.cn_data + compliance.payment 协作
 
 Step 10 Platform-specific compliance
         → iOS:
@@ -204,7 +204,7 @@ Step 10 Platform-specific compliance
 Step 11 输出 + 路由
         → Findings → security-remediation
         → Secret storage 高危 → security-platform-secrets
-        → Privacy issues → operations.privacy + 合规 (cn_data 如有)
+        → Privacy issues → orchestrator §5.4 privacy capability + 合规 (cn_data 如有)
         → 更新 SECURITY.md mobile-specific section
         → 写到 AppSec Release Evidence §12 叠加层
 ```
@@ -269,7 +269,8 @@ Step 11 输出 + 路由
 
 1. Review Depth profile（Default / Enhanced / Enhanced+Resilience）+ 决定 rationale + 对应 MAS Testing Profile
 2. **8 control group** coverage matrix（每个 group 通过 / 部分 / 未覆盖 + evidence）— STORAGE / CRYPTO / AUTH / NETWORK / PLATFORM / CODE / RESILIENCE / **PRIVACY**
-3. Findings 列表（按 §3 schema → security-remediation）
+3. Findings 列表（per orchestrator §9 Standardized Finding Schema → security-remediation）
+   - ASVS refs in emitted findings must use the versioned `v5.0.0-<chapter>.<section>.<req>` form (the chapter labels in this skill are for scoping only).
 4. iOS/Android specific issues 分组
 5. Privacy compliance status（iOS Privacy Manifest / Android Data Safety）
 6. Third-party SDK inventory + audit status

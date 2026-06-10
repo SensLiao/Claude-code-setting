@@ -24,7 +24,7 @@
  *     "run_id": "release-2026.05-rc3",
  *     "spec_hash": "sha256:...",          // canonical sha256
  *     "preview_hash": "sha256:...",
- *     "mode": "commercial-cert",          // ∈ {quick-check, focused-qa-gate, release-readiness, commercial-cert}
+ *     "mode": "commercial-cert",          // ∈ {quick-check, focused-qa-gate, release-readiness, commercial-cert, smoke, graph-smoke}
  *     "approved_at": "2026-05-29T03:14:15.000Z",
  *     "approval_text": "approved",
  *     "ttl_seconds": 300,
@@ -42,7 +42,10 @@ const DEFAULT_TTL_SECONDS = 300
 const ABSOLUTE_MAX_TTL    = 3600
 const ABSOLUTE_MIN_TTL    = 30
 
-const QA_MODES = ['quick-check', 'focused-qa-gate', 'release-readiness', 'commercial-cert']
+// sdk-bash#1: keep in lockstep with qa-sdk.sh cmd_sentinel_write mode case (6 modes). smoke /
+// graph-smoke are internal harness presets launched via the same Workflow tool, so their
+// sentinels must pass this gate too — omitting them made every internal smoke launch self-reject.
+const QA_MODES = ['quick-check', 'focused-qa-gate', 'release-readiness', 'commercial-cert', 'smoke', 'graph-smoke']
 const COMMERCIAL_CERT_APPROVAL_PATTERNS = [
   /\b(approved|approve)\b/i,
   /批准|确认|同意/,

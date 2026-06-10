@@ -176,7 +176,7 @@ L12 v1.2 引入 GSD-lite execution harness（详 `~/.claude/templates/discoverab
 | 层 | 组件 | 位置 |
 |---|---|---|
 | Orchestrator | 本 skill (self-dispatch) | `~/.claude/skills/discoverability-orchestrator/SKILL.md` |
-| SDK | `discoverability-sdk.py` (10 commands) | `~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py` 或项目 `scripts/discoverability-sdk.py` |
+| SDK | `discoverability-sdk.py` (10 commands) | `~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py`（**全局单一位置**；canonical 安装链不复制进项目，统一以 `--project-root .` 指向项目）|
 | Agents | disc-scope-classifier / disc-evidence-validator / disc-remediation-planner | `~/.claude/agents/` 或项目 `.claude/agents/` |
 | Hooks | 5 个 disc-* hooks + _disc-common.js | 项目 `.claude/hooks/` (template 在 `~/.claude/templates/discoverability/hooks/`) |
 | State | `.discoverability/state.json` + `runs/<tag>/` | project root |
@@ -216,7 +216,7 @@ Config 端 key 名（`aeo` / `geo`）保留是 contract 兼容性；orchestrator
 | `content_site`（blog / 媒体 / 公开文章） | required | required | disabled | disabled |
 | `ecommerce`（商品 + 购物车） | required | optional | conditional_local | disabled |
 | `local_service`（实体服务 / 门店 / 诊所 / 餐厅） | required | optional | **required** | disabled |
-| `b2b_saas_marketing`（marketing site + product docs） | required | required | disabled | disabled |
+| `b2b_saas_marketing`（marketing site + product docs） | required | warn_only | disabled | disabled |
 | `api_with_public_docs`（API 平台 + docs） | required | required | disabled | disabled |
 | `pure_backend_api_no_public_surface` | **disabled** | disabled | disabled | disabled |
 | `mobile_app`（纯 app） | optional (landing page only) | disabled | conditional_local | required |
@@ -265,50 +265,40 @@ vendor_tools:     # 固定 commit 的外部 runner
 
 ## 6. Evidence 输出 contract
 
-所有 narrow skill 的产出必须落到统一目录（`evidence.output_dir` 默认 `evidence/discoverability/`）：
+所有 narrow skill 的产出必须落到统一的 **tag-scoped** 目录（`evidence.output_dir` 默认 `evidence/discoverability/`，下挂 `<tag>` 维度 — 见 §3.5.2）。canonical channel key 是 `seo / ai-search / local / aso`（与 §3.5.3 / §10 / frontmatter 一致）：
 
 ```
 evidence/discoverability/
-├── 00-activation.json          # 哪些 skill 激活 / 为什么 / project.type
-├── seo/                        # owner: web-seo
-│   ├── crawl/                  # sitemap, robots.txt, canonical map
-│   ├── metadata/               # title / description / og / twitter card
-│   ├── structured-data/        # JSON-LD validation
-│   ├── core-web-vitals/        # PSI / lighthouse export
-│   ├── i18n/                   # hreflang map
-│   └── seo-evidence.json       # aggregate
-├── aeo/                        # owner: web-aeo
-│   ├── llms-txt/               # llms.txt content + reachability
-│   ├── crawler-policy/         # GPTBot / OAI-SearchBot / ClaudeBot / etc. allow/disallow
-│   ├── citability/             # answer-ability / schema FAQ / HowTo
-│   ├── content-snapshots/      # key Q&A pages
-│   └── aeo-evidence.json
-├── geo/                        # owner: web-local-seo (config key 仍叫 "geo" 历史原因)
-│   ├── gbp-profile/            # Google Business Profile export
-│   ├── nap-consistency/        # name/address/phone across citations
-│   ├── service-area-map/       # 服务范围
-│   ├── reviews/                # review count / rating
-│   └── geo-evidence.json
-├── aso/                        # owner: app-aso
-│   ├── store-listings/         # title / subtitle / description / keywords
-│   ├── visual-assets/          # icon / screenshots / preview video metadata
-│   ├── localization/           # per-locale listing
-│   ├── reviews-ratings/        # rating distribution
-│   └── aso-evidence.json
-├── gate-result.json            # blocker / warn-only / pass + 失败项
-├── report.md                   # human-readable narrative
-└── report.pdf                  # release-attached PDF（可选）
+└── <tag>/                      # tag 维度（git describe / commit SHA / 显式传入，见 §3.5.2）
+    ├── 00-activation.json      # 哪些 channel 激活 / 为什么 / project.type
+    ├── 00-scope.yaml           # disc-scope-classifier 输出（§10 Step 1）
+    ├── seo.json                # channel: seo        owner: web-seo
+    │                           #   crawl / metadata / structured-data / core-web-vitals / i18n
+    ├── ai-search.json          # channel: ai-search  owner: web-aeo   (config 端别名 aeo)
+    │                           #   llms.txt / crawler-policy / citability / content-snapshots
+    ├── local.json              # channel: local      owner: web-local-seo (config 端别名 geo)
+    │                           #   gbp-profile / nap-consistency / service-area-map / reviews
+    ├── aso.json                # channel: aso        owner: app-aso
+    │                           #   store-listings / visual-assets / localization / reviews-ratings
+    ├── evidence-validation.yaml # disc-evidence-validator 输出（§10 Step 5）
+    ├── remediation-plan.yaml    # disc-remediation-planner 输出（§10 Step 6）
+    ├── gate-result.yaml        # blocker / warn-only / pass + 失败项（release gate 产物）
+    ├── report.md               # human-readable narrative
+    └── report.pdf              # release-attached PDF（可选）
 #
-# Canonical evidence path: NO numeric prefix. The 4 narrow SKILL.md and
-# project runners MUST read/write `evidence/discoverability/{seo|aeo|geo|aso}/`.
-# Runners MUST NOT add `01-/02-/03-/04-` or any other prefix — canonical path
-# is the single source of truth. CI artifact ordering should be handled by
-# CI tooling (sort flags, separate artifact upload names), not by mutating
-# the evidence path itself.
+# Canonical evidence path (v1.2, single source of truth): TAG-SCOPED.
+# The 4 narrow SKILL.md and project runners MUST read/write
+# `evidence/discoverability/<tag>/<channel>.json` with canonical channel keys
+# `seo` / `ai-search` / `local` / `aso`. `aeo` and `geo` are CONFIG-SIDE
+# ALIASES ONLY (see §3.5.3): config `channels.aeo` → channel `ai-search`,
+# config `channels.geo` → channel `local`. Runners + SDK ALWAYS persist under
+# the canonical channel key, NEVER under `aeo` / `geo`, and MUST NOT add
+# `01-/02-/03-/04-` or any other prefix. CI artifact ordering is handled by CI
+# tooling (sort flags, separate upload names), not by mutating the evidence path.
 ```
 
 **evidence 格式硬规则**：
-- 所有 `*-evidence.json` 必须有 `source` 字段（`script` / `api` / `framework_adapter` / `manual_ai_scan`）
+- 所有 channel evidence JSON（`<channel>.json`）必须有 `source` 字段（`script` / `api` / `framework_adapter` / `manual_ai_scan`）
 - 所有 finding 必须有 `severity`（blocker / warn / info）
 - 所有 finding 必须有 `evidence_path`（具体文件 / API endpoint / 截图）
 - 同一 finding 在 `report.md` 出现时，必须能反向追溯到 `evidence/` 下的原始数据
@@ -398,7 +388,9 @@ Step 1  Skill calls Agent(disc-scope-classifier)
         → 写 evidence/discoverability/<tag>/00-scope.yaml
         失败 → halt + BLOCKED
 
-Step 2  Bash: python scripts/discoverability-sdk.py init <tag>
+Step 2  Bash: python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py --project-root . init <tag>
+        （canonical 安装链不复制 SDK 进项目；统一用全局路径 + --project-root .，
+         与 manifests/hook-registry.json install_command 一致）
         → 创建 .discoverability/runs/<tag>/ + evidence/discoverability/<tag>/
         → 写 state.json {active_run_tag, active_run: true, gate_status: PENDING}
 
@@ -425,6 +417,10 @@ Step 6  Agent(disc-remediation-planner)
 Step 7  Bash: discoverability-sdk gate.check <tag>
         → 写 gate-result.yaml + 更新 state.json
         → exit code: 0 PASS/WARN | 1 FAIL | 2 BLOCKED | 3 STALE
+        → governed release gate (CLAUDE.md §3.7): 当 gate-result.yaml 充当
+          release verdict 时，verdict 只能来自 deterministic SDK gate.check +
+          evidence；Dynamic Workflows / ultracode 只能 scout 候选发现，
+          NEVER 产出 release verdict，无 self-approval。
 
 Step 8  Handoff:
         ├─ validation.appsec_handoff.required → escalate to appsec-security-orchestrator

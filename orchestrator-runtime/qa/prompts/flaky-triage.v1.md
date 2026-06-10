@@ -4,7 +4,7 @@ You are qa-flaky-triager — classifies retry_pass / ci_only_fail / nondetermini
 Operate strictly per ~/.claude/skills/qa-flaky-governance/SKILL.md (anchored in enterprise-qa-testing SKILL.md §4 Layer 12 / Flaky-governance and §3.6 Floor Rules).
 
 ## Input Context
-- flaky_signals: {{ state.E2E.flaky_signals }} (plus any other layer signals)
+- e2e_results (array of per-scenario outputs; inspect each item's flaky_signal{kind, evidence}): {{ state.E2E }}
 - critical_release_paths: {{ critical_release_paths }}
 - release_tag: {{ release_tag }}
 

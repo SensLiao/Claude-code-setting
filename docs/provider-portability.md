@@ -12,7 +12,7 @@
 |---|---|---|
 | **L1 你做的产品** | 用本 harness 开发出的 app/服务的运行时 | ✅ **零改动**。harness 管开发流程治理（QA/AppSec/规划/编排），与产品调哪个模型 API 无关。唯一 Claude-specific 的是 `claude-api` skill（opt-in，不激活不碰你）。 |
 | **L2 harness 的 agent/orchestrator 自己跑在哪** | subagent / Workflow / skill 的底层推理 | ⚠️ 可行，但要先有网关（见 §2），按需补 §4。 |
-| **L3 中国模型当外部协作者** | 上游设计师 / 下游 reviewer | ✅ 已有模式（`rules/common/task-execution-protocol.md §3.2` 协作回路 + `codex-dispatch`），加桥接即可。 |
+| **L3 中国模型当外部协作者** | 上游设计师 / 下游 reviewer | ✅ 已有模式（`rules/common/task-execution-protocol.md §3.2` 协作回路 + Codex 官方 plugin `codex@openai-codex`），加桥接即可。 |
 
 **结论先行**：只想让产品用中国模型 → 今天就能用，什么都不改。真正有耦合、需要动手的是 **L2**。
 
@@ -102,7 +102,7 @@
 ```
 我想用模型 X 做……
 ├─ 做产品（app 调 X 的 API）            → 零改动，直接做（L1）
-├─ 让 X 当设计/审查协作者               → 加 dispatch 桥接（L3，task-execution-protocol §3.2）
+├─ 让 X 当设计/审查协作者               → L3，task-execution-protocol §3.2（Codex 走官方 plugin codex@openai-codex；非-Codex 模型经 §3.2 协作回路）
 └─ 让 harness 的 agent/workflow 跑在 X 上（L2）
      ├─ 还在 Claude Code 里？
      │    ├─ 是 → P4 搭网关（必做）
@@ -212,3 +212,36 @@ protected 顶层键：`hooks` `permissions` `statusLine` `enabledPlugins` `skill
 **使用策略（落地约束）**：governed gate（release/security/commercial-cert）+ 高风险/最终交付 **留 Opus 4.8**；GLM-5 / K2.6 跑省钱粗活（样板 / 测试 / 初稿 / 批量改），**按 session 切**，遵守 §8.5 热切禁令。GLM-5 实测**指令服从性弱于 Claude/Kimi**（要求逐字回显时它会改写）→ 严格格式任务慎用。
 
 ⚠ **本对话明文出现过 GLM + Kimi key（外加 DeepSeek）** → 方便时各控制台 rotate，再用 `add-anthropic-provider.py --preset <p> --model <m> --key <新key>`（Kimi 加 `--cn`）同 id 覆盖。
+
+---
+
+## 9. Codex 协作通道 — 官方 plugin（2026-06-10 迁移，取代旧 `codex-dispatch` skill）
+
+L3「外部协作者」里 **Codex（GPT-5.x）** 这一路，从手写的 `codex-dispatch` local skill（裸 `codex exec` shell 拼接）迁到 **官方 plugin `codex@openai-codex`**（marketplace `openai-codex`，来源 `github openai/codex-plugin-cc`）。本机已装 v1.0.4，codex-cli 0.133.0 在 PATH。
+
+### 9.1 命令面
+
+| 命令 | 用途 | 关键 flag |
+|---|---|---|
+| `/codex:review` | 只读跨模型 review | `--base` / `--wait` / `--background` |
+| `/codex:adversarial-review` | 对抗式 review（santa-loop 双盲第二评审员） | 可加 `focus` |
+| `/codex:rescue` | 委派执行（施工） | `--model` / `--effort` / `--resume` / `--background` |
+| `/codex:status` `/codex:result` `/codex:cancel` | 后台任务管理 | — |
+| `/codex:setup` | 安装/配置 | `--enable-review-gate`（实验性，**默认关**） |
+
+施工单模板（喂给 `/codex:rescue`）见 `rules/common/task-execution-protocol.md §3.1`。
+
+### 9.2 ⚠ review-gate 默认关闭（不要开）
+
+`/codex:setup --enable-review-gate` 会把 Codex review 挂成每次自动触发的 gate，**会持续烧 Codex 限额**。**保持关闭**；按需手动调 `/codex:review` / `/codex:adversarial-review` 即可。
+
+### 9.3 Windows 说明（plugin vs 旧 raw CLI）
+
+- 官方 plugin 走 **app-server 通道**与 codex-cli 通信，**不再走旧 skill 的 shell 字符串拼接** → 旧 `codex-dispatch` 在 Windows 上的两类 workaround 对 plugin **不再需要**：
+  - `--skip-git-repo-check`（非 git 根目录 "Not inside a trusted directory" 规避）
+  - GBK / `Get-Content -Encoding utf8` 中文乱码规避（沙箱隔离注册表导致 PowerShell 回退 Restricted）
+- 上述 workaround **仅在你直接手敲 raw `codex exec` 时**仍需要；经 plugin 命令则不涉及。
+
+### 9.4 额度 fallback（策略不变）
+
+Codex 额度耗尽（rate limit / quota / 402）→ **fallback 到 Claude subagent**（`Agent` tool，按模型路由选 `sonnet`/`opus`）。这条与旧 skill 一致，迁移后保留。

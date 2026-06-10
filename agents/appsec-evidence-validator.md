@@ -118,6 +118,21 @@ Emit `.appsec/decisions/<tag>/appsec_release_decision.yaml` per SKILL.md §16.9 
 - `risk_acceptance: [...]` for each accepted finding
 - `hard_block_reasons` (FAIL/BLOCKED) or `conditional_reasons` (CONDITIONAL_PASS)
 
+**How to write it** (this agent's tool list is `Read, Grep, Glob, Bash` — NO `Write` tool by design): emit the file via a Bash heredoc, and the **first line MUST be the provenance marker** so `appsec-finding-schema-prewrite.js` protected-path logic and downstream consumers recognize it as a sanctioned write:
+
+```bash
+mkdir -p .appsec/decisions/<tag>
+cat > .appsec/decisions/<tag>/appsec_release_decision.yaml <<'EOF'
+# written-by: appsec-sdk@3.0.0
+schema_version: 1.0
+release_tag: <tag>
+decision: <PASS|FAIL|BLOCKED|CONDITIONAL_PASS>
+# ... rest of the §16.9 template ...
+EOF
+```
+
+(The protected-path guard blocks direct `Write`/`Edit`/`MultiEdit` of `.appsec/decisions/**`; the heredoc-via-Bash path with the provenance first line is the sanctioned writer.)
+
 Then exit. The orchestrator runs `appsec-sdk gate.check <tag>` next.
 
 ## Hard Rules

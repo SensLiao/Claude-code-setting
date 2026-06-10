@@ -14,7 +14,7 @@ Raise agent completion quality by improving harness configuration, not by rewrit
 
 ## Workflow
 
-1. Run `/harness-audit` and collect baseline score.
+1. Run `node ~/.claude/tests/harness/run-all.js` and collect the baseline result.
 2. Identify top 3 leverage areas (hooks, evals, routing, context, safety).
 3. Propose minimal, reversible configuration changes.
 4. Apply changes and run validation.

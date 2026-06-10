@@ -48,7 +48,7 @@ const lines = [
   '  - discoverability.config.yaml',
   '',
   'Before claiming "discoverability done" / "L12 complete" / "SEO/AEO/ASO audit complete":',
-  '  python scripts/discoverability-sdk.py gate.check <tag>',
+  '  python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py --project-root . gate.check <tag>',
   '',
   'Disc hooks:',
   '  - disc-mark-stale (PostToolUse Edit|Write): flips gate_status to STALE on trigger-file edits',

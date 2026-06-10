@@ -431,6 +431,49 @@ cmd_gate_check() {
         echo "qa-sdk gate.check: BLOCKED — risk-acceptance.accepted_decision='$ra_decision' does not authorize CONDITIONAL_PASS" >&2
         exit 2
       fi
+      # ── (qa-xref#1 / contracts-qa#1) expires_at + approved_at validation ──
+      # Contract (SKILL §17.4 / enforcement-registration.md:111) promises CONDITIONAL_PASS
+      # requires risk-acceptance "完整且未过期". The field-presence loop above only proves
+      # expires_at exists — it never compared the date. Fail-closed (same as D2 freshness):
+      # unparseable expires_at → BLOCK; past expires_at → BLOCK; approved_at in the future
+      # (beyond a 5min clock-skew tolerance) → BLOCK.
+      local ra_expires ra_approved
+      ra_expires=$(grep -E '^[[:space:]]{0,4}expires_at[[:space:]]*:' "$ra" | head -n1 | sed -E 's/^[[:space:]]*expires_at[[:space:]]*:[[:space:]]*"?([^"#]+)"?.*/\1/; s/[[:space:]]*$//')
+      ra_approved=$(grep -E '^[[:space:]]{0,4}approved_at[[:space:]]*:' "$ra" | head -n1 | sed -E 's/^[[:space:]]*approved_at[[:space:]]*:[[:space:]]*"?([^"#]+)"?.*/\1/; s/[[:space:]]*$//')
+      local ra_time_check
+      ra_time_check=$(node -e "
+        const exp=process.argv[1];
+        const app=process.argv[2];
+        const skewMs=300000; // 5min clock-skew tolerance for approved_at in the future
+        const te=Date.parse(exp);
+        if (Number.isNaN(te)) { process.stdout.write('EXP_UNPARSEABLE'); process.exit(0); }
+        const now=Date.now();
+        if (te < now) { process.stdout.write('EXPIRED'); process.exit(0); }
+        if (app) {
+          const ta=Date.parse(app);
+          if (!Number.isNaN(ta) && ta - now > skewMs) { process.stdout.write('APPROVED_FUTURE'); process.exit(0); }
+        }
+        process.stdout.write('OK');
+      " "$ra_expires" "$ra_approved" 2>/dev/null)
+      case "$ra_time_check" in
+        OK) : ;;
+        EXP_UNPARSEABLE)
+          echo "qa-sdk gate.check: BLOCKED — risk-acceptance.expires_at='$ra_expires' is not a parseable timestamp (fail-closed)" >&2
+          exit 2
+          ;;
+        EXPIRED)
+          echo "qa-sdk gate.check: BLOCKED — risk-acceptance expired (expires_at='$ra_expires' is in the past); re-issue acceptance" >&2
+          exit 2
+          ;;
+        APPROVED_FUTURE)
+          echo "qa-sdk gate.check: BLOCKED — risk-acceptance.approved_at='$ra_approved' is in the future beyond clock-skew tolerance (clock skew or forged timestamp)" >&2
+          exit 2
+          ;;
+        *)
+          echo "qa-sdk gate.check: BLOCKED — risk-acceptance time self-check returned no result (fail-closed)" >&2
+          exit 2
+          ;;
+      esac
       echo "qa-sdk gate.check: CONDITIONAL_PASS (risk-acceptance validated)"
       exit 0
       ;;

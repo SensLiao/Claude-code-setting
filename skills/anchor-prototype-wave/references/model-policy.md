@@ -46,21 +46,27 @@ Per-trigger assignment:
 | Re-audit after Wave 4 fix | CODEX_LIGHT_MODEL | gpt-5.4-mini | Confirm fix landed, no new regressions |
 | If primary unavailable / quota exhausted | CODEX_FALLBACK_MODEL | gpt-5.4 | Degrade gracefully |
 
-## Invocation pattern (codex-dispatch skill)
+## Invocation pattern (Codex official plugin `codex@openai-codex`)
 
-```bash
-codex exec \
-  --model "${CODEX_REVIEW_MODEL:-gpt-5.5}" \
-  --sandbox workspace-write \
-  --skip-git-repo-check \
-  --cd "$REPO_ROOT" \
-  "$(cat audits/<wave>/cross-review/<surface>.prompt.md)"
+Stage 9 cross-AI review runs through the **Codex official plugin**, not raw
+`codex exec`. Use `/codex:adversarial-review` (adversarial verdict; pass the
+surface prompt / `focus`) or `/codex:review` (read-only). Pick the model with
+`--model "${CODEX_REVIEW_MODEL:-gpt-5.5}"`; long reviews can use `--background`
++ `/codex:status` / `/codex:result`.
+
+```
+/codex:adversarial-review --model "${CODEX_REVIEW_MODEL:-gpt-5.5}" \
+  focus="audits/<wave>/cross-review/<surface>.prompt.md"
 ```
 
-Never inline the model name in the prompt. If a model is unsupported
-by the local Codex CLI version, the dispatcher must fall back to
-`CODEX_FALLBACK_MODEL` and record the fallback in the audit JSON
-`models_used` field.
+Never inline the model name in the prompt — pass it via `--model`. If a model is
+unsupported by the local Codex version, fall back to `CODEX_FALLBACK_MODEL` and
+record the fallback in the audit JSON `models_used` field. If Codex quota is
+exhausted, fall back to a second Claude subagent reviewer.
+
+> Windows: the plugin talks to codex-cli over its app-server channel, so the old
+> raw-CLI workarounds (`--skip-git-repo-check`, GBK/UTF-8 `Get-Content`) are
+> **not** needed here — they only apply if you hand-run `codex exec`.
 
 ## Forbidden patterns
 

@@ -72,11 +72,11 @@ trigger_phrases:
 
 | 你的架构 | 适用 SAQ | 复杂度 | 推荐 |
 |---|---|---|---|
-| **完全 redirect 到 PSP（Stripe Checkout / PayPal redirect）— 服务端永不看 PAN** | SAQ A | 最低（~22 controls）| ⭐⭐⭐ 首选 |
+| **完全 redirect 到 PSP（Stripe Checkout / PayPal redirect）— 服务端永不看 PAN** | SAQ A | 最低（order-of-magnitude — verify against the current PCI DSS 4.0.1 SAQ documents）| ⭐⭐⭐ 首选 |
 | **TPSP-hosted iframe — payment form elements 100% 由 validated TPSP 提供，merchant 满足 script 条件** | **可能 SAQ A**（按 PCI SSC FAQ + acquirer/QSA 确认）| 低-中 | ⭐⭐⭐ 推荐（确认后）|
-| **PSP iframe / hosted fields（Stripe Elements / Adyen Drop-in）— 浏览器直传 PSP but merchant 部分控制 script/form** | SAQ A-EP（部分情形可 SAQ A，按 PCI SSC FAQ 判断）| 中（~187 controls）| ⭐⭐ 次选（确认后）|
-| **Merchant page 控制 payment form / direct post / 自建 JS 收集** | SAQ A-EP 或 D-Merchant | 高（~300+ controls）| ❌ 避免 |
-| **自托管支付，直对接 acquirer** | SAQ D-Service Provider | 最高（~300+ controls + ROC）| 仅大型 / 战略需要 |
+| **PSP iframe / hosted fields（Stripe Elements / Adyen Drop-in）— 浏览器直传 PSP but merchant 部分控制 script/form** | SAQ A-EP（部分情形可 SAQ A，按 PCI SSC FAQ 判断）| 中（order-of-magnitude — verify against the current PCI DSS 4.0.1 SAQ documents）| ⭐⭐ 次选（确认后）|
+| **Merchant page 控制 payment form / direct post / 自建 JS 收集** | SAQ A-EP 或 D-Merchant | 高（order-of-magnitude — verify against the current PCI DSS 4.0.1 SAQ documents）| ❌ 避免 |
+| **自托管支付，直对接 acquirer** | SAQ D-Service Provider | 最高（order-of-magnitude + ROC — verify against the current PCI DSS 4.0.1 SAQ documents）| 仅大型 / 战略需要 |
 
 **Iron rule**: 选择能让你走 SAQ A 的架构，除非业务确实需要 D。SAQ A vs D 工作量差 10-100x。
 

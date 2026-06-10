@@ -82,7 +82,7 @@ execution_modes:
 
 > **v3.0 (2026-05-25) — GSD-lite Execution Engine**
 > AppSec orchestrator 从"输出 ASVS/CSF mapping 建议 + 给下游 markdown SECURITY.md"升级成
-> "自己 dispatch 3 个 named agents + 自己落 `.appsec/evidence/` + 自己出 `appsec_release_decision.yaml` +
+> "自己 dispatch 4 个 named agents（appsec-risk-classifier / appsec-finding-triager / appsec-evidence-validator / appsec-reviewer）+ 自己落 `.appsec/evidence/` + 自己出 `appsec_release_decision.yaml` +
 > 6 个项目级 hooks 物理拦 raw secret 泄露 / 未授权 active scan / pentest 越界 / 假通过 / schema 漂移 / secret 读取"。
 > §1–§15 substance preserved；§7 marked DEPRECATED → use §16 Dispatch Contract.
 > See §16 / §17 / §18 for the executable contracts.
@@ -193,8 +193,9 @@ AppSec 是 commercial quality 的一部分，**不是上线前可选的加分项
 | dast | `security.app.dast` | ✅ `dast-baseline-scanning` |
 | iast | `security.app.iast` | ⚪ 高成熟度选项 |
 | rasp | `security.app.rasp` | ⚪ 高成熟度选项 |
-| sca | `security.app.sca` | 🟡 §16 Step 4 内 |
-| sbom_signing | `security.app.sbom_signing` | ⚪ 未来 wave |
+| sca | `security.platform.supply_chain` | ✅ `security-platform-supply-chain`（deep SCA；§16 Step 4 npm/pip/cargo/trivy audit 仍是 inline floor）|
+| sbom_signing | `security.platform.supply_chain` | ✅ `security-platform-supply-chain`（SBOM gen + provenance/signing）|
+| api_security | `security.app.api` | ✅ `security-app-api`（REST / GraphQL / gRPC surface, OWASP API Top 10:2023, per-endpoint）|
 | cicd | `security.app.cicd` | ⚪ 未来 wave |
 | remediation | `security.app.remediation` | ✅ `security-remediation` |
 
@@ -215,7 +216,7 @@ AppSec 是 commercial quality 的一部分，**不是上线前可选的加分项
 |---|---|---|
 | logging_monitoring | `security.operations.logging_monitoring` | ⚪ 未来 wave |
 | vuln_patch | `security.operations.vuln_patch` | ⚪ 未来 wave |
-| privacy | `security.operations.privacy` | ⚪ 未来 wave |
+| privacy | `security.operations.privacy` | → 见 §5.6 `security-compliance-privacy`（GDPR/CCPA/CPRA）|
 
 ### 5.5 response 层
 
@@ -236,6 +237,7 @@ AppSec 是 commercial quality 的一部分，**不是上线前可选的加分项
 | reporting | `security.compliance.reporting` | 🟡 §16 Step 9 (appsec_release_decision.yaml) |
 | payment (PCI DSS) | `security.compliance.payment` | ✅ `security-compliance-payment` |
 | cn_data (PIPL + 出境) | `security.compliance.cn_data` | ✅ `security-compliance-cn-data` |
+| privacy (GDPR/CCPA/CPRA, ex-China) | `security.compliance.privacy` | ✅ `security-compliance-privacy`（与 cn-data + payment 并存，按 jurisdiction 分工）|
 
 ### 5.7 Overlay Skills（叠加层，按项目类型触发）
 
@@ -248,6 +250,8 @@ AppSec 是 commercial quality 的一部分，**不是上线前可选的加分项
 | file_upload | `security.app.file_upload` | ✅ `security-app-file-upload` | 文件上传 |
 | payment | `security.compliance.payment` | ✅ `security-compliance-payment` | 支付 |
 | cn_data | `security.compliance.cn_data` | ✅ `security-compliance-cn-data` | PIPL / 出境 |
+| api | `security.app.api` | ✅ `security-app-api` | REST / GraphQL / gRPC 接口 surface |
+| privacy | `security.compliance.privacy` | ✅ `security-compliance-privacy` | GDPR / CCPA / CPRA（ex-China）|
 
 ---
 
@@ -284,46 +288,48 @@ AppSec 是 commercial quality 的一部分，**不是上线前可选的加分项
 所有下游 skill 从本 orchestrator 接收的 finding 必须符合此 schema。**写入路径只能是 `appsec-sdk finding.add`**（§17）；其他工具直接 Write 到 `.appsec/findings/**/*.yaml` 会被 PreToolUse hook 拒绝（§18.5）。
 
 ```yaml
-finding:
-  schema_version: 1.0
-  id: <YYYY-MM-DD>-<source>-<seq>      # 2026-05-25-sast-001
-  source: sast | dast | sca | secret_scan | manual_review | pentest | external_disclosure | threat_model | iac_scan | container_scan | cloud_posture | secrets_engineering
-  detector: <tool name + version>       # semgrep@1.x / gitleaks@8.x / appsec-reviewer-agent
-  severity: critical | high | medium | low
-  confidence: high | medium | low
-  asvs_mapping: [v5.0.0-<chapter>.<section>.<requirement>]   # **^v5\.0\.0-\d+\.\d+\.\d+$**
-  csf_function: GV | ID | PR | DE | RS | RC
-  cwe: [CWE-<n>]
-  owasp_top10: [A<n>:2025]   # OWASP Top 10:2025 IDs (2025 replaced 2021 as primary; see references/standards-and-mappings.md §6.5 + standards-crosswalk.json). Legacy A<n>:2021 labels still accepted.
-  api_top10: [API<n>]
-  affected:
-    files: [<path:line>]
-    components: [<component>]
-    data_classes: [public | internal | confidential | restricted]
-  exploit_likelihood: high | medium | low | theoretical
-  business_impact: high | medium | low
-  computed_risk: critical | high | medium | low   # 见 §10 风险分级 SLA
-  description: <一句话描述>
-  reproduction_steps: |
-    <如适用，复现步骤；不得含 raw secret>
-  evidence:
-    log_excerpt: <redacted>                         # 必须走 appsec-sdk redact
-    screenshot: <path>
-    test_output: <path>
-  remediation:
-    immediate_mitigation: <如有>
-    permanent_fix: <代码 / 配置改动>
-    regression_test_needed: yes | no
-  owner: <name | role>
-  sla_due: <YYYY-MM-DD>
-  status: open | in_progress | mitigated | resolved | accepted
-  verification_status: pending | red_confirmed | fix_applied | green_confirmed | regression_in_ci
-  test_commands: [<exact npm/pytest/cargo command used to verify>]
-  risk_acceptance:                                  # only when status: accepted
-    approver: <name + role>
-    approval_date: <YYYY-MM-DD>
-    compensating_controls: <description>
-    review_date: <YYYY-MM-DD>
+# FLAT top-level keys (no `finding:` wrapper) — matches templates/dot-appsec-skeleton/finding.yaml.tmpl
+# and the SDK validator (validate_finding_yaml greps `^[[:space:]]{0,4}<key>:`).
+schema_version: 1.0
+id: <YYYY-MM-DD>-<source>-<seq>      # 2026-05-25-sast-001
+source: sast | dast | sca | secret_scan | manual_review | pentest | external_disclosure | threat_model | iac_scan | container_scan | cloud_posture | secrets_engineering
+detector: <tool name + version>       # semgrep@1.x / gitleaks@8.x / appsec-reviewer-agent
+severity: critical | high | medium | low
+confidence: high | medium | low
+asvs_mapping: [v5.0.0-<chapter>.<section>.<requirement>]   # **^v5\.0\.0-\d+\.\d+\.\d+$**；empty [] 允许 **当且仅当** 同时给非空 unmapped_reason（见下）
+unmapped_reason: <仅当 asvs_mapping 为空 []：说明为何无诚实映射，如 transitive CVE 无对应 ASVS 控制>  # 禁止编造 mapping 来绕过；finding.add 对"空 mapping + 无 reason"exit 2
+csf_function: GV | ID | PR | DE | RS | RC
+cwe: [CWE-<n>]
+owasp_top10: [A<n>:2025]   # OWASP Top 10:2025 IDs (2025 replaced 2021 as primary; see references/standards-and-mappings.md §6.5 + standards-crosswalk.json). Legacy A<n>:2021 labels still accepted.
+api_top10: [API<n>]
+affected:
+  files: [<path:line>]
+  components: [<component>]
+  data_classes: [public | internal | confidential | restricted]
+exploit_likelihood: high | medium | low | theoretical
+business_impact: high | medium | low
+computed_risk: critical | high | medium | low   # 见 §10 风险分级 SLA
+description: <一句话描述>
+reproduction_steps: |
+  <如适用，复现步骤；不得含 raw secret>
+evidence:
+  log_excerpt: <redacted>                         # 必须走 appsec-sdk redact
+  screenshot: <path>
+  test_output: <path>
+remediation:
+  immediate_mitigation: <如有>
+  permanent_fix: <代码 / 配置改动>
+  regression_test_needed: yes | no
+owner: <name | role>
+sla_due: <YYYY-MM-DD>
+status: open | in_progress | mitigated | resolved | accepted
+verification_status: pending | red_confirmed | fix_applied | green_confirmed | regression_in_ci
+test_commands: [<exact npm/pytest/cargo command used to verify>]
+risk_acceptance:                                  # only when status: accepted
+  approver: <name + role>
+  approval_date: <YYYY-MM-DD>
+  compensating_controls: <description>
+  review_date: <YYYY-MM-DD>
 ```
 
 **Canonical schema rule**：本 schema 是唯一权威。所有 downstream skill / agent / template 引用 schema 字段时，必须使用本 schema 的字段名和取值范围。不允许 fork。
@@ -393,7 +399,7 @@ CSF Functions covered: GV / ID / PR / DE / RS / RC
 ## 7. API Security（API Top 10）  ## 8. Headers / Cookies / Session
 ## 9. Platform Layer（Container / IaC / IAM / Secrets）
 ## 10. DAST Baseline  ## 11. Pentest (如适用)
-## 12. 叠加层激活清单（mobile/llm/multitenant/websocket/file_upload/payment/cn_data）
+## 12. 叠加层激活清单（mobile/llm/multitenant/websocket/file_upload/payment/cn_data/api/privacy）
 ## 13. 剩余风险 + Risk Acceptance
 ## 14. CSF 2.0 Function Coverage（内部 evidence completeness gate，非 NIST checklist）
 ## 15. Recovery (CSF RC) Specifics
@@ -513,7 +519,7 @@ actually executed.
 activate: true | false
 asvs_level: L1 | L2 | L3
 csf_targets: [GV, ID, PR, DE, RS, RC]
-overlays: [mobile?, llm?, multitenant?, websocket?, file_upload?, payment?, cn_data?]
+overlays: [mobile?, llm?, multitenant?, websocket?, file_upload?, payment?, cn_data?, api?, privacy?]
 lifecycle_stage: design | code_pr | build_ci | preprod | preprod_release | prod_run | incident | audit
 rationale: <short evidence>
 ```
@@ -592,6 +598,8 @@ The picked mode then determines:
   - file_upload → `security-app-file-upload`
   - payment → `security-compliance-payment`
   - cn_data → `security-compliance-cn-data`
+  - api → `security-app-api`（写 `overlay-api/checklist.yaml`）
+  - privacy → `security-compliance-privacy`（写 `overlay-privacy/checklist.yaml`）
 - 每个 overlay 必须落 `.appsec/evidence/<tag>/overlay-<name>/checklist.yaml`
 - 缺一 → Step 9 validator BLOCK
 
@@ -635,9 +643,10 @@ The picked mode then determines:
 
 - `Agent(subagent_type="appsec-evidence-validator", model="opus")`
 - 读 `.appsec/evidence/<tag>/` 全部 + `.appsec/findings/<tag>/` 全部
+- **Required input evidence layers**（`appsec-sdk evidence.validate-presence` 校的最小集）：`threat-model`, `sca`, `secret-scan`, `sast`, `code-review`, `headers-cookies`（按 `overlays[]` 追加 `overlay-<name>`）。*(CSF 2.0 coverage is computed by `appsec-sdk csf.coverage`, not a stored input layer — 不在 required-layers 列表里。)*
 - 校验：
   1. §9 schema 完整性
-  2. CSF 2.0 6-function coverage（每个 function PASS / PARTIAL / MISSING）
+  2. CSF 2.0 6-function coverage（每个 function PASS / PARTIAL / MISSING；由 `appsec-sdk csf.coverage` 从上述 layers 计算，非独立输入层）
   3. 每个激活的 overlay 都有 checklist.yaml
   4. SLA freshness（按 §10）
   5. `redaction.attested == true`（**v3.0 P0.1.7 nested 结构**，见下 YAML）
@@ -660,7 +669,7 @@ csf2_coverage:
   DE: { status: ..., evidence_paths: [...] }
   RS: { status: ..., evidence_paths: [...] }
   RC: { status: ..., evidence_paths: [...] }
-overlays_activated: [mobile?, llm?, multitenant?, websocket?, file_upload?, payment?, cn_data?]
+overlays_activated: [mobile?, llm?, multitenant?, websocket?, file_upload?, payment?, cn_data?, api?, privacy?]
 overlays_evidence:
   llm: { checklist_path: ..., findings_count: <n>, critical: <n>, high: <n> }
   # ... per activated overlay
@@ -696,7 +705,8 @@ downstream_consumers: [gsd-ship, gsd-verify-work, enterprise-qa-testing, ci]
 ### §16.10 Workflow Execution Mode（spec-driven dispatch via Claude Code Workflow tool）
 
 > **Status (2026-05-28, v3.0)**: optional, additive. Replaces the v2 hardcoded
-> `appsec-full-sweep.js` workflow (DEPRECATED, 30-day P3 window). When the
+> `appsec-full-sweep.js` workflow (**DELETED 2026-06-10**; the canonical gate
+> executor is now `appsec-orchestrator.js`). When the
 > Workflow tool is available AND `.appsec/config.json.execution_mode ==
 > "workflow-spec"`, §16.4–§16.9 prompt-only dispatch is replaced by a
 > **spec-driven** orchestrator: the Skill builds a complete `spec` from a
@@ -716,20 +726,28 @@ downstream_consumers: [gsd-ship, gsd-verify-work, enterprise-qa-testing, ci]
 | 条件 | mode |
 |---|---|
 | `.appsec/config.json.execution_mode == "workflow-spec"` AND `CLAUDE_CODE_WORKFLOWS=1` AND platform compat OK | **workflow-spec** (recommended after 2026-06-30) |
-| `.appsec/config.json.execution_mode == "workflow-static"` | **workflow-static** (legacy v2 `appsec-full-sweep.js`, DEPRECATED 30 days) |
-| `CLAUDE_CODE_WORKFLOWS` unset OR `OS=Windows_NT` AND `DISABLE_TELEMETRY != 1` | **prompt-only** (forced fallback, silent) |
+| `.appsec/config.json.execution_mode == "workflow-static"` | **workflow-static** (legacy v2 `appsec-full-sweep.js` DELETED 2026-06-10 → falls back to prompt-only with a log line) |
+| `CLAUDE_CODE_WORKFLOWS` unset OR `OS=Windows_NT` AND `DISABLE_TELEMETRY != 1` | **prompt-only** (forced fallback; silent ONLY if `execution_mode` absent/prompt — if `execution_mode == "workflow-spec"`, ASK per §16.0 correction #4 before downgrading) |
 | `.appsec/config.json.execution_mode == "prompt"` or absent | **prompt-only** (safer default) |
 
 > Memory pointer: `memory/workflow-tool-real-switch.md` — `DISABLE_TELEMETRY=1`
 > is the real switch in terminal `claude`; `CLAUDE_CODE_WORKFLOWS=1` alone is
 > not enough on Windows.
 
-Silent fallback — never warn the user, never block. If capability gates fail,
-Skill just continues §16.4–§16.9 prompt-only path. The user sees no difference.
+Fallback behavior is **conditional on `execution_mode`** (§16.0 correction #4, 2026-05-28):
+- `execution_mode` absent OR `prompt-only` → **silent fallback**: never warn, never
+  block; Skill just continues §16.4–§16.9 prompt-only path. The user sees no difference.
+- `execution_mode == "workflow-spec"` AND a capability gate fails (e.g. Windows
+  without `DISABLE_TELEMETRY=1`) → **NOT silent**: Skill MUST ASK the user
+  (`fallback` vs `abort`) per §16.0 before downgrading. The user explicitly asked
+  for the workflow-spec rail, so a silent downgrade would hide that the requested
+  rail did not run.
+- `execution_mode == "workflow-spec"` AND validate-spec / preflight FAIL → **abort**
+  with structured error (do NOT silently fall back).
 
 #### §16.10.2–§16.10.6 — relocated (workflow-spec operational elaboration)
 
-> Args Contract (§16.10.2) · Resume Pattern (§16.10.3) · Evidence Mapping → §17 SDK calls (§16.10.4) · Backward Compatibility (§16.10.5) · Failure Modes (§16.10.6) relocated **verbatim** to [`references/workflow-spec-dispatch.md`](references/workflow-spec-dispatch.md) (CONTRACT-SENTINEL `appsec.workflow-spec-dispatch.v2026-05-29`). Operational elaboration — loaded on demand in workflow-spec mode only.
+> Args Contract (§16.10.2) · Resume Pattern (§16.10.3) · Evidence Mapping → §17 SDK calls (§16.10.4) · Backward Compatibility (§16.10.5) · Failure Modes (§16.10.6) relocated **verbatim** to [`references/workflow-spec-dispatch.md`](references/workflow-spec-dispatch.md) (CONTRACT-SENTINEL `appsec.workflow-spec-dispatch.v2026-06-10`). Operational elaboration — loaded on demand in workflow-spec mode only.
 >
 > **Stays in-file**: §16.10 intro + §16.10.1 Mode Selection (above, the dispatch decision) and §16.10.7 Name Freeze (below, the always-loaded freeze table).
 
@@ -740,7 +758,7 @@ of all consumers:
 
 | Surface | Frozen name |
 |---|---|
-| Workflow registered name | `appsec-orchestrator` (new) — legacy `appsec-full-sweep` kept 30 days |
+| Workflow registered name | `appsec-orchestrator` — legacy `appsec-full-sweep` DELETED 2026-06-10 |
 | Workflow scriptPath | `~/.claude/workflows/appsec-orchestrator.js` |
 | Args top-level fields | `spec`, `target`, `run_id`, `severity_floor`, `finders`, `policy`, `oracle`, `previous_results`, `spec_hash` |
 | Spec top-level fields | `engine_version` (const `"1.0"`), `orchestrator` (const `"appsec"`), `phases`, `prompts`, `schemas`, `ops_allowed` |
@@ -767,7 +785,7 @@ Renaming any of these requires synchronous update of:
 
 When `mode == "workflow-spec"` is selected (§16.10.1), Skill main thread executes this 14-step authoring contract BEFORE any `Workflow()` call.
 
-> **READ [`references/workflow-spec-dispatch.md`](references/workflow-spec-dispatch.md) IN FULL before authoring** — it carries the verbatim per-step bodies (exact bash, preset paths, field handling, draft-07 schema constraint, args size limit). CONTRACT-SENTINEL: `appsec.workflow-spec-dispatch.v2026-05-29`.
+> **READ [`references/workflow-spec-dispatch.md`](references/workflow-spec-dispatch.md) IN FULL before authoring** — it carries the verbatim per-step bodies (exact bash, preset paths, field handling, draft-07 schema constraint, args size limit). CONTRACT-SENTINEL: `appsec.workflow-spec-dispatch.v2026-06-10`.
 
 > **Governed Gate Mode (CLAUDE.md §3.7) — gate_active window**: as the FIRST action of this contract (before Step 1 / preview render), the Skill MUST write `.appsec/state.json` `gate_active: true`, and clear it on terminal verdict/abort. This closes the pre-sentinel window so `governed-gate-workflow-guard.js` blocks inline model-authored Dynamic Workflows for the ENTIRE gate, not just after the approval sentinel is written.
 
@@ -777,7 +795,7 @@ When `mode == "workflow-spec"` is selected (§16.10.1), Skill main thread execut
 2. Pick preset under `~/.claude/orchestrator-runtime/appsec/presets/`（l1-default / l2-default / l2-cn-data / l3-payment / incident-response / smoke；可组合，组合后必 re-validate）
 3. Load preset JSON → `spec`
 4. Walk `spec.phases`（+ pipeline stages）收集 prompt_ref / schema_ref → inline body 进 `spec.prompts[ref]` / `spec.schemas[REF]`。**缺文件 = hard fail**（不 silent skip）
-5. Build `ctx.finders` from §16.1 classifier — **不盲传全部 11**；always: sca/secret-scan/sast/code-review/headers；按 `overlays[]` 条件加 mobile/llm/multitenant/websocket/file_upload/payment/cn_data
+5. Build `ctx.finders` from §16.1 classifier — **不盲传全部 finder**；always: sca/secret-scan/sast/code-review/headers；按 `overlays[]` 条件加 mobile/llm/multitenant/websocket/file_upload/payment/cn_data/api/privacy
 6. Build `oracle` from `.appsec/findings/<historical-tag>/`（首跑 → `{oracle_findings:[], recall_metric:{minimum_acceptable:0}}`）
 7. Build `previous_results` from `.appsec/evidence/<tag>/workflow-state/`（无 → `{}`）
 7.5. **Skill-side alias resolution（MANDATORY）** — node.model alias → `node.resolved_model`（来源：config.model_policy_overrides → shared/model-policy.md）；保留 alias 可见；记录 `args.model_policy_version`。Workflow body 不再 resolve
@@ -797,13 +815,13 @@ When `mode == "workflow-spec"` is selected (§16.10.1), Skill main thread execut
 - Step 12 sentinel **fail-closed**：写不成 → abort，绝不无 sentinel 裸 `Workflow()`
 - Step 14 persist 每 phase 走 `appsec-sdk`（过 `redact`）；**绝不**直接 Write raw `result.phase_outputs.Find`（可能含 candidate code 里的 raw secret）
 
-### §16.12 Static → Spec Migration（30-day window）  →  references/workflow-spec-dispatch.md
+### §16.12 Static → Spec Migration（DONE — legacy file removed）  →  references/workflow-spec-dispatch.md
 
-> `workflow-static` mode (legacy `~/.claude/workflows/appsec-full-sweep.js`) DEPRECATED 2026-05-28. Full P0→P3 timeline + per-project migration steps + compatibility shim relocated (SAFE-A, time-gated). Read on demand only when migrating a `workflow-static` project.
+> `workflow-static` mode (legacy `~/.claude/workflows/appsec-full-sweep.js`) **DELETED 2026-06-10**; canonical gate executor is `appsec-orchestrator.js`. `execution_mode == "workflow-static"` now falls back to prompt-only with a log line. Historical P0→P3 timeline + per-project migration steps relocated (SAFE-A). Read on demand only when migrating a legacy `workflow-static` project.
 
 ### §16.13 Execution Preview Contract（hard human-in-the-loop gate）
 
-> Full preview template literal: `~/.claude/orchestrator-runtime/shared/preview-template.md`. Verbose render-field list + the enumerated 10-point hook pass-criteria: [`references/workflow-spec-dispatch.md`](references/workflow-spec-dispatch.md) (CONTRACT-SENTINEL `appsec.workflow-spec-dispatch.v2026-05-29`). The hook (`appsec-preview-gate.js`) is the **canonical enforcement** — the reference documents it, the hook decides.
+> Full preview template literal: `~/.claude/orchestrator-runtime/shared/preview-template.md`. Verbose render-field list + the enumerated 10-point hook pass-criteria: [`references/workflow-spec-dispatch.md`](references/workflow-spec-dispatch.md) (CONTRACT-SENTINEL `appsec.workflow-spec-dispatch.v2026-06-10`). The hook (`appsec-preview-gate.js`) is the **canonical enforcement** — the reference documents it, the hook decides.
 
 **Why this gate exists**: Workflow can spawn dozens of fresh-context agents in parallel — a single misclick could burn millions of tokens. The user must see the spec breakdown (phase count, model mix, evidence outputs, estimated cost) and explicitly approve before launch.
 
@@ -860,14 +878,24 @@ appsec-sdk evidence.append <tag> <layer> [<file>]
 appsec-sdk evidence.list <tag>
     Print evidence file tree under .appsec/evidence/<tag>/.
 
-appsec-sdk evidence.validate-presence <tag> [<expected-layers-csv>]
+appsec-sdk evidence.validate-presence <tag> [<expected-layers-csv>] [--legacy-path <path>]
     Returns 0 if all expected layers present; 2 BLOCKED otherwise.
+    Required INPUT layers: threat-model, sca, secret-scan, sast, code-review,
+    headers-cookies (+ overlay-<name> per activated overlay). csf2-coverage is
+    NOT required (computed via csf.coverage). --legacy-path scans a deprecated
+    alias and WARNs (does not block) when legacy content is found.
+
+appsec-sdk migrate-evidence [--from <path>] [--to <path>] [--dry-run]
+    Relocate legacy evidence into the canonical .appsec/evidence/<tag>/ layout.
+    --to defaults to the active_release_tag; --dry-run previews without moving.
 
 appsec-sdk finding.add [<file>]
     Read finding YAML from file or stdin. Validate schema v1.0:
       - required fields present
       - enum values valid
       - asvs_mapping[] entries match ^v5\.0\.0-\d+\.\d+\.\d+$
+      - asvs_mapping may be empty [] ONLY if a non-empty `unmapped_reason` is present
+        (empty + no reason → exit 2; fabricated mappings are NOT the workaround)
       - body contains no raw-secret pattern (else fail with redaction error)
     On success: write to .appsec/findings/<tag>/<seq>.yaml; exit 0.
     On failure: stderr explains, exit 2.

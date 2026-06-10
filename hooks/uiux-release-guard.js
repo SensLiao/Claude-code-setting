@@ -12,6 +12,7 @@ const {
   readInputSafe, preflight,
   getInvokedSkillName, isGsdCommand,
   getActiveReleaseTag, findReleaseDecision,
+  readLastAssistantText,
   emitStopBlock,
   preToolBlockMessage, preToolWarnMessage,
 } = require('./_uiux-common.js');
@@ -84,7 +85,10 @@ if (eventName === 'Stop' || (!toolName && !eventName)) {
   // Inspect last assistant message for "ui done" / "shipping ready" / "上线就绪" / etc.
   // NOTE: JS regex \b is ASCII-only and never matches a boundary adjacent to CJK characters,
   // so CJK triggers MUST NOT be inside the \b group.
-  const lastMsg = (input.last_assistant_message || input.transcript_excerpt || '') + '';
+  // Read the final assistant turn — inline field if present, else transcript_path JSONL
+  // tail (Stop payloads omit message text on current Claude Code). Empty string = nothing
+  // to inspect → no claim → pass (this Stop branch is a soft nag, not the hard gate).
+  const lastMsg = (readLastAssistantText(input, 256) || '') + '';
   const claimPatternEN = /\b(ui\s*done|shipping\s*ready|design\s*complete)\b/i;
   const claimPatternCJK = /(上线就绪|UI\s*完成|UIUX\s*完成|设计完成|前端完成)/i;
   if (!claimPatternEN.test(lastMsg) && !claimPatternCJK.test(lastMsg)) process.exit(0);

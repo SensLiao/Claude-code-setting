@@ -1,3 +1,10 @@
+/* @governance
+ *   reviewed_by:             SensLiao (harness author)
+ *   reviewed_at:             2026-06-10
+ *   allowed_scope:           governed-gate
+ *   release_gate_allowed:    true    # deterministic AppSec spec-runner; walks a spec_hash-approved spec only
+ *   destructive_ops_allowed: false
+ */
 export const meta = {
   name: 'appsec-orchestrator',
   description: 'Spec-driven AppSec orchestrator meta-runner. Reads args.spec (phases plus inline prompts plus inline schemas plus whitelisted ops), executes via Workflow primitives, returns phase_outputs for Skill-side persistence. Body is deterministic: no filesystem, no module loading, no wall-clock or RNG calls.',
@@ -49,11 +56,40 @@ const oracle  = input.oracle  ?? { oracle_findings: [], recall_metric: { minimum
 // cross-session resume. Keep.
 const previousResults = input.previous_results ?? {}
 const modelOverrides  = (input.model_policy && typeof input.model_policy === 'object') ? input.model_policy : null
+// runtime-appsec#3 (2026-06-10): seeded_state — a DISTINCT input channel from
+// previous_results. previous_results is the fingerprinted resume cache
+// ({<phase>:{node_fingerprint,output}}); seeding via it fails because the runner
+// only consults previous_results[node.name] for phases that EXIST in spec.phases,
+// and a bare seed has no node_fingerprint (logged as 'unfingerprinted cache entry'
+// → cache miss). seeded_state injects raw phase outputs DIRECTLY into state for
+// phases that are NOT nodes in this spec (e.g. incident-response seeds Normalize +
+// Verify so the live Map node and the deterministic Gate op can read them).
+const seededState = (input.seeded_state && typeof input.seeded_state === 'object' && !Array.isArray(input.seeded_state))
+  ? input.seeded_state
+  : {}
 
 const state = {}
 const reusedPhases = []
 const cacheMisses  = []
+const seededPhases = []         // phase names injected via seeded_state (for return/preview transparency)
 const phaseFingerprints = {}    // node.name → fingerprint captured at phase entry
+
+// ─── seed state BEFORE the main loop (runtime-appsec#3) ─────────────────────
+// A seeded key that COLLIDES with a real spec.phases node is IGNORED (the live
+// phase is authoritative — never shadow real execution). Non-colliding keys are
+// injected so deterministic ops / predicates / live nodes downstream can read them.
+{
+  const phaseNames = new Set((spec.phases || []).map(p => p && p.name))
+  for (const key of Object.keys(seededState)) {
+    if (phaseNames.has(key)) {
+      log(`seeded_state: ignoring "${key}" — collides with a live spec.phases node (live phase wins)`)
+      continue
+    }
+    state[key] = seededState[key]
+    seededPhases.push(key)
+    log(`seeded_state: injected "${key}" into state`)
+  }
+}
 
 // ─── helpers: deterministic ────────────────────────────────────────────
 function stableStringify(obj) {
@@ -253,6 +289,20 @@ function resolveItems(pathSpec, ctxObj) {
     throw new Error(`items_from "${pathSpec}" must resolve to an array (got ${typeof cur})`)
   }
   return cur
+}
+
+// fanout item normalizer (runtime-appsec#1, 2026-06-10).
+// Plan.selected_finders is a string[] (finder keys, produced by ensure_csf_coverage),
+// but fanout prompts (find.v1) reference item.key / item.sub_skill / item.csf /
+// item.oracle_hints. A bare string fails the strict render's `in` operator (TypeError).
+// Normalize each item: if it is a string primitive, resolve it to the full finder
+// object from ctx.finders by key; fall back to {key:<string>} when no finder matches.
+// Object items pass through UNCHANGED (preserves prior behavior for object fanouts).
+function normalizeFanoutItem(item, ctxObj) {
+  if (typeof item !== 'string') return item
+  const finders = Array.isArray(ctxObj.finders) ? ctxObj.finders : []
+  const match = finders.find(f => f && typeof f === 'object' && f.key === item)
+  return match ? match : { key: item }
 }
 
 // ─── 3 OPS registries (CAVEAT 7) ───────────────────────────────────────
@@ -468,6 +518,16 @@ for (const node of spec.phases) {
 
   // Build ctx BEFORE cache check so hashNode sees current upstream state (codex C2).
   const ctxBase = { state, target, run_id: runId, severity_floor: severityFloor, finders, policy, oracle }
+  // runtime-appsec#2 (2026-06-10): persist prompts must NOT hard-reference fixed
+  // per-phase state keys ({{ state.Verify }} etc.) — presets that skip phases
+  // (l1-default has no Verify; incident-response has no Find/Normalize/Dedup/Verify)
+  // would hard-throw at the Persist node. Expose a single summary of ONLY the
+  // phase outputs that actually exist so persist-evidence.v1 renders for every preset.
+  // NOTE: read only by the {{ state_summary_json }} / {{ present_phases }} render
+  // path; NOT folded into hashNode (which reads ctxBase.state directly), so resume
+  // fingerprints are unchanged.
+  ctxBase.present_phases = Object.keys(state)
+  ctxBase.state_summary_json = JSON.stringify(state)
   // Capture fingerprint of THIS phase against upstream state, store for use at completion.
   const nodeFingerprint = hashNode(node, spec, ctxBase)
   phaseFingerprints[node.name] = nodeFingerprint
@@ -537,17 +597,20 @@ for (const node of spec.phases) {
       if (!schemaObj || typeof schemaObj !== 'object') {
         throw new Error(`${node.name}: schema_ref "${node.schema_ref}" not found in spec.schemas`)
       }
-      const results = await parallel(items.map((item, i) => () => agent(
-        render(tmpl, { ...ctxBase, item, index: i }),
-        {
-          label: `${node.name}:${item?.key ?? i}`,
-          phase: node.name,
-          schema: schemaObj,
-          model: pickModel(node, modelOverrides),
-          agentType: node.agentType,
-          isolation: node.isolation,
-        }
-      )))
+      const results = await parallel(items.map((rawItem, i) => {
+        const item = normalizeFanoutItem(rawItem, ctxBase)
+        return () => agent(
+          render(tmpl, { ...ctxBase, item, index: i }),
+          {
+            label: `${node.name}:${item?.key ?? i}`,
+            phase: node.name,
+            schema: schemaObj,
+            model: pickModel(node, modelOverrides),
+            agentType: node.agentType,
+            isolation: node.isolation,
+          }
+        )
+      }))
       state[node.name] = results.filter(Boolean)
       break
     }
@@ -607,6 +670,7 @@ return {
   target,
   reused_phases: reusedPhases,
   cache_misses: cacheMisses,
+  seeded_phases: seededPhases,
   phase_outputs: state,
   phase_outputs_fingerprinted: fingerprintedOutputs,
 }

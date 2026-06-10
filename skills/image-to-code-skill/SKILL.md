@@ -128,16 +128,27 @@ Do not:
 The image is the design source.
 The code is the translation layer.
 
+### 2.0 Step 0 — Scan local templates first (added for the UIUX dispatch engine)
+
+Before generating (or, in reference-mode, before analyzing), **scan the local design context** and fold it in as additional anchoring input:
+
+- **`design/`** — any existing reference PNGs (`design/reference/`), anchors (`design/anchor/`), or prior prototypes in the project.
+- **`design/grounding.md`** — if present, this is the matched-reference contract from P0 GROUND (palette / type / spacing / motion + exemplar anchors). **Consume it as a primary constraint** so the generated/implemented design inherits the matched real reference instead of starting from model priors.
+- **`design-system`** — the local 58-brand DESIGN.md corpus; pull the brand(s) closest to the requested archetype/mood.
+
+This does not replace the image-first workflow — it grounds it. When these inputs exist, generation and implementation must visibly align to them. When they are absent, proceed with the defaults below.
+
 ### 2.a Reference-Mode Override (added 2026-05-27)
 
 If the caller invokes this skill with **mode=reference** — i.e., the user has already supplied reference PNGs (in `design/reference/` or directly in the conversation) — **DO NOT generate new images**. Read [`reference-mode.md`](reference-mode.md) and perform analysis + skeleton extraction only.
 
 Trigger signals for mode=reference (any one):
 
+- **a PNG / screenshot / reference image is present in the conversation** — this alone is enough; **do NOT require `.claude/harness.config.json`**. If the user has dropped a real image to reproduce, treat that image as the source of truth and analyze it rather than generating a new one.
 - prompt contains `mode=reference`
 - prompt contains "reference-mode" / "no new image" / "analyze only"
 - caller is `uiux-product-orchestrator` Step 2.0 Reference Mode Entry
-- project has `design/reference/*.png` and `.claude/harness.config.json`
+- project has `design/reference/*.png` (presence of the PNG is sufficient; a `harness.config.json` is **not** required)
 
 In reference-mode the workflow is:
 

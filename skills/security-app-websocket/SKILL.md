@@ -211,6 +211,7 @@ attacker.com → JavaScript → new WebSocket('wss://victim.com/api')
 8. Framework-specific config audit
 9. SSE-specific config（如适用）
 10. Findings → security-remediation
+    - ASVS refs in emitted findings must use the versioned `v5.0.0-<chapter>.<section>.<req>` form (the chapter labels in this skill are for scoping only).
 11. SECURITY.md WebSocket section + AppSec Release Evidence §12 叠加层
 
 ---

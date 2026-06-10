@@ -103,14 +103,16 @@ scripts/security/zap-baseline.sh --target=<URL>
       "Bash(bash scripts/security/zap-baseline.sh *)"
     ],
     "deny": [
-      "Bash(zap-full-scan.py *)",
-      "Bash(zap-api-scan.py *)",
-      "Bash(docker run *zaproxy* *--active*)",
-      "Bash(*zap* *-a *)"
+      "Bash(*zap-full-scan.py*)",
+      "Bash(*zap-api-scan.py*)",
+      "Bash(docker run *zap*full*)",
+      "Bash(docker run *zap*api*)"
     ]
   }
 }
 ```
+
+旧的 path-prefix 形式（`Bash(zap-full-scan.py *)`）可被路径前缀绕过，且 `zap-full-scan.py` / `zap-api-scan.py` **本身就是 active-by-default**，所以 `*--active*` 之类的 matcher 永远不会命中——改用上面的 name-based 形式，无论路径如何都能匹配。This deny-list is best-effort defense-in-depth; the real control is the wrapper allowlist + the §3 authorization pre-check. zap-baseline.py (passive) stays in `ask`, not deny.
 
 ---
 

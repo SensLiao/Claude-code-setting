@@ -185,10 +185,14 @@ Naming 安全：所有 `<tag>` 与 `<layer>` 必须匹配 `^[a-zA-Z0-9._-]+$`，
     commercial-cert 额外渲染 banner：`=== REQUIRES EXPLICIT BUDGET APPROVAL ===`，
     并显式询问用户对 token_estimate_high 的批准（数字必须 echo 出来）。
 
-11. 等用户 reply。匹配 approval whitelist（精确，大小写无关，trim）：
+11. 等用户 reply。匹配 approval whitelist（精确，大小写无关，trim）。
+    non-budget modes（quick-check / focused-qa-gate / release-readiness）：
       英文：OK / okay / approve / approved / go / yes / proceed / ship it / LGTM
       中文：跑 / 批准 / 同意 / 继续 / 好 / 执行
-    commercial-cert 额外要求用户 reply 含数字（批准的 estimate_high）OR 含
+    commercial-cert 收紧为铁律 2 的 5 词集（与 qa-sdk sentinel.write + qa-preview-gate.js
+    实现一致 — 广义词 OK/go/yes 不算 commercial-cert 批准）：
+      approve / approved / 批准 / 确认 / 同意 任一，
+    AND 用户 reply 含数字（批准的 estimate_high）OR 含
     "=== REQUIRES EXPLICIT BUDGET APPROVAL ===" banner 复述。
     不匹配 → 不写 sentinel → 不 launch（下一次 hook 会自动 block）。
 

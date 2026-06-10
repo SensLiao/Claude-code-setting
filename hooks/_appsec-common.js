@@ -60,6 +60,88 @@ function loadConfig(cwdHint) {
   return { config: parsed, projectRoot, error: null };
 }
 
+// ───── last-assistant-text extraction (Stop-hook payload + transcript fallback) ─────
+//
+// Stop-hook payloads on current Claude Code carry session_id / transcript_path /
+// stop_hook_active and DO NOT carry the assistant's final message inline. Hooks that
+// must scan the final assistant turn (secret-redaction, evidence-required claim
+// detection) therefore have to fall back to the JSONL transcript.
+//
+// readLastAssistantText(payload, maxKB=256):
+//   1. If payload carries last_assistant_message / assistant_message (string), use it.
+//   2. Else if payload.transcript_path exists, read the tail (maxKB) of the JSONL,
+//      parse each line, and return the concatenated text of the LAST assistant entry.
+//   3. Any failure (no field, unreadable file, malformed JSONL) → return null. Never throw.
+//
+// Returns a string (possibly empty) when text is found, or null when nothing is available.
+// Callers decide fail-open vs fail-closed; this helper is side-effect-free.
+function _textFromContent(content) {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    const parts = [];
+    for (const c of content) {
+      if (c && typeof c.text === 'string') parts.push(c.text);
+    }
+    return parts.join('\n');
+  }
+  return '';
+}
+
+function readLastAssistantText(payload, maxKB) {
+  const cap = (typeof maxKB === 'number' && maxKB > 0 ? maxKB : 256) * 1024;
+  // 1) inline payload fields (legacy / some Claude Code versions)
+  if (payload) {
+    if (typeof payload.last_assistant_message === 'string' && payload.last_assistant_message) {
+      return payload.last_assistant_message;
+    }
+    if (typeof payload.assistant_message === 'string' && payload.assistant_message) {
+      return payload.assistant_message;
+    }
+    if (Array.isArray(payload.messages)) {
+      for (let i = payload.messages.length - 1; i >= 0; i--) {
+        const m = payload.messages[i];
+        if (m && m.role === 'assistant') {
+          const t = _textFromContent(m.content);
+          if (t) return t;
+        }
+      }
+    }
+  }
+  // 2) transcript_path tail (current Claude Code Stop payload shape)
+  const tp = payload && typeof payload.transcript_path === 'string' ? payload.transcript_path : '';
+  if (!tp) return null;
+  let content;
+  try {
+    if (!fs.existsSync(tp)) return null;
+    const stat = fs.statSync(tp);
+    const start = Math.max(0, stat.size - cap);
+    const fd = fs.openSync(tp, 'r');
+    try {
+      const buf = Buffer.alloc(stat.size - start);
+      fs.readSync(fd, buf, 0, buf.length, start);
+      content = buf.toString('utf8');
+    } finally {
+      fs.closeSync(fd);
+    }
+  } catch { return null; }
+  // Parse JSONL bottom-up; return the last assistant entry's text. Claude Code
+  // transcript lines look like { type/role: 'assistant', message: { content: [...] } }
+  // or { role:'assistant', content:[...] }. Tolerate both + skip non-JSON lines.
+  const lines = content.split(/\r?\n/);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i].trim();
+    if (!line || line[0] !== '{') continue;
+    let obj;
+    try { obj = JSON.parse(line); } catch { continue; }
+    const role = obj.role || obj.type || (obj.message && obj.message.role);
+    if (role !== 'assistant') continue;
+    const msg = obj.message || obj;
+    const t = _textFromContent(msg.content != null ? msg.content : msg.text);
+    if (t) return t;
+  }
+  return null;
+}
+
 function getActiveReleaseTag(projectRoot) {
   if (!projectRoot) return { activeTag: null, activeDir: null };
   const statePath = path.join(projectRoot, '.appsec', 'state.json');
@@ -260,17 +342,24 @@ function bashAttemptsSecretRead(cmd, config) {
   if (/(^|[;&|\n])\s*env\s+[A-Z_][A-Z0-9_]*\s*=/.test(c)) {
     return 'env VAR=value command form — secret injected into subprocess environment';
   }
-  // cat / less / more / head / tail / awk / sed / grep / etc. against a PROTECTED path.
-  // (dev/test env files are allowlisted by isSensitivePath — reading/sourcing them is fine.)
-  const verbMatch = c.match(/(^|[\s;&|])(cat|less|more|head|tail|awk|sed|grep|xxd|od|strings|base64)\b/);
+  // reader / copier verbs against a PROTECTED path. (dev/test env files are allowlisted by
+  // isSensitivePath — reading/sourcing them is fine.) Includes cp/mv/dd/tee so copy-then-read
+  // exfiltration of a protected file (`cp .env.production /tmp/x; cat /tmp/x`) is caught at the copy.
+  const verbMatch = c.match(/(^|[\s;&|])(cat|less|more|head|tail|nl|tac|awk|sed|grep|xxd|od|strings|base64|dd|cp|mv|tee|mapfile|readarray)\b/);
   if (verbMatch) {
-    // Pull out potential file argument(s); match anything that looks path-like
+    // Pull out potential file argument(s); match anything that looks path-like.
+    // Also strip a leading `key=` (handles `dd if=<path>` / `of=<path>` forms).
     const args = c.split(/[\s;&|<>]+/).filter(Boolean);
     for (const a of args) {
-      if (isSensitivePath(a, config)) {
+      if (isSensitivePath(a, config) || isSensitivePath(a.replace(/^[a-z]+=/i, ''), config)) {
         return `command reads sensitive path: ${a}`;
       }
     }
+  }
+  // `source FILE` / `. FILE` of a protected path leaks its secrets into the shell environment.
+  const srcMatch = c.match(/(^|[\s;&|])(?:source|\.)\s+(\S+)/);
+  if (srcMatch && isSensitivePath(srcMatch[2], config)) {
+    return `command sources sensitive path: ${srcMatch[2]}`;
   }
   // grep -r for SECRET / TOKEN etc.
   if (/grep\s+(-r|-R|--recursive)\s+(['"]?)(SECRET|TOKEN|PASSWORD|API_KEY|PRIVATE_KEY)\2/i.test(c)) {
@@ -298,8 +387,8 @@ function matchesProtectedPath(filePath, projectRoot, dotDir, subPath) {
 
 // Active-scan tooling that requires ROE.
 const ACTIVE_SCAN_TOOLS = [
-  { name: 'sqlmap',     re: /(^|[\s;&|])sqlmap\b/ },
-  { name: 'nmap',       re: /(^|[\s;&|])nmap\b\s+.*(-sV|-A|-sS|-sT|-O\b)/ },
+  { name: 'sqlmap',     re: /(^|[\s;&|])(?:python[0-9.]*\s+-m\s+)?sqlmap\b/ },
+  { name: 'nmap',       re: /(^|[\s;&|])nmap\b/ },
   { name: 'nuclei',     re: /(^|[\s;&|])nuclei\b/ },
   { name: 'ffuf',       re: /(^|[\s;&|])ffuf\b/ },
   { name: 'gobuster',   re: /(^|[\s;&|])gobuster\b/ },
@@ -368,6 +457,7 @@ module.exports = {
   findProjectRoot,
   loadConfig,
   getActiveReleaseTag,
+  readLastAssistantText,  // ★ Stop-hook payload + transcript_path fallback (last assistant turn)
   preflight,
   // secrets
   SECRET_PATTERNS,

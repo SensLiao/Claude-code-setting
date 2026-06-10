@@ -45,7 +45,3 @@ private:
 - Use exceptions for exceptional conditions
 - Use `std::optional` for values that may not exist
 - Use `std::expected` (C++23) or result types for expected failures
-
-## Reference
-
-See skill: `cpp-coding-standards` for comprehensive C++ patterns and anti-patterns.

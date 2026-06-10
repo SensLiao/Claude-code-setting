@@ -139,8 +139,3 @@ val client = httpClient {
     interceptor { AuthInterceptor(tokenProvider) }
 }
 ```
-
-## References
-
-See skill: `kotlin-coroutines-flows` for detailed coroutine patterns.
-See skill: `android-clean-architecture` for module and layer patterns.

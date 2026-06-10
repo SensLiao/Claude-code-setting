@@ -2,7 +2,7 @@
 name: prototyping-ui-directions
 description: Create non-production UI/UX direction prototypes from product ideas, including HTML/React mocks, palette and token candidates, visual variants, comparison reports, and review-ready prototype packages.
 type: orchestrator
-version: 0.2.0-skeleton
+version: 1.0.0
 stages: 4
 output: per-variant prototype package — HTML/React mocks + palette.json + token-candidates + comparison report
 ---
@@ -12,6 +12,11 @@ output: per-variant prototype package — HTML/React mocks + palette.json + toke
 > **干什么的**：把一个产品 idea 做成 **non-production UI/UX direction prototypes** — 包括 HTML/React mocks、palette 与 token 候选、视觉 variant、direction 对比报告，最终打包成 **review-ready prototype packages** 供决策审阅。
 >
 > **不干什么**：不写最终生产代码、不做组件库实施、不做测试 / 合流 / 部署。Prototype 是用来**做方向决策**的，不是用来直接上线的。后半段交给用户自己的工程流程。
+
+> **在 UIUX 调度引擎里的位置（v1.0 升产，2026-06-10）**：本 skill 是 [`uiux-product-orchestrator` 组合引擎](../uiux-product-orchestrator/references/combination-policy.md) **P1 EXPLORE 阶段的承重 owner** —— 负责"先出几版给用户挑"。三条硬约束:
+> 1. **参考接地是上游硬前置**:进 EXPLORE 前必须有 `design/grounding.md`（P0 GROUND 产物）。本地 58 品牌 DESIGN.md（**直接读语料根** `~/Desktop/Innovation_projects/Self-project/awesome-design-md/design-md/<slug>/DESIGN.md`，查找表见 [`local-template-index.md`](../uiux-product-orchestrator/references/local-template-index.md)）+ 产品 archetype 的 `reference-anchors.md` 优先，本地无品类匹配才走 web。**不接地不出 variant**（根治凭空生造）。
+> 2. **产品 archetype 已全建成**（v1.0）:`canvas` / `landing-marketing` / `data-dashboard` / `game-style` / `bubble-physics` / `creative-eye` / `narrative-scrolly` 七型齐备。Stage 0 按产品类型加载,variant 必须套对应 archetype 的 pattern + reference-anchors。
+> 3. **红队 gate（Stage 3）单 agent 模式**:显式路由 `taste-skill` 当 anti-slop 守门人，不假设独立 red-team owner 存在。
 
 ## 调用即做的两件事
 
@@ -87,22 +92,21 @@ Stage 3 — Prototype Package Generation
 
 `templates/product-archetypes/` 下是**可扩展知识库**。Stage 0 决定要不要加载。
 
-当前已经收录：
+**七型全部建成（v1.0 升产，2026-06-10）** —— 每型含 `README` + `patterns-index` + `<type>-rules`（gate 形式）+ `layout-engines` + `motion-tokens` + `interaction` + **`reference-anchors.md`（真实标杆站点，供 P0 GROUND 接地消费）**:
 
-- `canvas/` — 节点 / 白板 / 流程编辑器（10 pattern + 6 铁律 + layout engines + semantic zoom + motion tokens）
+| Archetype | 适用 | 锚定标杆(reference-anchors) |
+|---|---|---|
+| `canvas/` | 节点 / 白板 / 流程编辑器 | tldraw / Excalidraw / n8n / Dify / Flowise |
+| `landing-marketing/` | 营销 / 转化着陆页 | Linear / Stripe / Vercel / Raycast / Framer / Clerk / Resend |
+| `data-dashboard/` | 数据密集 dashboard / B2B 后台 | Vercel / Linear / Stripe / PostHog / Grafana / Datadog |
+| `game-style/` | 游戏化 / 趣味交互 | Duolingo / Apple Fitness / Headspace / Robinhood / Finch |
+| `bubble-physics/` | 物理 / 弹性 / 碰撞 | iMessage / Dynamic Island / Framer Motion / react-spring / Matter.js |
+| `creative-eye/` | 跟随 / 注视 / 拟人创意 | Active Theory / Locomotive / lenis / Cuberto / Codrops |
+| `narrative-scrolly/` | 长篇滚动叙事 / 编辑 | NYT Snow Fall / Pudding / Bloomberg / Apple AirPods / Stripe Press |
 
-未来可加（占位 stub 已在 `_future-stubs/`）：
+**每个 archetype 提供 STRUCTURE,不提供 L3 视觉皮肤**(详各 README 的「与 L3 的组合关系」段:NEVER 进 `l3_style` enum)。Stage 0 按产品类型加载对应 archetype;"都不像"→ 跳过 archetype,纯用通用 dimension 框架。
 
-- `game-style/` — 游戏化交互
-- `bubble-physics/` — 物理碰撞 / 弹性
-- `creative-eye/` — 跟随式 / 注视式 / 拟人交互
-- `data-dashboard/` — 数据密度型
-- `landing-marketing/` — 营销 / 着陆页 / 滚动叙事
-- `narrative-scrolly/` — 长故事滚动 / 编辑式
-
-**主流程不强引用任何 archetype**。Stage 0 用户说"我做的是 canvas 型"→ 加载 canvas archetype。说"我做的是 dashboard"→ 加载 dashboard archetype。说"都不像"→ 跳过 archetype，纯用通用 dimension 框架。
-
-**扩展规则**：以后碰到主库不覆盖的新产品类型，在 `_future-stubs/` 把 TODO 升级成正式 archetype 即可。骨架结构（patterns / dimensions / rules）保持一致。
+**扩展规则**：碰到七型不覆盖的新产品类型，照 `canvas/` 的文件结构(patterns / rules / layout-engines / motion-tokens / interaction / reference-anchors)新建一个即可。
 
 ## 通用 Dimension 框架
 
@@ -117,20 +121,22 @@ Stage 3 — Prototype Package Generation
 
 详见 `references/analysis-dimensions.md`。
 
-## Companion Skills（可选，会自动检测）
+## Companion Skills（接地强制，其余可选增强）
 
-主 skill 不依赖任何外部 skill。但如果你装了下列任一个，本 skill 会自动用它增强：
+> **v1.0 变更**:参考接地不再是"可选 companion",是 **Stage 1 硬前置**。本地 58 品牌 DESIGN.md 语料 + archetype `reference-anchors.md` 是**必须消费**的接地源(无接地不出 variant);其余仍为可选增强。
 
-| Companion | 角色 | 没装时的降级 |
-|-----------|------|--------------|
-| `grill-with-docs` | Stage 0 压实模糊点 | 主线程问答兜底 |
-| `taste-skill` | Stage 3 红队 / anti-slop 守门 | 主线程自审（弱） |
-| `frontend-design` | Stage 3 HTML / React mock 写得更有质感 | 主线程写基础 HTML/JSX |
-| `design-system` | Stage 2 调色板 / typography 候选输入 | 跳过，纯从 reference 提取 |
-| `competitive-teardown` | Stage 1 reference 选型 + Stage 2 对比 | 主线程手写 cross-ref |
-| `codex-dispatch` | Stage 3 多 variant 并行加速 | 顺序生成 |
+| Companion | 角色 | 强制? | 没匹配时的降级 |
+|-----------|------|------|--------------|
+| 本地 58 品牌 DESIGN.md 语料（**直接读** `…/awesome-design-md/design-md/<slug>/DESIGN.md`） | **Stage 1 主接地源** + Stage 2 token 候选输入 | **强制(本地优先)** | 退 archetype `reference-anchors.md` + web 源 |
+| archetype `reference-anchors.md` | **Stage 1 标杆站点接地**(按产品类型) | **强制** | 主线程按品类常识列标杆(弱) |
+| `competitive-teardown`(视觉模式) | Stage 1 web 候选发现 + 视觉模式抽取 | 本地无匹配时强制 | design-inspiration MCP / 主线程手写 |
+| `grill-with-docs` | Stage 0 压实模糊点 | 可选 | 主线程问答兜底 |
+| `taste-skill` | Stage 3 红队 / anti-slop 守门 | 单 agent 模式**显式路由它** | 主线程自审（弱） |
+| `frontend-design` | Stage 3 HTML / React mock 写得更有质感 | 可选 | 主线程写基础 HTML/JSX |
+| `imagegen-frontend-web` | Stage 1/2 moodboard(grounded in 上面的参考) | 可选(max 档推荐) | 跳过视觉 moodboard |
+| Codex 官方 plugin (`/codex:rescue`) | Stage 3 多 variant 并行加速 | 可选 | 顺序生成 / Claude subagent |
 
-完整安装指引：见根目录 `README.md` §Companion Skills。
+> 接地查找表(58 品牌索引 + 历史 token + 字体/主题)详见 [`local-template-index.md`](../uiux-product-orchestrator/references/local-template-index.md)。完整安装指引：见根目录 `README.md` §Companion Skills。
 
 ## 触发本 skill 的典型说法
 
@@ -159,4 +165,5 @@ Stage 3 出 review-ready 包后**就停**。用户选定 variant 要走生产，
 
 ## 版本
 
-- `0.2.0-skeleton` — 主入口 + program-director 完整；4 stage workflow 各一份；canvas archetype 完整；其他 sub-skill 是 stub
+- `1.0.0` (2026-06-10) — 升产：UIUX 调度引擎 P1 EXPLORE 承重 owner；参考接地（本地 58 DESIGN.md 优先 + web）从可选升 Stage 1 硬前置；7 个 product archetype 全建成（canvas / landing-marketing / data-dashboard / game-style / bubble-physics / creative-eye / narrative-scrolly，各带 `reference-anchors.md`）；红队 gate 单 agent 模式显式路由 `taste-skill`。
+- `0.2.0-skeleton`（历史，已被 1.0.0 取代）— 主入口 + program-director 完整；4 stage workflow 各一份；当时仅 canvas archetype 完整、其余 archetype 为 stub。**此 stub 状态已在 1.0.0 解决**（七型全建成，各带 `reference-anchors.md`），本行仅留作版本沿革记录。

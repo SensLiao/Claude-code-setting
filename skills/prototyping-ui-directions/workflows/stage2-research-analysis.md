@@ -56,7 +56,7 @@ gate: gates/stage2-exit.md
 
 落到 `output/<date>-<nickname>/research/extract-cards/<vendor>.md`。
 
-执行者：Claude subagent (Task) sonnet，每个 vendor 一个 subagent 并行；或 codex-dispatch 加速。
+执行者：Claude subagent (Task) sonnet，每个 vendor 一个 subagent 并行；或 `/codex:rescue` 加速。
 
 ### Step 2 · Cross-reference matrix
 

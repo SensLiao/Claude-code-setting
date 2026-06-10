@@ -28,7 +28,7 @@ upstream:
   - external monitoring / SIEM alert
 downstream:
   - security-response-recovery (when RS → RC transition)
-  - security-response-forensics (planned skill; current bridge: own §6 + NIST SP 800-86 inline)
+  - appsec-security-orchestrator  # forensics bridge per §6 (no dedicated skill yet) + NIST SP 800-86 inline
   - security-remediation (root-cause fix per vuln finding)
   - compliance.reporting (regulatory notification)
 description: >

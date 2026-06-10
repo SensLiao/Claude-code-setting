@@ -28,7 +28,7 @@ config:
 
 style_lock:
   status: locked | not_required | missing | conflict
-  l3_style: taste | luxury | minimalist | soft | brutalist | gpt-tasteskill | null
+  l3_style: taste | luxury | brutalist | null   # taste 含 §11 三档变体 A/B/C(语义切换,非独立 enum)
   skill_id: <exact skill name>
   lock_path: .uiux/lock/style-lock.yaml
   mutex_violations: []   # list of attempted-but-blocked L3 invocations

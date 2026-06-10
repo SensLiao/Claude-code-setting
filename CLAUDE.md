@@ -1,7 +1,7 @@
 # 全局 Claude 配置
 
 > 重构日期：2026-05-23 v4 — 三主线 + 5 Orchestrator + AppSec 边界化
-> 备份：`~/.claude/_backup-20260523-v4/`
+> 回滚通道：GitHub `SensLiao/Claude-code-setting`（按 commit 粒度）+ `~/.claude/backups/`
 > 配套：[SKILLS-INDEX.md](SKILLS-INDEX.md)（13-Layer + 20-Route + 消歧表） / [rules/security-appsec.md](rules/security-appsec.md)（path-scoped AppSec 详规则） / [docs/ORCHESTRATOR-MAP.md](docs/ORCHESTRATOR-MAP.md)
 > L12 Discoverability（UIUX 下游 release gate）：[docs/L12-DISCOVERABILITY.md](docs/L12-DISCOVERABILITY.md) / [rules/discoverability-l12.md](rules/discoverability-l12.md) / 入口 skill `discoverability-orchestrator`
 > 第一性原理 / 为什么这套 harness 长这样（judgment=稀缺资源 + self-sunset 约定 + 准入 rubric）：[docs/OPERATING-PRINCIPLES.md](docs/OPERATING-PRINCIPLES.md)
@@ -37,7 +37,7 @@
 
 ## 1. Operating Charter
 
-这是 commercial delivery 的操作宪法。所有 routing 决策按"主线 → orchestrator → narrower skill"分层，不一次性激活多 skill。
+这是 commercial delivery 的操作宪法。所有 routing 决策按"主线 → orchestrator → narrower skill"分层，默认不无脑堆叠同层 skill。**例外（2026-06-10）**：UIUX 主线的 create/optimize 任务走**质量组合调度引擎**——刻意跨层组合多个 skill（接地 → 探索 → 风格 → 生成 → 统一 → 评审，详 `uiux-product-orchestrator` references/combination-policy.md）。"不一次性激活多 skill"指"不让同层竞争 skill 抢活 / 不无脑堆叠"，**不**禁止跨层的刻意质量组合；其余主线（GSD / AppSec / QA）仍 narrower-skill-wins。
 
 - **三主线**：Project setup / PM 交付 / UIUX / QA / AppSec，由 5 个 primary orchestrator 统管
 - **详细路由表**（13-Layer / 20-Route / 触发消歧 / Skill 状态边界）：见 [SKILLS-INDEX.md](SKILLS-INDEX.md)
@@ -94,7 +94,7 @@
 | `discoverability-orchestrator` (L12) | ❌ stays own track | 已有 GSD-lite Harness v1.0：discoverability-sdk.py 10 命令 + 3 disc-* agents + 5 项目 hooks + 8-step self-dispatch；equivalent governance properties，无需第二套机制 |
 | `claude-env-bootstrap` | ❌ N/A | manual-first，一次性 setup procedure，无 graph 编排需求 |
 
-完整迁移状态记录见 `<project>/Desktop/architecture/ORCHESTRATION-STATUS.md`。
+迁移决策以本节为准（历史详档已随 Desktop/architecture 清理移除；平台事实单一真相源见 [docs/native-capabilities.md](docs/native-capabilities.md)）。
 
 ### 3.6 Dual-mode 触发与边界
 
@@ -117,17 +117,17 @@
 - 对齐 NIST CSF 2.0 六功能（Govern / Identify / Protect / Detect / Respond / **Recover**）
 - 路由 6-layer capability map（governance / app / platform / operations / response / compliance）
 - 标准升 ASVS 5.0（V1-V17，旧 V2-V13 标识符已 deprecated）
-- **13 个 sub-skill 已落地**（17 个 AppSec-family 含 dual pentest gates + GSD adapter）：
+- **16 个 sub-skill 已落地**（20 个 AppSec-family 含 dual pentest gates + GSD adapter；2026-06-10 新增 `security-app-api` / `security-platform-supply-chain` / `security-compliance-privacy`）：
   - governance: `security-governance-threat-modeling`
   - app: `security-remediation`, `dast-baseline-scanning`
-  - app overlay: `security-app-mobile` / `security-app-llm` / `security-app-multitenant` / `security-app-websocket` / `security-app-file-upload`
-  - platform: `security-platform-secrets` / `security-platform-iac-cloud`
+  - app overlay: `security-app-mobile` / `security-app-llm` / `security-app-multitenant` / `security-app-websocket` / `security-app-file-upload` / `security-app-api`
+  - platform: `security-platform-secrets` / `security-platform-iac-cloud` / `security-platform-supply-chain`
   - response: `security-response-incident-response` / `security-response-recovery` / `pentest-scope-and-roe` / `authorized-pentest-validation`
-  - compliance: `security-compliance-payment` / `security-compliance-cn-data`
+  - compliance: `security-compliance-payment` / `security-compliance-cn-data` / `security-compliance-privacy`
 - 6 个共享模板：`templates/` 含 threat-model-STRIDE / vuln-report / risk-register / security-test-plan / incident-response-initial（外加已有 SECURITY.md / PENTEST-ROE.md）
 - Standardized finding schema（详 `appsec-security-orchestrator §9`）— 所有下游 security-remediation 必须接此 schema
 - **Routing regression test harness** at `~/.claude/tests/appsec-routing/` — 23 个 routing fixture 验证激活 / 拒绝 / 边界 / schema / handoff
-- **Hook 范围**：6 个 AppSec project hooks（active-scan-guard / secret-access-guard / finding-schema-prewrite/postverify / pentest-authorization / evidence-required / secret-redaction）通过 `appsec-sdk init` 注册到 `<project>/.claude/settings.json`，**不是 user-global** —— fresh project 无 `.appsec/config.json` 时 0 enforcement（只有 GSD hooks 全局 fire）
+- **Hook 范围**：AppSec project hooks（枚举与触发以 `manifests/hook-registry.json` 为准——文档不写死数量，防 drift）通过 `appsec-sdk init` 注册到 `<project>/.claude/settings.json`，**不是 user-global** —— fresh project 无 `.appsec/config.json` 时 0 enforcement（只有 GSD hooks 全局 fire）
 
 **Pentest 双 gate**（security testing 特殊路径，绝不自动）：
 - `pentest-scope-and-roe`（visible governance，allowed-tools: Read only，落盘走 `pentest-scope-planner` agent 不自己 Write）：强制起草 ROE
@@ -160,7 +160,7 @@
 
 **4.8 honesty/judgment gain — re-tune，不 remove**：模型更诚实 → adversarial 脚手架（santa-loop 双盲、多视角 critique、冗余 verify）可以**减轮次**；但 redaction attestation / spec_hash 审批 / ROE sign-off / evidence-bundle 完整性 / CSF·ASVS coverage 是**契约+监管义务**，不是防模型乱来的对冲 —— 一个更诚实的模型仍然**不能自签人类审批、不能豁免 redaction、不能给自己的 pentest 授权**。**调轮次，留每一道 gate。**
 
-**铁律补充**：spec-injection（bounded/parameterized dynamic over a frozen human-authored menu + preview/approval）是 gate 的正确机制，**不迁 Dynamic Workflows**（详 `~/Desktop/architecture/NATIVE-OVERLAP-AUDIT-2026.05.29.md §3` + 闭环 `~/Desktop/architecture/NATIVE-OVERLAP-REMEDIATION-2026.05.29.md`）。
+**铁律补充**：spec-injection（bounded/parameterized dynamic over a frozen human-authored menu + preview/approval）是 gate 的正确机制，**不迁 Dynamic Workflows**（决策依据见 [docs/native-capabilities.md](docs/native-capabilities.md)；原 Desktop/architecture 审计档已清理）。
 
 ---
 
@@ -257,7 +257,7 @@ spawn 多个 agent 或发起多个 tool call 前必须先判断依赖关系：
 ### 反模式（不要这么做）
 
 - ❌ 跳过 `ux-principles` 直接进 production
-- ❌ 同时挂多个 L3 主风格（taste / luxury / brutalist 同时拉；taste 含三档变体 Editorial/Double-Bezel/GSAP）
+- ❌ 同时**锁定**多个 L3 主风格（taste / luxury / brutalist 一次只锁一个；taste 含三档变体 Editorial/Double-Bezel/GSAP）—— 注：UIUX 引擎 EXPLORE 阶段出多风格**候选预览**是锁前采样，不算违规（详 `uiux-product-orchestrator` references/combination-policy.md §6）
 - ❌ Collection/大而全 skill 抢 narrower skill 的活
 - ❌ Workflow skill（redesign / image-to-code）当 L3 主风格用
 - ❌ Auto-fire `claude-env-bootstrap` / `authorized-pentest-validation` / `anchor-prototype-wave`（这些都是 manual-first）
@@ -270,24 +270,15 @@ spawn 多个 agent 或发起多个 tool call 前必须先判断依赖关系：
 - ❌ 让 AI"凭感觉审计 SEO/AEO"（L12 必须 script-first，evidence 出来再让 AI 解读）
 - ❌ 把 robots.txt / noindex / llms.txt 当 access control（它们是 crawler policy，访问控制走 AppSec）
 - ❌ 把 `web-local-seo`（Local SEO，原 `web-geo`，2026-05-25 改名）和"GEO=Generative Engine Optimization"混用（后者归 `web-aeo`）
+- ❌ 开启 Codex plugin 的 review-gate stop hook（`/codex:setup --enable-review-gate`）——官方明示会快速烧穿用量限额，且"自动循环复审"与 governed gate 人类签字哲学冲突；跨模型 review 一律手动 `/codex:review` / `/codex:adversarial-review`
 
 ---
 
 ## 6. 应急回滚
 
-> ⚠️ 注：`_backup-20260523-v4` / `_backup-20260522-v3` 已清理不存在；现行备份目录为 `~/.claude/backups/`，下方 Copy-Item 路径需相应调整后才可用。
-
-v4 重组前完整 backup：`~/.claude/_backup-20260523-v4/`（含 CLAUDE.md / SKILLS-INDEX.md / settings.json / skills/claude-env-bootstrap/）
-
-```powershell
-# 完整回滚 4 个核心文件
-Copy-Item "$HOME\.claude\_backup-20260523-v4\CLAUDE.md" "$HOME\.claude\CLAUDE.md" -Force
-Copy-Item "$HOME\.claude\_backup-20260523-v4\SKILLS-INDEX.md" "$HOME\.claude\SKILLS-INDEX.md" -Force
-Copy-Item "$HOME\.claude\_backup-20260523-v4\settings.json" "$HOME\.claude\settings.json" -Force
-Copy-Item "$HOME\.claude\_backup-20260523-v4\claude-env-bootstrap" "$HOME\.claude\skills\claude-env-bootstrap" -Recurse -Force
-```
-
-详细 v4 重组日志：`~/.claude/_backup-20260523-v4/` + `~/.claude/docs/ORCHESTRATOR-MAP.md`。
+- **首选**：GitHub 同步仓库 `SensLiao/Claude-code-setting`（private）按 commit 粒度回滚任意文件；staging 在 `~/claude-config-upload`。
+- 本地兜底：`~/.claude/backups/`（按日期目录）+ `settings.json.known-good-*.bak`。
+- settings.json 治理键：`node ~/.claude/tools/ccswitch-guard/ccswitch-guard.js --check`（对账）/ `--capture`（重打快照）。`--restore` 会整体覆盖治理键——**先 `--check` 确认快照新鲜再用**。
 
 ---
 

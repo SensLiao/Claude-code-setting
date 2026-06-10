@@ -14,7 +14,19 @@ gate: gates/stage1-exit.md
 
 ## 流程
 
-### Step 1 · 敲定候选清单
+### Step 0 · 本地优先接地（v1.0 硬前置）
+
+进 web acquisition 前**先查本地** —— 本地 58 品牌 DESIGN.md + 产品 archetype 的 `reference-anchors` 往往已覆盖品类,大多数任务在此即完成接地,无需联网:
+
+1. 读 [`local-template-index.md`](../../uiux-product-orchestrator/references/local-template-index.md) → 按产品类型 / mood 用 `design-system` skill 匹配 1-3 个品牌 DESIGN.md(色板 / 字体 / 组件规格已就绪)。
+2. 读当前 archetype 的 `reference-anchors.md` → 拿到该品类标杆站点 + 该学什么。
+3. 命中的历史 token 集(任务像旧任务时)一并纳入。
+4. 把本地命中抽进 `design/grounding.md`（P0 GROUND 产物;schema 见 combination-policy.md §4）。
+5. **仅当本地无品类匹配** → 才进 Step 1-4 的 web acquisition（clone / 截图）。
+
+> **铁律 0**：无 `design/grounding.md` 不得进引擎 P3 BUILD（根治凭空生造）。本地优先,web 是 fallback。
+
+### Step 1 · 敲定候选清单（本地无匹配 / max 档深度时才走）
 
 跟用户对话（companion `competitive-teardown` 装了就拉它做候选发现）：
 
@@ -77,7 +89,8 @@ gate: gates/stage1-exit.md
 
 ## Gate（`gates/stage1-exit.md`）
 
-- [ ] reference-manifest.md 存在，每个 vendor 字段齐全（URL/commit/license/意图/do-not-copy）
+- [ ] **`design/grounding.md` 存在**（本地命中或 web 抽取）—— 这是进 EXPLORE→BUILD 的硬前置
+- [ ] reference-manifest.md 存在，每个 vendor 字段齐全（URL/commit/license/意图/do-not-copy）（走了 web acquisition 时）
 - [ ] 每个 Tier A vendor 真的能在本地打开 `_lineage.md`
 - [ ] 每个 Tier B/C vendor 有 ≥3 张截图
 - [ ] 失败的 reference 已记录原因 + 用户决定（跳过 / 替换）
