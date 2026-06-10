@@ -50,7 +50,7 @@ prototypes/
 
 每个 direction 候选 = 1 个 variant。
 
-- 装了 `codex-dispatch`：每个 variant 派一个 codex 任务并行
+- 装了 Codex 官方 plugin：每个 variant 用 `/codex:rescue` 派一个 codex 任务并行（额度耗尽 → 退 Claude subagent）
 - 否则：Claude subagent (Task) sonnet × variant 数，并行
 - 同时活跃 variant 上限 5
 

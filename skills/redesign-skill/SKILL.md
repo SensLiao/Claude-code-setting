@@ -9,9 +9,11 @@ description: Upgrades existing websites and apps to premium quality. Audits curr
 
 When applied to an existing project, follow this sequence:
 
+0. **Reference grounding** — *Before* proposing any fix, pull **3–5 real references** so the redesign aligns to real references, not just the internal rules below. If `design/grounding.md` exists (produced by the UIUX dispatch engine's P0 GROUND phase), **consume it directly** as the matched reference (palette / type / spacing / motion + exemplar anchors). Otherwise pull the closest brands from the local **`design-system`** DESIGN.md corpus (matched to this product's archetype and mood). Let these references set the target direction; the audit below is then used to *close the gap* toward them, not to design from scratch.
 1. **Scan** — Read the codebase. Identify the framework, styling method (Tailwind, vanilla CSS, styled-components, etc.), and current design patterns.
 2. **Diagnose** — Run through the audit below. List every generic pattern, weak point, and missing state you find.
 3. **Fix** — Apply targeted upgrades working with the existing stack. Do not rewrite from scratch. Improve what's there.
+4. **Critique loop** — After applying fixes, loop back to **`visual-critique`** for a fresh-eyes pass. Feed its prioritized findings back into another round of targeted fixes until the result holds up against the Step 0 references.
 
 ## Design Audit
 

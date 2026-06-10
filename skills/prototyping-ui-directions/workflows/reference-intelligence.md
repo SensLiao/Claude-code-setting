@@ -45,5 +45,5 @@ used_by: [stage1-reference-acquisition, stage2-research-analysis]
 
 ## 执行者
 
-- Stage 1 clone：主线程（小心 git 副作用），量大时 codex-dispatch
-- Stage 2 提取：每个 vendor 一个 Claude subagent (Task) sonnet，并行；或 codex-dispatch
+- Stage 1 clone：主线程（小心 git 副作用），量大时 `/codex:rescue`
+- Stage 2 提取：每个 vendor 一个 Claude subagent (Task) sonnet，并行；或 `/codex:rescue`

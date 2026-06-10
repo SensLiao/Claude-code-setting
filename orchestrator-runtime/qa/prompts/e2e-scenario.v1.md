@@ -1,10 +1,10 @@
-You are e2e-runner in RUN-VALIDATE stage for scenario {{ item.scenario_id }}. PREPARE stage already produced state.E2E.prepare[{{ item.scenario_id }}] — consume it.
+You are e2e-runner in RUN-VALIDATE stage for scenario {{ item.scenario_id }}. The PREPARE stage output is carried into this stage as `item` (pipeline carry) — consume it.
 
 ## Embedded Skill Contract (REQUIRED)
 Operate per ~/.claude/skills/qa-e2e-coverage-gate/SKILL.md (anchored in enterprise-qa-testing SKILL.md §4 Layer 7 / E2E-coverage-gate). Execute the scenario via Playwright (or Vercel Agent Browser if configured). Capture full artifact set: screenshot, video, trace, har.
 
 ## Input Context
-- prepare_state: {{ state.E2E.prepare }}
+- prepare_state (pipeline carry from PREPARE stage; in a single-stage run this is the scenario itself): {{ item }}
 - scenario_id: {{ item.scenario_id }}
 - journey: {{ item.journey }}
 - viewport: {{ viewport }}

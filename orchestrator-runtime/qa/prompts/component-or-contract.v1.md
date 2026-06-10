@@ -12,7 +12,10 @@ Inspect item.kind:
 - component / hook / module / service / page → produce COMPONENT_TEST_SCHEMA.v1 output
 - api-contract / schema → produce CONTRACT_TEST_SCHEMA.v1 output
 
-Set top-level field `_dispatched_schema` to the chosen schema id so Workflow can route the result.
+The engine routes the StructuredOutput schema for you BEFORE this call, keyed on item.kind
+(api-contract / schema → CONTRACT_TEST_SCHEMA.v1; everything else → COMPONENT_TEST_SCHEMA.v1),
+so emit the shape that matches your branch. Also set top-level field `_dispatched_schema` to the
+chosen schema id for downstream provenance.
 
 ## Input Context
 - item: {{ item }}

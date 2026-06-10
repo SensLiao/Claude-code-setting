@@ -80,19 +80,6 @@
         "id": "pre:edit-write:suggest-compact"
       },
       {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags-shell.sh\" \"pre:observe\" \"skills/continuous-learning-v2/hooks/observe.sh\" \"standard,strict\"",
-            "async": true,
-            "timeout": 10
-          }
-        ],
-        "description": "Capture tool use observations for continuous learning",
-        "id": "pre:observe:continuous-learning"
-      },
-      {
         "matcher": "Bash|Write|Edit|MultiEdit",
         "hooks": [
           {
@@ -271,19 +258,6 @@
         ],
         "description": "Capture governance events from tool outputs. Enable with ECC_GOVERNANCE_CAPTURE=1",
         "id": "post:governance-capture"
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags-shell.sh\" \"post:observe\" \"skills/continuous-learning-v2/hooks/observe.sh\" \"standard,strict\"",
-            "async": true,
-            "timeout": 10
-          }
-        ],
-        "description": "Capture tool use results for continuous learning",
-        "id": "post:observe:continuous-learning"
       }
     ],
     "PostToolUseFailure": [

@@ -1,7 +1,7 @@
 {
   "schema_version": "2.0.0",
-  "generated_date": "2026-05-25",
-  "generated_by": "harness drift normalization Wave 2 Agent A2 (PR-1)",
+  "generated_date": "2026-06-10",
+  "generated_by": "harness drift normalization Wave 2 Agent A2 (PR-1); 2026-06-10 refresh: +3 AppSec skills (security-app-api / security-platform-supply-chain / security-compliance-privacy), hook-enumeration pointer",
   "description": "Global ~/.claude/ skill manifest. Defines 5 primary orchestrators (1 manual-first bootstrap + 4 commercial-grade three-mainline) and how supporting skills are tiered beneath them. v2.0.0 adds hooks/sdks/evidence_roots/name_freeze top-level blocks for harness-level coverage of AppSec v3.0 GSD-lite engine + L12 discoverability + QA layered matrix + UIUX subsystem. Claude routes through primary orchestrators first; supporting skills are invoked by orchestrators or by explicit user request.",
 
   "primary_orchestrators": [
@@ -57,7 +57,7 @@
       },
       "capability_layers": ["governance", "app", "platform", "operations", "response", "compliance"],
       "csf_functions": ["GV Govern", "ID Identify", "PR Protect", "DE Detect", "RS Respond", "RC Recover"],
-      "purpose": "Defensive AppSec orchestrator (v3.0 GSD-lite execution engine). Self-dispatches via named subagents (appsec-risk-classifier, appsec-finding-triager, appsec-evidence-validator) backed by appsec-sdk.sh canonical evidence sink at `.appsec/evidence/<tag>/` and 7 project-level hooks installed via `appsec-sdk init` (config-gated by `.appsec/config.json`). Routes through 6-layer capability map (governance / app / platform / operations / response / compliance) and aligns with NIST CSF 2.0 six functions (Govern / Identify / Protect / Detect / Respond / Recover) + ASVS 5.0 V1-V17 + WSTG passive + API Top 10 2023 + standardized finding schema. NEVER performs active scans; active work gated by pentest-scope-and-roe (ROE governance) + authorized-pentest-validation (manual hard gate, disable-model-invocation: true)."
+      "purpose": "Defensive AppSec orchestrator (v3.0 GSD-lite execution engine). Self-dispatches via named subagents (appsec-risk-classifier, appsec-finding-triager, appsec-evidence-validator) backed by appsec-sdk.sh canonical evidence sink at `.appsec/evidence/<tag>/` and project-level hooks (enumeration & triggers per manifests/hook-registry.json) installed via `appsec-sdk init` (config-gated by `.appsec/config.json`). Routes through 6-layer capability map (governance / app / platform / operations / response / compliance) and aligns with NIST CSF 2.0 six functions (Govern / Identify / Protect / Detect / Respond / Recover) + ASVS 5.0 V1-V17 + WSTG passive + API Top 10 2023 + standardized finding schema. NEVER performs active scans; active work gated by pentest-scope-and-roe (ROE governance) + authorized-pentest-validation (manual hard gate, disable-model-invocation: true)."
     }
   ],
 
@@ -125,16 +125,16 @@
     "l12_discoverability_orchestrator": ["discoverability-orchestrator"],
     "l12_discoverability_narrow": ["web-seo", "web-aeo", "web-local-seo", "app-aso"],
     "appsec_governance": ["security-governance-threat-modeling"],
-    "appsec_platform": ["security-platform-secrets", "security-platform-iac-cloud"],
+    "appsec_platform": ["security-platform-secrets", "security-platform-iac-cloud", "security-platform-supply-chain"],
     "appsec_app": ["security-remediation", "dast-baseline-scanning"],
-    "appsec_app_overlay": ["security-app-mobile", "security-app-llm", "security-app-multitenant", "security-app-websocket", "security-app-file-upload"],
+    "appsec_app_overlay": ["security-app-mobile", "security-app-llm", "security-app-multitenant", "security-app-websocket", "security-app-file-upload", "security-app-api"],
     "appsec_response": ["security-response-incident-response", "security-response-recovery"],
-    "appsec_compliance": ["security-compliance-payment", "security-compliance-cn-data"],
+    "appsec_compliance": ["security-compliance-payment", "security-compliance-cn-data", "security-compliance-privacy"],
     "appsec_governance_visible": ["pentest-scope-and-roe"],
     "appsec_manual_only": ["authorized-pentest-validation"],
     "appsec_gsd_adapter": ["gsd-secure-phase"],
     "non_ui_meta": [
-      "remotion-best-practices", "claude-api", "codex-dispatch",
+      "remotion-best-practices", "claude-api",
       "skill-creator"
     ],
     "code_reading_tools": [

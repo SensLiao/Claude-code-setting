@@ -419,7 +419,8 @@
     },
     "claude-api": {
       "domain": "platform",
-      "kind": "narrow",
+      "kind": "plugin",
+      "_source": "plugins/marketplaces/everything-claude-code/skills/claude-api (NOT ~/.claude/skills/) — EXECUTE prints `claude plugin install`, does not cp",
       "selector": {"all_of": [{"signal": "llm_provider", "contains": "anthropic"}]},
       "priority": "high"
     },

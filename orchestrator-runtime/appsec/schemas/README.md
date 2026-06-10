@@ -77,3 +77,35 @@ bash ../tests/validate-all-presets.sh
 Old version files SHOULD be kept (e.g. `FIND_SCHEMA.v1.json` and
 `FIND_SCHEMA.v2.json` coexist) — presets pin their `schema_ref` to a specific
 version, and bumping is opt-in per preset.
+
+## Two-layer finding design (READ THIS before touching NORMALIZE_SCHEMA)
+
+There are **two distinct finding shapes** in the AppSec subsystem. They are NOT
+the same schema and must not be conflated:
+
+| Layer | Shape | Defined by | Lives in | Severity tiers | id format |
+|---|---|---|---|---|---|
+| **1. Workflow-internal** | `WorkflowFindingV1` | `NORMALIZE_SCHEMA.v1.json` (this dir) + `prompts/normalize.v1.md` | transient `state.Normalize.findings[]` inside a single `appsec-orchestrator.js` run | `info\|low\|medium\|high\|critical` | `^[a-z0-9]{4,12}$` (e.g. `a3f9k2`) |
+| **2. Persisted (canonical)** | finding schema v1.0 | SKILL.md §9 + `appsec-sdk finding.add` validator | `.appsec/findings/<tag>/*.yaml` (the store the deterministic gates audit) | `critical\|high\|medium\|low` (no `info`) | `<YYYY-MM-DD>-<source>-<seq>` (e.g. `2026-05-25-sast-001`) |
+
+**Why two layers**: layer 1 is a cheap, fast, agent-friendly intermediate the
+workflow uses to cluster / dedup / verify candidates within one run. Layer 2 is
+the durable, audited, cross-run contract every downstream skill (e.g.
+`security-remediation`) consumes. Forcing the workflow to emit the full §9 shape
+on every candidate would be wasteful and brittle.
+
+**The bridge (where conversion happens)**: workflow `result.phase_outputs.Normalize.findings[]`
+→ `appsec-sdk finding.add` (called by the Skill main thread per
+`references/workflow-spec-dispatch.md §16.10.4`, the `Normalize` row). The
+conversion at the bridge:
+- `severity: info` → `low` (already done at normalize time per `prompts/normalize.v1.md`,
+  so the bridge is lossless — see also `agents/appsec-finding-triager.md:62`).
+- `id` is **re-keyed** from the short workflow id to the canonical
+  `<YYYY-MM-DD>-<source>-<seq>` form by `finding.add`.
+- §9-only fields (`detector`, `confidence`, `asvs_mapping`, `csf_function`,
+  `affected.files`, …) are populated at this step.
+
+**Naming rule**: the workflow-internal shape is `WorkflowFindingV1`. Do NOT call
+it `FindingV1` (that bare name collides with the §9 persisted finding and caused
+a documented drift). The schema `$id` stays `NORMALIZE_SCHEMA.v1` for backward
+compatibility; only the prose name is `WorkflowFindingV1`.

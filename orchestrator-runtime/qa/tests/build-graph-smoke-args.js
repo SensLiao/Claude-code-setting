@@ -61,6 +61,16 @@ function gatherSchemaRefs(phases) {
   return [...refs];
 }
 const schemaRefs = gatherSchemaRefs(spec.phases);
+// contracts-qa#2: component-or-contract.v1 routes api-contract/schema items to
+// CONTRACT_TEST_SCHEMA.v1 at runtime (qa-orchestrator.js fanout schemaForItem). The node only
+// declares COMPONENT_TEST_SCHEMA.v1 as its default schema_ref, so the contract schema must be
+// inlined explicitly whenever that dual-mode prompt is in play, or the runtime route falls back.
+const usesComponentOrContract = spec.phases.some(p =>
+  p.prompt_ref === 'component-or-contract.v1' ||
+  (p.stages || []).some(s => s.prompt_ref === 'component-or-contract.v1'));
+if (usesComponentOrContract && !schemaRefs.includes('CONTRACT_TEST_SCHEMA.v1')) {
+  schemaRefs.push('CONTRACT_TEST_SCHEMA.v1');
+}
 spec.schemas = spec.schemas || {};
 for (const ref of schemaRefs) {
   // schema files end in .json; ref like "STATIC_BASELINE_SCHEMA.v1" → "STATIC_BASELINE_SCHEMA.v1.json"

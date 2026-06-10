@@ -23,7 +23,7 @@ const pre = preflight(input);
 if (pre.mode === 'silent') process.exit(0);
 
 const toolName = input.tool_name || input.tool || '';
-if (toolName !== 'Write' && toolName !== 'Edit') process.exit(0);
+if (toolName !== 'Write' && toolName !== 'Edit' && toolName !== 'MultiEdit') process.exit(0);
 
 const tinp = input.tool_input || {};
 const filePath = tinp.file_path || tinp.path || '';

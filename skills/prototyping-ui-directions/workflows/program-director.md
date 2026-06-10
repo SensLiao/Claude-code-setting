@@ -13,7 +13,7 @@ UIUX Sample Pipeline 的**唯一** Program Director。
 只做四件事：
 
 1. **路由** — 决定走哪个 stage / 哪个 sub-skill
-2. **派遣** — 决定每个 sub-skill 用主线程、Claude subagent (Task) 还是可选的 `codex-dispatch`
+2. **派遣** — 决定每个 sub-skill 用主线程、Claude subagent (Task) 还是可选的 Codex 官方 plugin（`/codex:rescue`）
 3. **gate** — 决定一个 stage 是否能 exit
 4. **checkpoint** — 把状态写进 `state/checkpoint.json`，下次会话能恢复
 
@@ -73,7 +73,7 @@ Read state/checkpoint.json
     "frontend-design": false,
     "design-system": false,
     "competitive-teardown": false,
-    "codex-dispatch": false
+    "codex-plugin": false
   },
   "last_updated": null,
   "log_file": "state/log.md"
@@ -84,7 +84,8 @@ Read state/checkpoint.json
 
 每次启动跑一次（轻量）：
 
-- 看 Skill 工具列表里是否出现：`grill-with-docs`、`taste-skill`、`frontend-design`、`design-system`、`competitive-teardown`、`codex-dispatch`
+- 看 Skill 工具列表里是否出现：`grill-with-docs`、`taste-skill`、`frontend-design`、`design-system`、`competitive-teardown`
+- Codex 现在是官方 plugin（非 skill）：看 slash-command 列表里是否出现 `/codex:rescue` / `/codex:review` → 命中写 `companion_skills_detected.codex-plugin` = true
 - 命中即写入 `companion_skills_detected.*` = true
 - 没命中则保持 false，**不**抛错、**不**让用户去装；按 SKILL.md 里的降级路径走
 
@@ -105,7 +106,7 @@ Read state/checkpoint.json
 
 ### Step 4 · 执行者派遣
 
-| Stage | sub-skill | 默认执行者 | 用 codex-dispatch 加速？ |
+| Stage | sub-skill | 默认执行者 | 用 Codex plugin（`/codex:rescue`）加速？ |
 |-------|-----------|-----------|-------------------------|
 | 0 | idea intake 问答 | 主线程 | ❌ 强交互 |
 | 0 | （可选）`grill-with-docs` 压实 | 主线程 + companion | ❌ |
@@ -114,7 +115,7 @@ Read state/checkpoint.json
 | 2 | reference 提取 | Claude subagent (Task) sonnet | ✅ 多 reference 时 |
 | 2 | cross-reference 整理 | 主线程 | ❌ |
 | 2 | direction 候选收敛 | 主线程 + （可选）`design-system` | ❌ |
-| 3 | 多 variant 并行生成 | `codex-dispatch` × N 或 Claude subagent × N | ✅ 首选 |
+| 3 | 多 variant 并行生成 | `/codex:rescue` × N 或 Claude subagent × N | ✅ 首选 |
 | 3 | 红队 | 主线程 + （可选）`taste-skill` | ❌ |
 
 **铁律**：

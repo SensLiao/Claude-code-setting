@@ -27,9 +27,10 @@
 - **作用**：12 维 feature matrix + positioning map，帮选哪些 reference 值得深入
 - **不装**：主线程手写 cross-reference matrix，效果可接受
 
-### 6. `codex-dispatch` — Stage 3 多 variant 并行加速
-- **作用**：把每个 variant 派给 Codex CLI 并行生成，省 Claude token + 提速
+### 6. Codex 官方 plugin (`codex@openai-codex`) — Stage 3 多 variant 并行加速
+- **作用**：用 `/codex:rescue` 把每个 variant 派给 Codex 并行生成，省 Claude token + 提速（额度耗尽 → fallback 到 Claude subagent）
 - **不装**：Claude subagent (Task) 并行，token 重一些但能跑
+- 注：这是官方 plugin（marketplace `openai-codex`），不是本地 skill —— 经 `/plugin install codex@openai-codex` 装
 
 ## 安装指引（统一）
 
@@ -54,12 +55,15 @@ mv ~/.claude/skills-archive/.../<skill-name> ~/.claude/skills/
 伪代码：
 
 ```
-for skill in [grill-with-docs, taste-skill, frontend-design, design-system, competitive-teardown, codex-dispatch]:
+for skill in [grill-with-docs, taste-skill, frontend-design, design-system, competitive-teardown]:
   detected = skill in available_skills_list
   state['companion_skills_detected'][skill] = detected
+
+# Codex is now an official plugin, not a skill — detect its commands instead of the skills list
+state['companion_skills_detected']['codex-plugin'] = ('/codex:rescue' in available_commands or '/codex:review' in available_commands)
 ```
 
-`available_skills_list` 来自每次会话开头的 `<system-reminder>` 里 `The following skills are available for use with the Skill tool` 段。
+`available_skills_list` 来自每次会话开头的 `<system-reminder>` 里 `The following skills are available for use with the Skill tool` 段。Codex plugin 命令（`/codex:review`、`/codex:adversarial-review`、`/codex:rescue` 等）出现在 slash-command 列表里则视为已装。
 
 ## 不强制依赖的好处
 

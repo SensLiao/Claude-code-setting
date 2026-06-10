@@ -423,9 +423,9 @@ Google Play 按维度定制 listing：
 | `selective_review_solicitation` (review gating) | App 内 review prompt 对用户做满意度筛选（仅引导高分用户去 store / 把差评导向 support） —— 违反 Apple App Store Review Guideline 1.1.7 + Google Play Developer Policy + FTC 规则。修复：改用 SKStoreReviewController / Play In-App Review API，对所有用户一视同仁 |
 
 **Blocker 触发后**：
-- 写入 `evidence/discoverability/aso/gate-result.json` 的 `blockers[]`
+- 在 channel evidence `evidence/discoverability/<tag>/aso.json` 的 `findings[]` 写一条 `severity: blocker` 的 finding（**不**自产 `gate-result.json` —— gate 产物只由 `discoverability-sdk gate.check` 写 `<tag>/gate-result.yaml`）
 - 报告中标红
-- `discoverability-orchestrator` gate-result 也会反映
+- `discoverability-orchestrator` 的 `gate-result.yaml` 会聚合反映该 blocker
 - release 流程必须阻断或显式 waive
 
 ---
@@ -482,17 +482,22 @@ Google Play 按维度定制 listing：
 
 ### 9.3 CLI 契约
 
-跟 L12 上层契约一致，子命令 `--domain aso`：
+跟 L12 上层契约一致，子命令 `--domain aso`。
+
+> **路径约定（v1.2 harness）**：raw 脚本产物写 tag-scoped `evidence/discoverability/<tag>/raw/`，经 `discoverability-sdk evidence.append <tag> aso <file>` 归一化进 canonical channel evidence `evidence/discoverability/<tag>/aso.json`。gate 评估走 orchestrator 的 `discoverability-sdk gate.check <tag>`（**不是** per-domain gate 命令），产物只有 `<tag>/gate-result.yaml`。**禁止**写 flat `evidence/discoverability/aso/`（无 `<tag>` 维度）。下例用 shell 变量 `TAG` 占位。
 
 ```bash
-# 跑 ASO 全套 evidence collection
-pnpm discoverability:audit:aso --config discoverability.config.yaml --out evidence/discoverability/aso
+# 跑 ASO 全套 evidence collection（raw 产物落 <tag>/raw/）
+pnpm discoverability:audit:aso --config discoverability.config.yaml --out "evidence/discoverability/$TAG/raw"
 
-# 跑 ASO gate 检查
-pnpm discoverability:gate --domain aso
+# 归一化进 canonical channel evidence
+python scripts/discoverability-sdk.py evidence.append "$TAG" aso "evidence/discoverability/$TAG/raw/aso-evidence.json"
+
+# 跑 gate 检查（orchestrator 统一 gate.check，写 <tag>/gate-result.yaml）
+python scripts/discoverability-sdk.py gate.check "$TAG"
 
 # 解释某条 ASO finding 的修复方法
-pnpm discoverability:explain --finding aso-screenshots-missing-locale-zh-hans
+python scripts/discoverability-sdk.py explain "$TAG" --finding aso-screenshots-missing-locale-zh-hans
 ```
 
 可选 sub-task：
@@ -508,7 +513,7 @@ pnpm discoverability:audit:aso --platform android
 pnpm discoverability:audit:aso --check localization
 ```
 
-**注意**：本 skill 不强制具体实现语言。可用 Node.js / Python / Ruby（fastlane 是 Ruby）。Runner 实现细节由项目决定，本 skill 只规定**契约**（输入：config.yaml + metadata 目录 / API token；输出：evidence/discoverability/aso/ 下结构化文件）。
+**注意**：本 skill 不强制具体实现语言。可用 Node.js / Python / Ruby（fastlane 是 Ruby）。Runner 实现细节由项目决定，本 skill 只规定**契约**（输入：config.yaml + metadata 目录 / API token；输出：raw 产物落 `evidence/discoverability/<tag>/raw/`，归一化后落 canonical `evidence/discoverability/<tag>/aso.json`）。
 
 ---
 
@@ -532,21 +537,24 @@ pnpm discoverability:audit:aso --check localization
 
 ## 10. Evidence 输出
 
-所有 ASO evidence 落到统一目录：
+归一化后的 channel evidence 落 `evidence/discoverability/<tag>/aso.json`（canonical channel key `aso`，由 `discoverability-sdk evidence.append <tag> aso <file>` 写入；其 `findings[]` 聚合 blocker + warn，`source` ∈ {api, fastlane_metadata, manual, third_party_tool}）。下列 raw 脚本产物落同一 tag 的 `raw/` 工作目录，被 `aso.json` 的 `findings[].evidence_path` 反查引用：
 
 ```
-evidence/discoverability/aso/
-├── app-store-listing.json       # App Store metadata 全量字段 + 长度 + 缺失项
-├── google-play-listing.json     # Google Play metadata 全量字段 + 长度 + 缺失项
-├── screenshots-previews.json    # 各 store / device / locale 的截图与视频 inventory + 规格合规
-├── localization.json            # locale coverage matrix（哪些 locale × 哪些字段已填）
-├── ratings-reviews.json         # rating 分布 + review reply 率 + 近期 review 摘要
-├── experiments.json             # Apple PPO / Google Store Listing Experiments 状态
-├── visual-assets-inventory.json # icon / feature graphic / app preview 详细规格
-├── compliance-artifacts.json    # privacy URL / App Privacy / data safety 字段存在性（非法律审查）
-├── findings.json                # 所有 finding（blocker + warn）
-└── aso-evidence.json            # 顶层 aggregate，被 discoverability-orchestrator 引用
+evidence/discoverability/<tag>/
+├── aso.json                         # ← canonical channel evidence（findings[] 聚合 + source，append 产出）
+└── raw/                             # raw 脚本产物（pre-append 工作文件）
+    ├── app-store-listing.json       # App Store metadata 全量字段 + 长度 + 缺失项
+    ├── google-play-listing.json     # Google Play metadata 全量字段 + 长度 + 缺失项
+    ├── screenshots-previews.json    # 各 store / device / locale 的截图与视频 inventory + 规格合规
+    ├── localization.json            # locale coverage matrix（哪些 locale × 哪些字段已填）
+    ├── ratings-reviews.json         # rating 分布 + review reply 率 + 近期 review 摘要
+    ├── experiments.json             # Apple PPO / Google Store Listing Experiments 状态
+    ├── visual-assets-inventory.json # icon / feature graphic / app preview 详细规格
+    ├── compliance-artifacts.json    # privacy URL / App Privacy / data safety 字段存在性（非法律审查）
+    └── aso-evidence.json            # raw 聚合中间产物（append 进 aso.json 后即可 GC）
 ```
+
+> **禁止** flat `evidence/discoverability/aso/`（无 `<tag>`）、顶层 `findings.json` / 自产 `gate-result.json`。channel 聚合统一为 `<tag>/aso.json`；gate 产物只由 `discoverability-sdk gate.check` 写 `<tag>/gate-result.yaml`。
 
 ### 10.1 evidence schema 硬规则
 
@@ -557,7 +565,9 @@ evidence/discoverability/aso/
 - 所有 finding 必须有 `evidence_path`（具体 JSON path / API endpoint / 文件路径）
 - 同一 finding 在 `report.md` 出现时，必须能反向追溯到 `evidence/` 下的原始数据
 
-### 10.2 aso-evidence.json 顶层 schema 示例
+### 10.2 raw aggregate (`raw/aso-evidence.json`) schema 示例
+
+> 这是 **pre-append 的 raw 聚合中间产物**（落 `<tag>/raw/aso-evidence.json`），喂给 `evidence.append <tag> aso` 后归一化进 canonical `<tag>/aso.json`。`files` 路径都相对 `raw/`。
 
 ```json
 {
@@ -583,15 +593,14 @@ evidence/discoverability/aso/
     "product_page_experiment_not_configured"
   ],
   "files": {
-    "app_store_listing": "app-store-listing.json",
-    "google_play_listing": "google-play-listing.json",
-    "screenshots_previews": "screenshots-previews.json",
-    "localization": "localization.json",
-    "ratings_reviews": "ratings-reviews.json",
-    "experiments": "experiments.json",
-    "visual_assets_inventory": "visual-assets-inventory.json",
-    "compliance_artifacts": "compliance-artifacts.json",
-    "findings": "findings.json"
+    "app_store_listing": "raw/app-store-listing.json",
+    "google_play_listing": "raw/google-play-listing.json",
+    "screenshots_previews": "raw/screenshots-previews.json",
+    "localization": "raw/localization.json",
+    "ratings_reviews": "raw/ratings-reviews.json",
+    "experiments": "raw/experiments.json",
+    "visual_assets_inventory": "raw/visual-assets-inventory.json",
+    "compliance_artifacts": "raw/compliance-artifacts.json"
   }
 }
 ```
@@ -625,8 +634,8 @@ Step 4  Localization + ratings/reviews + experiments
 
 Step 5  Gate 评估 + finding 汇总
   └─ 跑第 7 节 Blocker checklist + 第 8 节 Warn checklist
-     → 写 findings.json + aso-evidence.json
-     → 反馈给 discoverability-orchestrator 的 gate-result.json
+     → 写 raw 聚合 <tag>/raw/aso-evidence.json，再 evidence.append 进 canonical <tag>/aso.json
+     → orchestrator 跑 discoverability-sdk gate.check <tag> 聚合到 <tag>/gate-result.yaml（本 skill 不自产 gate-result.json）
 ```
 
 每一步必须有 evidence 落盘。manual review 部分（visual quality / 文案 quality / competitor benchmark）作为单独 `manual-review.md` artifact 提交。
@@ -777,7 +786,7 @@ Step 5  Gate 评估 + finding 汇总
 - [ ] 本文档不写 Swift / Kotlin / Flutter / React Native 代码示例（那是 L5）
 - [ ] 所有 blocker / warn 都能反向追溯到 Apple / Google official guideline
 - [ ] CLI 契约与 discoverability-orchestrator 一致
-- [ ] Evidence 路径在 `evidence/discoverability/aso/` 下
+- [ ] Evidence 路径是 tag-scoped canonical `evidence/discoverability/<tag>/aso.json`（raw 产物在 `<tag>/raw/` 下）；不写 flat `evidence/discoverability/aso/` / 顶层 `findings.json` / 自产 `gate-result.json`
 - [ ] 第三方工具引用仅作 evidence-only，不强制某个供应商
 
 如有违反，标 issue 并修正。

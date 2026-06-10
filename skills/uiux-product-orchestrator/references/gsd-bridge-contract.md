@@ -91,14 +91,14 @@
 
 ### Step 5 — On L3 Style Skill Invocation(hook 触发)
 
-`uiux-style-mutex-guard.js`:
+`uiux-style-mutex-guard.js`(实际行为 —— 与 hook 源码对齐,2026-06-10 校正):
 - 检测 Skill matcher 命中 L3 风格 skill
-- 读 `.uiux/lock/style-lock.yaml`
-- 不存在 → 调 `uiux-sdk lock.style <tag> <style>` 写新 lock
-- 存在且同一 style → 0
-- 存在但不同 style → exit 2(除非 `# uiux-allow:unlock-style <reason>` provenance)
+- 读 `.uiux/lock/style-lock.yaml` 的 `l3_style`
+- 不存在 lock(无锁窗口)→ **放行(exit 0)**。hook **不**自己写 lock —— 写 lock 由 orchestrator 流程调 `uiux-sdk lock.style` 完成(hook 只 block/pass)。这正是 v2.3 引擎 P1 EXPLORE 无锁采样能跑通的原因。
+- 存在且同一 family → exit 0
+- 存在但不同 family → exit 2(mutex violation)。**relock 必须**走 `uiux-sdk lock.style <tag> <skill> --force --reason "<≥30 chars>"`;hook 本身**不识别**任何 inline `# uiux-allow:` marker(PreToolUse 看不到可靠的 user-vs-model provenance —— provenance 判定由 orchestrator prompt 层承担,见 style-lock-policy.md §7)。
 
-Workflow skill(`redesign-skill` / `image-to-code-skill` / `stitch-skill`)被作为 L3 → 永远拒,exit 2。
+Pre-lock 合法探索/导入流(`prototyping-ui-directions` / `image-to-code-skill` / `sens-frontend-design`)在无锁窗口**放行**;只有 post-lock production workflow(`redesign-skill` / `frontend-design` / `anchor-prototype-wave`)在无锁时被 Case 1 拦(见 `_uiux-common.js` BLOCK_BEFORE_LOCK)。这些 workflow skill **都不能作为 L3 style 本身**(SDK `lock.style` 拒,见 style-lock-policy.md §5)。
 
 ### Step 6 — Before `/gsd-execute-phase`
 

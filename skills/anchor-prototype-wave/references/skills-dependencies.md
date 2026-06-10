@@ -78,9 +78,9 @@
 
 ### Stage 9 — Cross-AI review
 
-| External skill | Tier | How it's consumed |
+| Dependency | Tier | How it's consumed |
 |---|---|---|
-| `codex-dispatch` | **Required** | Provides the external Codex CLI invocation pattern, env-var model routing (CODEX_REVIEW_MODEL / CODEX_LIGHT_MODEL / CODEX_FALLBACK_MODEL), sandbox flags, and fallback handling. Without this skill, Stage 9 has no way to invoke an external reviewer. |
+| Codex official plugin (`codex@openai-codex`) | **Required** | Provides the external Codex reviewer via `/codex:adversarial-review` (or `/codex:review`). Pick the model with `--model` (env-var routing CODEX_REVIEW_MODEL / CODEX_LIGHT_MODEL / CODEX_FALLBACK_MODEL still applies); long reviews use `--background` + `/codex:status` / `/codex:result`. If Codex quota is exhausted, fall back to a second Claude subagent reviewer. Without Codex, Stage 9 has no external reviewer. |
 
 ### Stage 11 — Master gallery aggregation
 
@@ -100,8 +100,10 @@ Choose ONE installation strategy. Don't mix.
 Best when you want each project to be self-contained.
 
 ```bash
+# Cross-AI review (Stage 9) is the Codex official plugin codex@openai-codex —
+# install it via the plugin marketplace, NOT by copying a local skill.
 mkdir -p .claude/skills
-for skill in codex-dispatch ux-principles taste-skill prototyping-ui-directions \
+for skill in ux-principles taste-skill prototyping-ui-directions \
              ai-regression-testing grill-with-docs luxury-editorial-site-builder; do
   cp -r ~/.claude/skills/$skill .claude/skills/
 done
@@ -112,8 +114,10 @@ done
 Best when you want a single source of truth.
 
 ```bash
+# Stage 9 cross-AI review = Codex official plugin codex@openai-codex (install via
+# plugin marketplace, not symlinked here).
 mkdir -p .claude/skills
-for skill in codex-dispatch ux-principles taste-skill prototyping-ui-directions \
+for skill in ux-principles taste-skill prototyping-ui-directions \
              ai-regression-testing grill-with-docs luxury-editorial-site-builder; do
   ln -s ~/.claude/skills/$skill .claude/skills/$skill
 done
@@ -125,7 +129,8 @@ done
 
 ```bash
 # Pseudocode — adapt to your Claude Code version
-/plugin install codex-dispatch
+# Stage 9 cross-AI review = Codex official plugin (marketplace: openai-codex)
+/plugin install codex@openai-codex
 /plugin install ux-principles
 /plugin install taste-skill
 /plugin install prototyping-ui-directions
@@ -136,8 +141,8 @@ done
 
 ### Option D — Skip what you don't need
 
-The pipeline will still run with only `codex-dispatch` installed
-(Stage 9 needs it). Skipping the strongly-recommended skills will
+The pipeline will still run with only the Codex official plugin
+(`codex@openai-codex`) installed (Stage 9 needs it). Skipping the strongly-recommended skills will
 produce noticeably weaker surfaces. Skipping the recommended skills is
 fine if your wave doesn't touch the relevant stage (e.g. no creative
 surfaces → skip `prototyping-ui-directions`).
@@ -149,12 +154,12 @@ surfaces → skip `prototyping-ui-directions`).
 For the smallest install that still produces output the user can review:
 
 ```
-codex-dispatch       # Required — Stage 9
+codex@openai-codex   # Required (plugin, not skill) — Stage 9 cross-AI review
 ux-principles        # Strongly recommended — Stages 0, 5, 7
 taste-skill          # Strongly recommended — Stages 0, 1, 2, 5, 11
 ```
 
-3 skills, covers all critical quality pathways. The other 4 are
+Codex plugin + 2 skills, covers all critical quality pathways. The other 4 are
 selectively added when a specific wave type calls for them.
 
 ---

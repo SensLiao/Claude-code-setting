@@ -78,7 +78,7 @@ Stage 3 — Prototype Package Generation  (prototypes/)
 | `frontend-design` | Stage 3 HTML / React mock 写得更有质感 | 基础 HTML/JSX |
 | `design-system` | Stage 2 调色板候选输入（来自 58 brand） | 仅从 reference 提取 |
 | `competitive-teardown` | Stage 1 reference 选型 + Stage 2 对比 | 手写 cross-ref |
-| `codex-dispatch` | Stage 3 多 variant 并行加速 | Claude subagent 并行 |
+| Codex 官方 plugin (`codex@openai-codex`) | Stage 3 多 variant 并行加速（`/codex:rescue`） | Claude subagent 并行 |
 
 详见 `references/companion-skills.md`，含每个 skill 的安装方式（marketplace / git clone / archive 拉回）。
 

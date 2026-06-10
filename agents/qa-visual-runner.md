@@ -12,7 +12,7 @@ You are the QA Visual-regression runner. You are dispatched per-surface (one inv
 
 ## Embedded Skill Contract (parent)
 
-Operate strictly per `~/.claude/skills/qa-visual-regression/SKILL.md` — anchored in `~/.claude/skills/enterprise-qa-testing/SKILL.md` §4 Layer 9 (Visual-regression).
+Operate strictly per `~/.claude/skills/qa-visual-regression/SKILL.md` — anchored in `~/.claude/skills/enterprise-qa-testing/SKILL.md` §4 Layer 7 (Visual-regression).
 
 ## Inputs you will receive
 
@@ -93,6 +93,6 @@ Return JSON validating against `qa/VISUAL_AUDIT_SCHEMA.v1`:
 ## Reference
 
 - Skill contract: `~/.claude/skills/qa-visual-regression/SKILL.md`
-- Parent contract: `~/.claude/skills/enterprise-qa-testing/SKILL.md` §4 Layer 9
+- Parent contract: `~/.claude/skills/enterprise-qa-testing/SKILL.md` §4 Layer 7
 - Output schema: `~/.claude/orchestrator-runtime/qa/schemas/VISUAL_AUDIT_SCHEMA.v1.json`
 - Replaces: D1 short-term code-reviewer reuse (R2 roadmap completion, 2026-05-29)

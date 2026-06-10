@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-06-10 — Cross-AI review migrated to Codex official plugin
+
+Stage 9 cross-AI review now uses the **Codex official plugin**
+(`codex@openai-codex`: `/codex:review` read-only, `/codex:adversarial-review`
+adversarial, `/codex:rescue` delegation) instead of the deprecated local
+`codex-dispatch` skill (raw `codex exec` shell wrapper, now removed). Doc-only
+migration — Stage 9 mechanics, env-var model routing (CODEX_REVIEW_MODEL /
+CODEX_LIGHT_MODEL / CODEX_FALLBACK_MODEL), the trigger matrix, and the
+"quota exhausted → fall back to a second Claude subagent reviewer" policy are
+all unchanged. Windows note: the plugin's app-server channel removes the need
+for the old raw-CLI workarounds (`--skip-git-repo-check`, GBK/UTF-8
+`Get-Content`). Updated: SKILL.md §5, README.md, ASSETS/orchestration-decision-matrix.md,
+references/model-policy.md, references/skills-dependencies.md. Earlier entries
+below are historical and reference the former skill by name — left intact.
+
 ## v3.0.0 — 2026-05-17 (conversational reset)
 
 User-facing surface collapsed: 4 modes + 7 CLI flags removed; pipeline is

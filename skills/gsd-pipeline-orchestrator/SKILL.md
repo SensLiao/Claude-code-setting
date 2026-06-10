@@ -90,7 +90,7 @@ Compose the pipeline by walking these tiers in order. **Run commands serially. S
 9. Verify: `/gsd-verify-work N`
 10. Ship:
     - `/gsd-pr-branch main`
-    - `/gsd-ship N`
+    - `/gsd-ship N` — **governed release gate** (CLAUDE.md §3.7): the ship verdict comes only from the deterministic spec-runner + `spec_hash` human approval + evidence; Dynamic Workflows / ultracode may scout candidates but NEVER produce a release verdict, and there is no self-approval.
 11. Sediment: `/gsd-extract-learnings N`
 
 ---
@@ -149,7 +149,7 @@ The 7 orchestration patterns are documented in detail in [agent-orchestration-pa
 | Architecture / new framework plan | **Plan-review convergence** | `/gsd-plan-review-convergence --codex` until no HIGH concerns |
 | Ship-critical merge | **Santa-loop dual review** | Two independent reviewers must both approve; invoke via `/santa-loop` |
 | High-craft interactive UI feature | **GAN team** | `gan-planner` → `gan-generator` ↔ `gan-evaluator` (loop until threshold) |
-| Long parallel施工 / cross-AI review | **Codex delegation** | `codex-dispatch` skill |
+| Long parallel施工 / cross-AI review | **Codex delegation** | Codex official plugin `codex@openai-codex` — `/codex:rescue` (delegate) · `/codex:review` / `/codex:adversarial-review` (review); quota out → Claude subagent |
 | Multi-cycle debug | **Debug session manager** | `gsd-debug` (internally manages debugger sub-agents + checkpoints) |
 | 4+ parallel research tasks | **Research fan-out** | Spawn 4 parallel `Agent(subagent_type=Explore)` or research agents in one message |
 
@@ -158,7 +158,7 @@ The 7 orchestration patterns are documented in detail in [agent-orchestration-pa
 - **Opus**: planner / architect / security-reviewer / final reviewer in santa-loop / GAN evaluator
 - **Sonnet**: code-reviewer / tdd-guide / build-resolver / day-to-day agents / GAN generator
 - **Haiku**: doc-updater / format conversion / simple routing
-- For **large multi-step tasks (gsd-execute-phase, big planners, large reviews)** the user's project-level memory overrides the default to **Opus** (see `feedback_model_routing_for_large_tasks.md`) — Sonnet's mid-task compaction loses quality.
+- For **large multi-step tasks (gsd-execute-phase, big planners, large reviews)** prefer **Opus** over the Sonnet default (per the model-routing rules in `~/.claude/CLAUDE.md` §4.5 + `rules/common/performance.md`) — Sonnet's mid-task compaction loses quality.
 
 **Parallel-vs-serial scheduling discipline** (per `~/.claude/CLAUDE.md` §4.5 Universal Execution Discipline rule 1 + `~/.claude/rules/common/agents.md`):
 
@@ -171,7 +171,7 @@ The 7 orchestration patterns are documented in detail in [agent-orchestration-pa
 
 <planner_context_discipline>
 
-> **Added 2026-05-26 — 缘起：Agent Atlas Phase 1 的 4 处 PLAN.md 错误根因分析。详 user-global memory `feedback_planner_discipline`。**
+> **Added 2026-05-26 — 缘起：Agent Atlas Phase 1 的 4 处 PLAN.md 错误根因分析（详本节末「Why this discipline exists」+ planner-discipline 规则见 `~/.claude/CLAUDE.md` §4.5 Orchestration Hygiene）。**
 
 When this orchestrator composes the `/gsd-plan-phase` step (Tier 1 step 4), it MUST enforce two pre-spawn discipline rules. These exist because the planner agent works only from `<files_to_read>` + general LLM knowledge — if external service contracts (Vercel Cron HTTP verb, Supabase RLS edge cases, Stripe webhook semantics, platform IP allowlist availability) are not in its reading list, it will invent plausible-but-wrong assumptions, and the resulting PLAN.md ships factual errors that surface only at execute-time.
 
@@ -186,12 +186,12 @@ Then matches detected platforms / libraries to the corresponding skill SKILL.md,
 
 | Detected in stack | Inject into planner reading list |
 |---|---|
-| Next.js / Vercel | `~/.claude/skills/vercel-nextjs/SKILL.md` + `vercel:vercel-functions/SKILL.md` + `vercel:routing-middleware/SKILL.md` (any cron / scheduler endpoint MUST include these — Vercel Cron is HTTP GET, not POST) |
+| Next.js / Vercel | `Skill(vercel:nextjs)` + `Skill(vercel:vercel-functions)` + `Skill(vercel:routing-middleware)` — plugin skills, NOT local dirs (any cron / scheduler endpoint MUST include these — Vercel Cron is HTTP GET, not POST) |
 | Supabase | `~/.claude/rules/web/security.md` RLS section + any `supabase-*` skill if installed |
 | Stripe / payment | `~/.claude/skills/security-compliance-payment/SKILL.md` (webhook HMAC / idempotency / replay window patterns) |
 | Docker / Kubernetes / Terraform / Ansible | `~/.claude/skills/env-parity-baseline/SKILL.md` (cross-env IP / DNS / secret-mgmt drift) |
-| Anthropic Claude API | `~/.claude/skills/claude-api/SKILL.md` (prompt caching / model migration / Managed Agents) |
-| iOS / SwiftUI / macOS | `~/.claude/skills/apple-ios-hig/SKILL.md` + `apple-design-system/SKILL.md` |
+| Anthropic Claude API | `Skill(claude-api)` — plugin skill, NOT a local dir (model ids / pricing / prompt caching / model migration / tool use) |
+| iOS / SwiftUI / macOS | No dedicated skill — instruct planner to consult Apple HIG via web/docs lookup (`docs-lookup` skill) for platform conventions; do not point at a local path |
 | Android / Kotlin / Compose | `kotlin-reviewer` agent definition + relevant skills if installed |
 | Vertex AI / Google Cloud | Vercel AI Gateway docs + GCP IAM rules (no dedicated skill yet — log gap to STATE.md) |
 

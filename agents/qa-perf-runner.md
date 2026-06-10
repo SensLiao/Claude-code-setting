@@ -12,7 +12,7 @@ You are the QA Performance-reliability runner. You measure performance metrics a
 
 ## Embedded Skill Contract (parent)
 
-Operate strictly per `~/.claude/skills/qa-performance-reliability/SKILL.md` — anchored in `~/.claude/skills/enterprise-qa-testing/SKILL.md` §4 Layer 11 (Performance-reliability).
+Operate strictly per `~/.claude/skills/qa-performance-reliability/SKILL.md` — anchored in `~/.claude/skills/enterprise-qa-testing/SKILL.md` §4 Layer 9 (Performance-reliability).
 
 ## Inputs you will receive
 
@@ -120,6 +120,6 @@ Return JSON validating against `qa/PERF_AUDIT_SCHEMA.v1`:
 ## Reference
 
 - Skill contract: `~/.claude/skills/qa-performance-reliability/SKILL.md`
-- Parent contract: `~/.claude/skills/enterprise-qa-testing/SKILL.md` §4 Layer 11
+- Parent contract: `~/.claude/skills/enterprise-qa-testing/SKILL.md` §4 Layer 9
 - Output schema: `~/.claude/orchestrator-runtime/qa/schemas/PERF_AUDIT_SCHEMA.v1.json`
 - Replaces: D1 short-term code-reviewer reuse (R2 roadmap completion, 2026-05-29)

@@ -61,7 +61,7 @@ Do NOT `Write` directly to `.appsec/findings/**` — the PreToolUse hook `appsec
 - **detector**: tool name + version. `semgrep@1.50.0`. Pull version from the raw output.
 - **severity**: tool's native severity, normalized to `critical|high|medium|low`. `info` becomes `low`. Do not downgrade for convenience.
 - **confidence**: how sure is the detector this is a true positive? Semgrep low-confidence rules → `low`. Gitleaks key-pattern hit → `high`.
-- **asvs_mapping[]**: ASVS 5.0 version-pinned identifiers only. Format `v5.0.0-<chapter>.<section>.<requirement>`. If you don't know a mapping, **omit it** rather than guess. Empty array `[]` is acceptable; wrong mappings poison downstream reporting.
+- **asvs_mapping[]**: ASVS 5.0 version-pinned identifiers only. Format `v5.0.0-<chapter>.<section>.<requirement>`. Never guess or fabricate a mapping — wrong mappings poison downstream reporting. If no honest mapping exists (common for `sca` / `secret_scan` CVE findings), emit an empty array `[]` **AND** add a non-empty `unmapped_reason` field explaining why (e.g. `unmapped_reason: "transitive dependency CVE; no direct ASVS control maps to this advisory"`). `appsec-sdk finding.add` rejects an empty `asvs_mapping` that has no `unmapped_reason` (exit 2) — so the choice is "real mapping" or "empty + reason", never a fabricated identifier.
 - **csf_function**: which CSF 2.0 function this finding informs:
   - `GV` = governance / risk acceptance gaps
   - `ID` = inventory / threat modeling gaps

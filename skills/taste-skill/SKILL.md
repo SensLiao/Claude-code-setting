@@ -1,9 +1,19 @@
 ---
-name: design-taste-frontend
+name: taste-skill
+aliases: [design-taste-frontend]
 description: Senior UI/UX Engineer and the DEFAULT L3 style for premium frontend work. Architects digital interfaces overriding default LLM biases via three tunable dials (design variance / motion intensity / visual density) PLUS switchable STYLE VARIANT MODES (§11). Use this skill whenever the user wants a high-quality, premium, expensive-feeling, agency-grade, tasteful, or Awwwards-tier web UI — this explicitly INCLUDES clean editorial / document / Notion / Linear / warm-monochrome / minimalist SaaS looks (Variant Mode A), $150k-agency depth with nested double-bezel cards and fluid-glass nav (Variant Mode B), and heavy GSAP scrollytelling / pinning / scroll-reveal motion (Variant Mode C). Enforces metric-based rules, strict component architecture, CSS hardware acceleration, anti-AI-slop typography and color. Default pick for "make it look premium / high-end / 高级 / 好看 / 有质感 / 精致" when no other L3 style (luxury, brutalist) is explicitly named.
 ---
 
 # High-Agency Frontend Skill
+
+## 0. REFERENCE GROUNDING [MANDATORY — consume before generating]
+
+> Added 2026-06-10 (UIUX dispatch engine v2.3). This skill is an L3 **BUILD-phase** style. When invoked inside the combination engine — or whenever a `design/grounding.md` exists — you MUST consume the grounded references BEFORE generating. Do NOT design from model priors alone; that is the "凭空生造 / yuan-sheng-ying-chuang" failure this hook fixes.
+
+* **If `design/grounding.md` exists** (the P0 GROUND product): read it FIRST. It carries the matched real references — palette, type scale, spacing, motion, exemplar anchors — pulled from the local `design-system` 58-brand DESIGN.md corpus + the product archetype's `reference-anchors.md`. Bind your output to those tokens/anchors. The rules in §1–§11 below **TUNE** the grounded direction; they do not replace it.
+* **If no `grounding.md`** and the task is more than a trivial patch: pull at least one real reference first — the local `design-system` skill (a brand DESIGN.md matched by mood/industry) or the active archetype's `reference-anchors.md` — and extract palette / type / spacing before writing code.
+* **Precedence**: grounded reference tokens win on **SPECIFICS** (which colors / fonts / spacing); this skill's §3–§9 anti-slop rules win on **DISCIPLINE** (never re-introduce Inter-for-premium, lila glow, centered-hero, or card-overuse just because a reference happened to use them). The reference gives the *what*; taste-skill enforces the *how-well*.
+* This block ADDS a pre-step. It changes **none** of the §1–§11 rules below.
 
 ## 1. ACTIVE BASELINE CONFIGURATION
 * DESIGN_VARIANCE: 8 (1=Perfect Symmetry, 10=Artsy Chaos)
@@ -255,7 +265,7 @@ Evaluate your code against this matrix before outputting. This is the **last** f
 **Trigger:** "GSAP / scrollytelling / 滚动叙事 / Awwwards 高动效 / pinning / scrub / 电影感动效 / 卡片堆叠"
 **Dial override:** `MOTION_INTENSITY → 9`, `DESIGN_VARIANCE → 8`.
 **Hard rules:**
-- Before writing any UI code, emit a `<design_plan>`: use `len(prompt) % N` as a deterministic seed to "roll" 1 Hero architecture + 3 component archetypes + 2 GSAP paradigms + a font stack (never Inter). Follow the rolled result — do not default to the same layout twice.
+- Before writing any UI code, emit a `<design_plan>`. **In-engine (v2.3):** real multi-direction exploration is owned upstream by `prototyping-ui-directions` (P1 EXPLORE, grounded in real references + user PICK) — bind the `<design_plan>` to the PICKED grounded direction, NOT to a blind roll. **Solo fallback (taste used standalone, no engine):** use `len(prompt) % N` as a deterministic seed to "roll" 1 Hero architecture + 3 component archetypes + 2 GSAP paradigms + a font stack (never Inter); follow the rolled result — do not default to the same layout twice.
 - **AIDA** page spine: Nav → Attention(Hero) → Interest(Bento) → Desire(GSAP section) → Action(Footer/CTA).
 - **Hero 2-line iron rule:** H1 ≤ 2–3 lines, ultra-wide `max-w-5xl/6xl`, `clamp(3rem,5vw,5.5rem)`. No stamp badges / pill-tags / raw stats in the hero.
 - **Gapless Bento:** `grid-flow-dense`, col/row-spans mathematically interlocked with zero empty cells; 3–5 intentional cards, not 8 messy ones.

@@ -133,23 +133,78 @@ const VALID_MODELS      = {
 const VALID_ISOLATION   = new Set(['worktree'])
 const VALID_ORCHS       = new Set(['appsec', 'qa', 'uiux', 'gsd'])
 
-const ALLOWED_NODE_KEYS = new Set([
-  'name','type','model','agentType','prompt_ref','schema_ref','items_from',
-  'stages','op','params','skip_if','skip_default','post_invariants',
+// ── Allow-lists ───────────────────────────────────────────────────────
+// SINGLE SOURCE OF TRUTH: when the shared schema is readable, structuralValidate
+// DERIVES these from orchestrator-spec.v1.json `properties` key sets (see
+// deriveAllowLists() + main()). The hard-coded Sets below are FALLBACK ONLY —
+// used iff the schema file is unreadable — and MUST be kept in sync with
+// orchestrator-spec.v1.json `properties` / `definitions.Node.properties` /
+// `definitions.Stage.properties`. Prefer fixing the schema; these mirrors exist
+// solely so an ajv-free, schema-file-missing machine still validates real
+// shipped presets instead of rejecting ~42 known keys.
+const FALLBACK_ALLOWED_NODE_KEYS = new Set([
+  // structural keys
+  'name','type','model','resolved_model','agentType','prompt_ref','schema_ref',
+  'items_from','stages','op','params','skip_if','skip_default','post_invariants',
   'invariant_params','isolation','label','sdk',
+  // R8 timeout overrides
+  'stall_ms','timeout_policy',
+  // QA per-kind fanout dispatch
+  'prompt_ref_by_kind','schema_ref_by_kind',
+  // self-describing underscore keys (Workflow body ignores)
+  '_width_range','_items_range','_smoke_pin_width','_smoke_pin_items',
+  '_smoke_pin_note','_smoke_width_note','_smoke_items_note','_width_note',
+  '_r8_note','_dispatch_note',
 ])
 
-const ALLOWED_STAGE_KEYS = new Set([
-  'type','model','agentType','prompt_ref','schema_ref','vote_count_by_severity',
+const FALLBACK_ALLOWED_STAGE_KEYS = new Set([
+  'name','type','model','resolved_model','agentType','prompt_ref','schema_ref',
+  'vote_count_by_severity','stall_ms','timeout_policy',
 ])
 
-const ALLOWED_SDK_KEYS = new Set(['command', 'layer'])
+const FALLBACK_ALLOWED_SDK_KEYS = new Set(['command', 'layer'])
 
-const ALLOWED_TOP_KEYS = new Set([
-  'engine_version','orchestrator','phases','prompts','schemas','ops_allowed',
+const FALLBACK_ALLOWED_TOP_KEYS = new Set([
+  'engine_version','orchestrator','domain_runtime_version','preset_name','mode',
+  'context','_estimate','model_policy_version','phases','prompts','schemas',
+  'ops_allowed','_note','_doc_ref','_when','_banner','_d1_caveat','_r9_note',
+  '_r13_note','_resolved_model_policy','allow_dynamic_workflow','_execution_profile',
 ])
 
-const ALLOWED_OPS_ALLOWED_KEYS = new Set(['deterministic','predicates','invariants'])
+const FALLBACK_ALLOWED_OPS_ALLOWED_KEYS = new Set(['deterministic','predicates','invariants'])
+
+// Default allow-list bundle used when structuralValidate is called without an
+// explicit (schema-derived) bundle.
+const FALLBACK_ALLOW = {
+  top:  FALLBACK_ALLOWED_TOP_KEYS,
+  node: FALLBACK_ALLOWED_NODE_KEYS,
+  stage: FALLBACK_ALLOWED_STAGE_KEYS,
+  sdk:  FALLBACK_ALLOWED_SDK_KEYS,
+  ops:  FALLBACK_ALLOWED_OPS_ALLOWED_KEYS,
+}
+
+// Derive allow-list Sets straight from the authoritative schema's `properties`
+// key sets — eliminates the second source of truth. Returns null if the schema
+// shape isn't what we expect (then caller keeps FALLBACK_ALLOW).
+function deriveAllowLists(schema) {
+  try {
+    const topProps   = schema && schema.properties
+    const nodeProps  = schema && schema.definitions && schema.definitions.Node  && schema.definitions.Node.properties
+    const stageProps = schema && schema.definitions && schema.definitions.Stage && schema.definitions.Stage.properties
+    const sdkProps   = nodeProps && nodeProps.sdk && nodeProps.sdk.properties
+    const opsProps   = topProps && topProps.ops_allowed && topProps.ops_allowed.properties
+    if (!topProps || !nodeProps || !stageProps || !sdkProps || !opsProps) return null
+    return {
+      top:  new Set(Object.keys(topProps)),
+      node: new Set(Object.keys(nodeProps)),
+      stage: new Set(Object.keys(stageProps)),
+      sdk:  new Set(Object.keys(sdkProps)),
+      ops:  new Set(Object.keys(opsProps)),
+    }
+  } catch (_) {
+    return null
+  }
+}
 
 function pushErr(errs, where, msg) { errs.push(`${where}: ${msg}`) }
 
@@ -159,11 +214,11 @@ function checkExtraKeys(errs, where, obj, allowed) {
   }
 }
 
-function checkStage(errs, where, stage) {
+function checkStage(errs, where, stage, allow) {
   if (!stage || typeof stage !== 'object' || Array.isArray(stage)) {
     pushErr(errs, where, 'must be object'); return
   }
-  checkExtraKeys(errs, where, stage, ALLOWED_STAGE_KEYS)
+  checkExtraKeys(errs, where, stage, allow.stage)
 
   if (!VALID_STAGE_TYPES.has(stage.type))
     pushErr(errs, where, `type must be one of ${[...VALID_STAGE_TYPES].join(',')} (got "${stage.type}")`)
@@ -195,12 +250,12 @@ function checkStage(errs, where, stage) {
   }
 }
 
-function checkNode(errs, idx, node) {
+function checkNode(errs, idx, node, allow) {
   const where = `phases[${idx}]`
   if (!node || typeof node !== 'object' || Array.isArray(node)) {
     pushErr(errs, where, 'must be object'); return
   }
-  checkExtraKeys(errs, where, node, ALLOWED_NODE_KEYS)
+  checkExtraKeys(errs, where, node, allow.node)
 
   if (typeof node.name !== 'string' || !NODE_NAME_RE.test(node.name))
     pushErr(errs, where, `name "${node.name}" violates ${NODE_NAME_RE}`)
@@ -235,13 +290,13 @@ function checkNode(errs, idx, node) {
   if (node.stages !== undefined) {
     if (!Array.isArray(node.stages) || node.stages.length < 1)
       pushErr(errs, where, 'stages must be non-empty array')
-    else node.stages.forEach((s, j) => checkStage(errs, `${where}.stages[${j}]`, s))
+    else node.stages.forEach((s, j) => checkStage(errs, `${where}.stages[${j}]`, s, allow))
   }
   if (node.sdk !== undefined) {
     if (!node.sdk || typeof node.sdk !== 'object' || Array.isArray(node.sdk))
       pushErr(errs, where, 'sdk must be object')
     else {
-      checkExtraKeys(errs, `${where}.sdk`, node.sdk, ALLOWED_SDK_KEYS)
+      checkExtraKeys(errs, `${where}.sdk`, node.sdk, allow.sdk)
       if (typeof node.sdk.command !== 'string' || node.sdk.command.length < 1)
         pushErr(errs, `${where}.sdk`, 'command required (non-empty string)')
       if (node.sdk.layer !== undefined && !LAYER_RE.test(node.sdk.layer))
@@ -276,12 +331,12 @@ function checkNode(errs, idx, node) {
   }
 }
 
-function structuralValidate(spec) {
+function structuralValidate(spec, allow = FALLBACK_ALLOW) {
   const errs = []
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) {
     return ['root: must be object']
   }
-  checkExtraKeys(errs, 'root', spec, ALLOWED_TOP_KEYS)
+  checkExtraKeys(errs, 'root', spec, allow.top)
 
   if (spec.engine_version !== '1.0')
     pushErr(errs, 'engine_version', `must be "1.0" (got ${JSON.stringify(spec.engine_version)})`)
@@ -291,7 +346,7 @@ function structuralValidate(spec) {
 
   if (!Array.isArray(spec.phases) || spec.phases.length < 1)
     pushErr(errs, 'phases', 'must be non-empty array')
-  else spec.phases.forEach((node, i) => checkNode(errs, i, node))
+  else spec.phases.forEach((node, i) => checkNode(errs, i, node, allow))
 
   // duplicate phase name detection — not in schema but real footgun
   if (Array.isArray(spec.phases)) {
@@ -322,7 +377,7 @@ function structuralValidate(spec) {
     if (!spec.ops_allowed || typeof spec.ops_allowed !== 'object' || Array.isArray(spec.ops_allowed))
       pushErr(errs, 'ops_allowed', 'must be object')
     else {
-      checkExtraKeys(errs, 'ops_allowed', spec.ops_allowed, ALLOWED_OPS_ALLOWED_KEYS)
+      checkExtraKeys(errs, 'ops_allowed', spec.ops_allowed, allow.ops)
       for (const k of ['deterministic','predicates','invariants']) {
         if (spec.ops_allowed[k] === undefined) continue
         if (!Array.isArray(spec.ops_allowed[k]))
@@ -394,6 +449,12 @@ function main() {
     // continue with structural fallback only
   }
 
+  // Structural fallback derives its allow-lists from the authoritative schema
+  // when readable (single source of truth); only if the schema file is missing
+  // does it fall back to the hard-coded mirror Sets.
+  const derived = schema ? deriveAllowLists(schema) : null
+  const allow   = derived || FALLBACK_ALLOW
+
   const ajvMod = tryLoadAjv()
   let errors = []
   let used   = 'structural'
@@ -410,10 +471,12 @@ function main() {
       used = `ajv (from ${ajvMod.path})`
     } catch (e) {
       process.stderr.write(`validate-spec: WARN ajv failed (${e.message}), falling back to structural\n`)
-      errors = structuralValidate(spec)
+      errors = structuralValidate(spec, allow)
+      used = derived ? 'structural (schema-derived allow-lists)' : 'structural (fallback allow-lists)'
     }
   } else {
-    errors = structuralValidate(spec)
+    errors = structuralValidate(spec, allow)
+    used = derived ? 'structural (schema-derived allow-lists)' : 'structural (fallback allow-lists)'
   }
 
   if (errors.length > 0) {

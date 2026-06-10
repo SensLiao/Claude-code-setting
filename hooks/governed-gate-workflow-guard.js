@@ -43,6 +43,7 @@
 
 const fs = require('fs')
 const path = require('path')
+const os = require('os')
 
 const TTL_DEFAULT = 300
 const TTL_MIN = 30
@@ -69,6 +70,26 @@ function findUp(start, rel) {
 
 function readJSON(p) {
   try { return JSON.parse(fs.readFileSync(p, 'utf8')) } catch { return null }
+}
+
+// Resolve the on-disk file a name/scriptPath launch points at (best-effort).
+// scriptPath: expand a leading ~, resolve relative to cwd. name: ~/.claude/workflows/<name>.js.
+function resolveWorkflowFile(ti) {
+  let p = ''
+  if (typeof ti.scriptPath === 'string' && ti.scriptPath) p = ti.scriptPath
+  else if (typeof ti.name === 'string' && ti.name) p = path.join(os.homedir(), '.claude', 'workflows', ti.name + '.js')
+  if (!p) return null
+  if (p[0] === '~') p = path.join(os.homedir(), p.slice(1).replace(/^[\\/]+/, ''))
+  try { return path.resolve(p) } catch { return null }
+}
+
+// A saved workflow may drive a gate verdict ONLY if its @governance header declares
+// release_gate_allowed: true (see workflows/README.md). Read the header directly from the file.
+function governanceReleaseAllowed(file) {
+  try {
+    const head = fs.readFileSync(file, 'utf8').slice(0, 4096)
+    return /release_gate_allowed\s*:\s*true/i.test(head)
+  } catch { return false }
 }
 
 // Extract an explicit mode from config; tolerant of string or {scope/mode/...} object.
@@ -140,9 +161,30 @@ function main() {
   const hasScriptPath = typeof ti.scriptPath === 'string' && ti.scriptPath.length > 0
   const hasInlineScript = typeof ti.script === 'string' && ti.script.trim().length > 0
 
-  // Approved-runner / saved-workflow launches pass through; domain preview-gates +
-  // saved-workflow review own those. resumeFromRunId-only / empty → nothing to gate.
-  if (hasName || hasScriptPath) return allow()
+  // Is a gate actually in progress right now? (unexpired preview sentinel or state.gate_active)
+  let active = false
+  if (appsecRoot) active = active || gateActive(appsecRoot, '.appsec', path.join('state', 'preview-approved'))
+  if (qaRoot)     active = active || gateActive(qaRoot, '.qa', path.join('state', 'preview'))
+
+  // Saved-workflow / deterministic-runner launches (name or scriptPath). The domain preview-gates
+  // own the spec_hash/sentinel check for the real runner. NEW (2026-06-10, closes the README's
+  // documentation-only gap): during an ACTIVE gate, a saved workflow launchable by name/scriptPath
+  // whose @governance header does NOT declare `release_gate_allowed: true` must not run — it could
+  // print a shadow "verdict" while a gate is in progress. Fail-open on an unreadable / ~-unresolved
+  // path (the domain preview-gate is the backstop for the real runner).
+  if (hasName || hasScriptPath) {
+    if (active) {
+      const wfFile = resolveWorkflowFile(ti)
+      if (wfFile && fs.existsSync(wfFile) && !governanceReleaseAllowed(wfFile)) {
+        block(
+          'saved Workflow launched by ' + (hasScriptPath ? 'scriptPath' : 'name') + ' during an ACTIVE governed gate, ' +
+          'but its @governance header does not declare `release_gate_allowed: true` (' + wfFile + '). Only a ' +
+          'human-reviewed deterministic spec-runner may run during a gate. See CLAUDE.md §3.7 + workflows/README.md.'
+        )
+      }
+    }
+    return allow()
+  }
   if (!hasInlineScript) return allow()
 
   // Inline model-authored script = Dynamic Workflow. Strictest mode across present domains.
@@ -173,12 +215,16 @@ function main() {
   if (mode === 'off') return allow('advisory: ' + baseMsg + ' [governed_gate_mode=off]')
   if (mode === 'always') block(baseMsg + ' [governed_gate_mode=always]')
 
-  // active-gate (default): block only while a gate is actually in progress.
-  let active = false
-  if (appsecRoot) active = active || gateActive(appsecRoot, '.appsec', path.join('state', 'preview-approved'))
-  if (qaRoot)     active = active || gateActive(qaRoot, '.qa', path.join('state', 'preview'))
+  // active-gate (default): block only while a gate is actually in progress (computed above).
   if (active) block(baseMsg + ' [governed_gate_mode=active-gate; an approved gate is in progress]')
   return allow('advisory: ' + baseMsg + ' [governed_gate_mode=active-gate; no active gate — allowed, but DO NOT present this as a gate verdict]')
 }
 
-main()
+try {
+  main()
+} catch (e) {
+  // Fail-closed: an unexpected throw inside a governed-gate guard must NOT fall through to Node's
+  // default handler (exit 1 = non-blocking). In a governed project we cannot prove the launch is safe.
+  process.stderr.write(`[governed-gate-guard] internal error (fail-closed): ${e && e.message ? e.message : e}\n`)
+  process.exit(2)
+}

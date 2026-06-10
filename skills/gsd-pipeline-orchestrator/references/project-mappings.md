@@ -236,7 +236,7 @@ The project default is a STARTING bias, not the verdict. Always:
 ## Cross-Project Skill Reuse Notes
 
 - `ux-principles`, `taste-skill`, `prototyping-ui-directions`, `anchor-prototype-wave` — global, apply to every front-end project
-- `codex-dispatch` — global, available everywhere
+- Codex official plugin (`codex@openai-codex`) — cross-model review/delegation (`/codex:review`, `/codex:adversarial-review`, `/codex:rescue`); available everywhere; quota out → fall back to Claude subagent
 - `grill-with-docs` — useful for any project's spec-phase
 - `competitive-teardown` — only when product-strategy work appears
 - `remotion-best-practices` — for any project producing product videos

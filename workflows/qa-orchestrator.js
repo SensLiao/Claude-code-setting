@@ -1,3 +1,10 @@
+/* @governance
+ *   reviewed_by:             SensLiao (harness author)
+ *   reviewed_at:             2026-06-10
+ *   allowed_scope:           governed-gate
+ *   release_gate_allowed:    true    # deterministic QA spec-runner; walks a spec_hash-approved spec only
+ *   destructive_ops_allowed: false
+ */
 export const meta = {
   name: 'qa-orchestrator',
   description: 'Spec-driven QA orchestrator meta-runner. Reads args.spec (phases + inline prompts + inline schemas + whitelisted ops), executes via Workflow primitives, returns phase_outputs for Skill-side persistence. Body is deterministic: no filesystem, no module loading, no Date.now / Math.random. R7: dropped fanout/pipeline items are recorded as MISSING, NEVER silently filtered. R15: hashNode folds node-specific upstream ctx (E2E branch_sha + viewport + baseline_dir_hash; Component surface_path_hash; RawAudit changed_files_hash) per QA-PHASE-B-BLUEPRINT §22.5.',
@@ -349,12 +356,17 @@ const DETERMINISTIC_OPS = {
     const blocking = []
     const warned = []
     // Map each selected layer to a decision drawn from the corresponding state.
+    // runtime-qa#2: component/unit/contract layers map to DIFFERENT node names across presets
+    // (production presets name the fanout node `ComponentOrContract`; smoke/graph-smoke name it
+    // `UnitOrComponent`). A static single-name map mis-pointed `Component`→`UnitOrComponent`, so a
+    // production run with real ComponentOrContract evidence reported the layer as MISSING→BLOCK.
+    // An array value = ordered candidates; pick the first that actually exists in state.
     const layerToStateNode = {
       Static: 'StaticGate',
-      'Unit-TDD': 'UnitOrComponent',
-      Component: 'UnitOrComponent',
+      'Unit-TDD': ['ComponentOrContract', 'UnitOrComponent'],
+      Component: ['ComponentOrContract', 'UnitOrComponent'],
       Integration: 'Integration',
-      Contract: 'ComponentOrContract',
+      Contract: ['ComponentOrContract', 'UnitOrComponent'],
       E2E: 'E2E',
       Visual: 'VisualGate',
       A11y: 'A11yGate',
@@ -363,11 +375,45 @@ const DETERMINISTIC_OPS = {
       TestData: 'TestData',
       FlakyGovernance: 'FlakyQuarantineCheck',
     }
+    function resolveStateNode(mapped, layer) {
+      if (Array.isArray(mapped)) {
+        for (const cand of mapped) {
+          if (cand in ctx.state) return cand
+        }
+        return mapped[0]  // none present yet → first candidate (will read as MISSING)
+      }
+      return mapped ?? layer
+    }
     for (const layer of selectedLayers) {
-      const nodeName = layerToStateNode[layer] ?? layer
+      const nodeName = resolveStateNode(layerToStateNode[layer], layer)
       const nodeOut = ctx.state[nodeName]
       let dec = 'MISSING'
-      if (nodeOut && typeof nodeOut === 'object') {
+      if (Array.isArray(nodeOut)) {
+        // runtime-qa#1 / P0-3: fanout (ComponentOrContract / VisualAudit) and pipeline (E2E)
+        // produce an ARRAY of per-item results — an array has no `.decision`, so the old
+        // object path silently fell through to 'CONDITIONAL_PASS' (a FAILing component layer
+        // downgraded to WARN, never BLOCK). Scan every item: any item FAIL/BLOCK/BLOCKED or a
+        // numeric exit_code >= 1 makes the WHOLE layer FAIL. Empty array (no items produced for
+        // a selected layer) = MISSING. Otherwise the layer is the worst non-failing item state.
+        if (nodeOut.length === 0) {
+          dec = 'MISSING'
+        } else {
+          let anyFail = false
+          let anyWarn = false
+          for (const it of nodeOut) {
+            if (!it || typeof it !== 'object') { anyFail = true; continue }
+            const idec = it.decision ?? it.decision_hint ?? null
+            const ec = it.exit_code
+            if (idec === 'FAIL' || idec === 'BLOCK' || idec === 'BLOCKED' || idec === 'MISSING'
+                || (typeof ec === 'number' && ec >= 1)) {
+              anyFail = true
+            } else if (idec === 'WARN' || idec === 'CONDITIONAL_PASS') {
+              anyWarn = true
+            }
+          }
+          dec = anyFail ? 'FAIL' : (anyWarn ? 'WARN' : 'PASS')
+        }
+      } else if (nodeOut && typeof nodeOut === 'object') {
         dec = nodeOut.decision ?? nodeOut.static_decision ?? nodeOut.visual_decision
              ?? nodeOut.a11y_decision ?? nodeOut.perf_decision ?? 'CONDITIONAL_PASS'
       }
@@ -379,7 +425,28 @@ const DETERMINISTIC_OPS = {
     const failures = ctx.state.__dispatch_failures ?? []
     const dispatchBlocking = failures.some(f => f.blocks_release === true)
     // critical path coverage
-    const cpc = ctx.state.__critical_path_coverage ?? null
+    // runtime-qa#5: no production preset wires a compute_critical_path_coverage phase, so
+    // state.__critical_path_coverage was always null and require_full_coverage could never block.
+    // When the policy demands full coverage but no upstream phase computed it, inline-compute here
+    // using the SAME logic as the compute_critical_path_coverage deterministic op (scan every
+    // state.* layer for an evidence reference to each critical path). Makes the BLOCK reachable
+    // without adding a phase. If an upstream phase already produced it, reuse that verbatim.
+    let cpc = ctx.state.__critical_path_coverage ?? null
+    if (cpc === null && ctx.policy?.require_full_coverage === true) {
+      const paths = ctx.critical_release_paths ?? []
+      const covered = []
+      const uncovered = []
+      for (const p of paths) {
+        let found = false
+        for (const layerName of Object.keys(ctx.state)) {
+          if (layerName.startsWith('__')) continue
+          if (stableStringify(ctx.state[layerName]).includes(p)) { found = true; break }
+        }
+        if (found) covered.push(p); else uncovered.push(p)
+      }
+      const total = paths.length
+      cpc = { covered_paths: covered, uncovered_paths: uncovered, coverage_pct: total === 0 ? 100 : (covered.length / total) * 100 }
+    }
     let coverageBlocks = false
     if (cpc && Array.isArray(cpc.uncovered_paths) && cpc.uncovered_paths.length > 0
         && ctx.policy?.require_full_coverage === true) {
@@ -701,6 +768,19 @@ for (const node of spec.phases) {
     changed_files: ctxIn.changed_files ?? [],
     repo_signals: ctxIn.repo_signals ?? null,
     repo_root: ctxIn.repo_root ?? '.',
+    // runtime-qa#3: additional prompt-facing run-context referenced by e2e / a11y / perf prompts.
+    // render() hard-throws on an undefined variable, so every {{ placeholder }} a prompt can hit
+    // MUST resolve to a defined value here. These are project signals the Skill MAY supply via
+    // input.context; defaults keep render total. NOT folded into hashNode (provenance-neutral,
+    // mirrors the B.2 precedent). Per-item placeholders ({{ item.* }}) resolve from the fanout/
+    // pipeline item, not from here.
+    target_url_candidate: ctxIn.target_url_candidate ?? '',
+    target_url: ctxIn.target_url ?? '',
+    target_urls: ctxIn.target_urls ?? [],
+    retry_budget: ctxIn.retry_budget ?? 0,
+    wcag_level_target: ctxIn.wcag_level_target ?? 'AA',
+    thresholds: ctxIn.thresholds ?? {},
+    baseline_metrics_ref: ctxIn.baseline_metrics_ref ?? '',
     context: ctxIn,
     ops_invariant_outputs: { map_null_outputs_to_missing: dispatchFailures },
   }
@@ -774,12 +854,26 @@ for (const node of spec.phases) {
       if (!schemaObj || typeof schemaObj !== 'object') {
         throw new Error(`${node.name}: schema_ref "${node.schema_ref}" not found in spec.schemas`)
       }
+      // contracts-qa#2: component-or-contract.v1 prompt branches on item.kind and promises a
+      // `_dispatched_schema` routing field. The agent's StructuredOutput schema is forced at
+      // call-time, so honor the routing by selecting the per-item schema BEFORE the call, keyed
+      // on item.kind. api-contract/schema kinds → CONTRACT_TEST_SCHEMA.v1 when the spec registers
+      // it; everything else → the node's default schema. Non-routing nodes (VisualAudit etc.)
+      // have a single kind and fall through to the default unchanged.
+      const CONTRACT_KINDS = new Set(['api-contract', 'schema'])
+      function schemaForItem(item) {
+        if (item && typeof item === 'object' && CONTRACT_KINDS.has(item.kind)) {
+          const contractSchema = spec.schemas['CONTRACT_TEST_SCHEMA.v1']
+          if (contractSchema && typeof contractSchema === 'object') return contractSchema
+        }
+        return schemaObj
+      }
       const results = await parallel(items.map((item, i) => () => agent(
         render(tmpl, { ...ctxBase, item, index: i }),
         {
           label: `${node.name}:${item?.surface_id ?? item?.scenario_id ?? item?.key ?? i}`,
           phase: node.name,
-          schema: schemaObj,
+          schema: schemaForItem(item),
           model: pickModel(node, modelOverrides),
           agentType: node.agentType,
           isolation: node.isolation,

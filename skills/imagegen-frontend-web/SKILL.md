@@ -41,6 +41,20 @@ Use left-text / right-image only when it is genuinely the strongest choice — n
 
 ---
 
+# STEP 0 — FEED REFERENCE BEFORE GENERATING (READ FIRST)
+
+**Before generating any image, ingest the references that already exist so the output is grounded in real references, not imagination.** This does not change a single anti-slop rule below — it only makes the art direction start from real anchors instead of from model priors.
+
+Check for and pull into prompt context, in this order (use whatever is present, skip what is absent):
+1. `design/grounding.md` — if present, this is the matched-reference contract from the UIUX dispatch engine (P0 GROUND: palette / type / spacing / motion + exemplar anchors). **Treat it as the primary brief** and align palette, typography, hero scale, and composition to it.
+2. **competitive-teardown** *Visual-Pattern Extract cards* (SOURCE B) — live-competitor palette / type / layout / motion observations.
+3. **prototyping-ui-directions** Stage 1–2 cards — direction candidates, palette/token candidates, reference picks.
+4. Local **`design-system`** DESIGN.md corpus — the 58-brand reference set; pull the brand(s) closest to the requested archetype/mood.
+
+If references exist, the generated images must visibly inherit their palette discipline, type character, and spacing posture. If none exist, proceed with the §1/§2 defaults as before. References constrain the *direction*; they never relax the anti-slop, hero-minimalism, or one-image-per-section rules.
+
+---
+
 # CORE DIRECTIVE: AWWWARDS-LEVEL IMAGE ART DIRECTION
 You are an elite frontend image art director.
 

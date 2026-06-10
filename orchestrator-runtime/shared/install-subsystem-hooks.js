@@ -65,20 +65,26 @@ function parseArgs(argv) {
   return a;
 }
 
-// One nested-format settings entry for a registry hook.
-function buildEntry(h) {
-  const { event, matcher } = parseTrigger(h.trigger);
-  return {
-    event,
-    entry: {
-      matcher,
-      hooks: [{
-        type: 'command',
-        command: `node "\${CLAUDE_PROJECT_DIR}/.claude/hooks/${h.name}"`,
-        timeout: timeoutFor(event),
-      }],
-    },
-  };
+// One or more nested-format settings entries for a registry hook.
+// `trigger` may be a single string ("Stop", "PreToolUse(Bash)") OR an array of
+// such strings — a hook that must fire on multiple events (e.g. uiux-release-guard:
+// PreToolUse(Skill) hard gate on /gsd-ship + Stop soft nag) registers once per event.
+function buildEntries(h) {
+  const triggers = Array.isArray(h.trigger) ? h.trigger : [h.trigger];
+  return triggers.map((t) => {
+    const { event, matcher } = parseTrigger(t);
+    return {
+      event,
+      entry: {
+        matcher,
+        hooks: [{
+          type: 'command',
+          command: `node "\${CLAUDE_PROJECT_DIR}/.claude/hooks/${h.name}"`,
+          timeout: timeoutFor(event),
+        }],
+      },
+    };
+  });
 }
 
 // --emit-snippet: print the canonical settings snippet for a subsystem (the
@@ -88,8 +94,9 @@ function emitSnippet(claudeHome, subsystem) {
   const sub = loadRegistrySubsystem(claudeHome, subsystem);
   const hooks = {};
   for (const h of sub.hooks) {
-    const { event, entry } = buildEntry(h);
-    (hooks[event] = hooks[event] || []).push(entry);
+    for (const { event, entry } of buildEntries(h)) {
+      (hooks[event] = hooks[event] || []).push(entry);
+    }
   }
   const snippet = {
     _comment: `Project-level hook registration for the ${subsystem} subsystem. GENERATED from ` +
@@ -207,11 +214,13 @@ function main() {
   const registered = [];
   const skipped = [];
   for (const h of sub.hooks) {
-    const { event, entry } = buildEntry(h);
-    if (!Array.isArray(settings.hooks[event])) settings.hooks[event] = [];
-    if (alreadyRegistered(settings.hooks[event], h.name)) { skipped.push(h.name); continue; }
-    settings.hooks[event].push(entry);
-    registered.push(`${event}:${h.name}`);
+    for (const { event, entry } of buildEntries(h)) {
+      if (!Array.isArray(settings.hooks[event])) settings.hooks[event] = [];
+      // Dedupe per (event, name): a multi-trigger hook is idempotent on each event.
+      if (alreadyRegistered(settings.hooks[event], h.name)) { skipped.push(`${event}:${h.name}`); continue; }
+      settings.hooks[event].push(entry);
+      registered.push(`${event}:${h.name}`);
+    }
   }
 
   if (!args.dryRun) {

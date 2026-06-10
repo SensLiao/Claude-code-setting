@@ -216,9 +216,9 @@ re-spawned with a stricter scope prompt.
 
 ### Required (skill will not run end-to-end without)
 
-| Skill | Used by | Why |
+| Dependency | Used by | Why |
 |---|---|---|
-| `codex-dispatch` | Stage 9 (cross-AI review) | External Codex CLI invocation pattern with env-var model routing + fallback handling. Without it, cross-AI review stage can't fire. |
+| Codex official plugin (`codex@openai-codex`) | Stage 9 (cross-AI review) | External Codex reviewer via `/codex:adversarial-review` (or `/codex:review`); model picked with `--model`, env-var routing still applies. If Codex quota is exhausted, fall back to a second Claude subagent reviewer. Without Codex, cross-AI review stage can't fire. |
 
 ### Strongly recommended (output quality drops a lot without)
 
@@ -239,9 +239,12 @@ re-spawned with a stricter scope prompt.
 ### Installation (for downstream GitHub users)
 
 ```bash
+# Stage 9 cross-AI review = Codex official plugin (install via marketplace):
+#   /plugin install codex@openai-codex
+#
 # Option A — copy skills into your project's .claude/skills/
 mkdir -p .claude/skills
-cp -r ~/.claude/skills/{codex-dispatch,ux-principles,taste-skill,prototyping-ui-directions,ai-regression-testing,grill-with-docs,luxury-editorial-site-builder} .claude/skills/
+cp -r ~/.claude/skills/{ux-principles,taste-skill,prototyping-ui-directions,ai-regression-testing,grill-with-docs,luxury-editorial-site-builder} .claude/skills/
 
 # Option B — install from the Claude Code skills marketplace (when available)
 #   /plugin install ux-principles

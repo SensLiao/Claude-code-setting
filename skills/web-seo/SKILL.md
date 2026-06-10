@@ -102,7 +102,7 @@ description: >
 
 ### Evidence-first
 
-每一项 finding 必须能指向 `evidence/discoverability/seo/` 下的具体 JSON 文件。没有 evidence 的 finding 不进 release gate。
+每一项 finding 必须能指向归一化后的 channel evidence `evidence/discoverability/<tag>/seo.json`（其 `findings[].evidence_ref` 指向具体 raw 文件位置）。没有 evidence 的 finding 不进 release gate。
 
 ### 增量验证
 
@@ -209,7 +209,7 @@ description: >
 npx lighthouse https://<url> \
   --only-categories=seo,performance,accessibility,best-practices \
   --output=json \
-  --output-path=evidence/discoverability/seo/lighthouse.json \
+  --output-path="evidence/discoverability/$TAG/raw/lighthouse.json" \
   --chrome-flags="--headless --no-sandbox"
 ```
 
@@ -353,33 +353,35 @@ public/
 
 ### 入口命令（统一调度）
 
+> **路径约定（v1.2 harness）**：下列 raw 脚本产物写到 **tag-scoped** 的 raw 工作目录 `evidence/discoverability/<tag>/raw/`，最终经 `discoverability-sdk evidence.append <tag> seo <file>` 归一化进 canonical channel evidence `evidence/discoverability/<tag>/seo.json`。**禁止**写 flat `evidence/discoverability/seo/`（无 `<tag>` 维度，命中 harness forbidden_paths）。下例用 shell 变量 `TAG` 占位。
+
 ```bash
 pnpm discoverability:audit:seo \
   --url https://example.com \
-  --out evidence/discoverability/seo
+  --out "evidence/discoverability/$TAG/raw"
 ```
 
-该命令应按顺序执行下列子任务并写出 JSON evidence。
+该命令应按顺序执行下列子任务并写出 raw JSON，随后 append 进 `seo.json`。
 
 ### 8.1 fetch robots.txt
 
 ```bash
-mkdir -p evidence/discoverability/seo
+mkdir -p "evidence/discoverability/$TAG/raw"
 curl -sS -A "web-seo-audit/1.0" \
-  -o evidence/discoverability/seo/robots.txt \
+  -o "evidence/discoverability/$TAG/raw/robots.txt" \
   -w '{"status":%{http_code},"url":"%{url_effective}","time_total":%{time_total}}' \
   https://example.com/robots.txt \
-  > evidence/discoverability/seo/robots-meta.json
+  > "evidence/discoverability/$TAG/raw/robots-meta.json"
 ```
 
 ### 8.2 fetch sitemap.xml
 
 ```bash
 curl -sS -A "web-seo-audit/1.0" \
-  -o evidence/discoverability/seo/sitemap.xml \
+  -o "evidence/discoverability/$TAG/raw/sitemap.xml" \
   -w '{"status":%{http_code},"size":%{size_download}}' \
   https://example.com/sitemap.xml \
-  > evidence/discoverability/seo/sitemap-meta.json
+  > "evidence/discoverability/$TAG/raw/sitemap-meta.json"
 ```
 
 ### 8.3 Lighthouse 全套
@@ -389,7 +391,7 @@ npx lighthouse https://example.com \
   --only-categories=seo,performance,accessibility,best-practices \
   --form-factor=mobile \
   --output=json \
-  --output-path=evidence/discoverability/seo/lighthouse-mobile.json \
+  --output-path="evidence/discoverability/$TAG/raw/lighthouse-mobile.json" \
   --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"
 
 npx lighthouse https://example.com \
@@ -397,7 +399,7 @@ npx lighthouse https://example.com \
   --form-factor=desktop \
   --preset=desktop \
   --output=json \
-  --output-path=evidence/discoverability/seo/lighthouse-desktop.json \
+  --output-path="evidence/discoverability/$TAG/raw/lighthouse-desktop.json" \
   --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"
 ```
 
@@ -408,7 +410,7 @@ npx lighthouse https://example.com \
 while IFS= read -r url; do
   code=$(curl -sS -o /dev/null -A "web-seo-audit/1.0" -w "%{http_code}" "$url")
   printf '{"url":"%s","status":%s}\n' "$url" "$code"
-done < urls.txt > evidence/discoverability/seo/status-codes.ndjson
+done < urls.txt > "evidence/discoverability/$TAG/raw/status-codes.ndjson"
 ```
 
 ### 8.5 parse structured data
@@ -417,7 +419,7 @@ done < urls.txt > evidence/discoverability/seo/status-codes.ndjson
 
 ```bash
 node scripts/parse-jsonld.mjs https://example.com \
-  > evidence/discoverability/seo/structured-data.json
+  > "evidence/discoverability/$TAG/raw/structured-data.json"
 ```
 
 脚本要点：fetch HTML → 提取所有 `<script type="application/ld+json">` → `JSON.parse` → 输出 `[{ valid, type, errors, raw }]`。
@@ -449,59 +451,57 @@ node scripts/parse-jsonld.mjs https://example.com \
 
 ## 9. Evidence 输出格式
 
-`evidence/discoverability/seo/` 目录，与 L12 总 contract 对齐：
+Canonical channel evidence（v1.2 harness，tag-scoped）：归一化后的 finding 落 `evidence/discoverability/<tag>/seo.json`（由 `discoverability-sdk evidence.append <tag> seo <file>` 写入）；raw 脚本产物落同一 tag 下的 `raw/` 工作目录，供 `evidence_ref` 反查：
 
 ```
-evidence/discoverability/seo/
-├── robots.json              # parsed robots.txt rules + sitemap declarations
-├── robots.txt               # raw fetch
-├── sitemap.json             # parsed URL list + lastmod + size + child sitemaps
-├── sitemap.xml              # raw fetch
-├── canonical.json           # per-page: { url, canonical, self-referential, conflicts }
-├── hreflang.json            # per-page: { url, alternates: [{ hreflang, href, status }] }
-├── status-codes.json        # per-URL: { url, status, redirect_chain }
-├── metadata.json            # per-page: { title, description, h1, og, twitter, viewport, lang }
-├── structured-data.json     # per-page: parsed JSON-LD + validation
-├── lighthouse-mobile.json   # raw Lighthouse output (mobile)
-├── lighthouse-desktop.json  # raw Lighthouse output (desktop)
-├── search-console.json      # Search Console API snapshot（可选）
-└── findings.json            # 聚合：blockers + warnings + 引用上面文件的具体位置
+evidence/discoverability/<tag>/
+├── seo.json                     # ← canonical channel evidence（findings[] 聚合 + source 字段，append 产出）
+└── raw/                         # raw 脚本产物（pre-append 工作文件，被 seo.json 的 evidence_ref 引用）
+    ├── robots.json              # parsed robots.txt rules + sitemap declarations
+    ├── robots.txt               # raw fetch
+    ├── sitemap.json             # parsed URL list + lastmod + size + child sitemaps
+    ├── sitemap.xml              # raw fetch
+    ├── canonical.json           # per-page: { url, canonical, self-referential, conflicts }
+    ├── hreflang.json            # per-page: { url, alternates: [{ hreflang, href, status }] }
+    ├── status-codes.json        # per-URL: { url, status, redirect_chain }
+    ├── metadata.json            # per-page: { title, description, h1, og, twitter, viewport, lang }
+    ├── structured-data.json     # per-page: parsed JSON-LD + validation
+    ├── lighthouse-mobile.json   # raw Lighthouse output (mobile)
+    ├── lighthouse-desktop.json  # raw Lighthouse output (desktop)
+    └── search-console.json      # Search Console API snapshot（可选）
 ```
 
-`findings.json` schema：
+> **禁止** flat `evidence/discoverability/seo/`（无 `<tag>`）、`findings.json` 顶层聚合文件、`gate-result.json`。gate 产物只由 `discoverability-sdk gate.check` 写 `<tag>/gate-result.yaml`；channel 聚合统一为 `<tag>/seo.json`。
+
+`seo.json` 的 `findings[]` 元素 schema（contract §4 canonical channel schema）：
 
 ```json
 {
-  "skill": "web-seo",
-  "version": "1.0.0",
-  "audited_at": "2026-05-25T10:00:00Z",
-  "target": "https://example.com",
-  "blockers": [
+  "_schema_version": "1.0.0",
+  "tag": "<tag>",
+  "channel": "seo",
+  "source": "script",
+  "findings": [
     {
       "id": "critical_public_page_has_unintended_noindex",
-      "evidence_ref": "metadata.json#/pages/0/robots",
+      "severity": "blocker",
+      "evidence_path": "raw/metadata.json#/pages/0/robots",
       "url": "https://example.com/pricing",
-      "detail": "<meta name=\"robots\" content=\"noindex\"> present",
+      "title": "<meta name=\"robots\" content=\"noindex\"> present on critical page",
       "suggested_fix": "remove noindex meta in app/pricing/page.tsx"
-    }
-  ],
-  "warnings": [
+    },
     {
       "id": "lighthouse_seo_score_below_target",
-      "evidence_ref": "lighthouse-mobile.json#/categories/seo/score",
+      "severity": "warn",
+      "evidence_path": "raw/lighthouse-mobile.json#/categories/seo/score",
       "actual": 0.88,
       "target": 0.95
-    }
-  ],
-  "escalations": [
-    {
-      "to": "appsec-security-orchestrator",
-      "reason": "private_or_authenticated_content_exposed_publicly",
-      "evidence_ref": "status-codes.json#/results/14"
     }
   ]
 }
 ```
+
+> 私密页被公开收录类问题 → 在 finding 上加 `tags: ["private"]`，validator 会自动 escalate 给 `appsec-security-orchestrator`（见 §14.3）；本 skill 只标识不修。
 
 ---
 
@@ -557,8 +557,8 @@ evidence/discoverability/seo/
 
 本 skill 视为"已完成一轮 audit"，必须满足：
 
-- [ ] `evidence/discoverability/seo/` 下所有必备 JSON 文件存在
-- [ ] `findings.json` 已生成，blockers 数 = 0 或全部已被用户 acknowledge
+- [ ] `evidence/discoverability/<tag>/seo.json` 已生成（canonical channel evidence，经 evidence.append 归一化），raw 产物在 `<tag>/raw/` 下齐全
+- [ ] `seo.json` 的 `findings[]` 中 blocker 数 = 0 或全部已被用户 acknowledge
 - [ ] Lighthouse mobile + desktop 各跑过一次
 - [ ] sitemap.xml 内所有关键 URL 均 200
 - [ ] robots.txt 未误封任何关键 public URL

@@ -14,6 +14,7 @@
 'use strict';
 
 const path = require('path');
+const fs = require('fs');
 
 const MAX_STDIN = 1024 * 1024;
 let raw = '';
@@ -94,6 +95,11 @@ function run(inputOrRaw, options = {}) {
 
   const basename = path.basename(filePath);
   if (PROTECTED_FILES.has(basename)) {
+    const resolvedPath = path.isAbsolute(filePath)
+      ? filePath
+      : path.join(input?.cwd || process.cwd(), filePath);
+    // Scaffolding a NEW config file is legitimate; only block edits to existing configs.
+    if (!fs.existsSync(resolvedPath)) return { exitCode: 0 };
     return {
       exitCode: 2,
       stderr:

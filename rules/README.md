@@ -1,4 +1,22 @@
 # Rules
+
+## Loading mechanism (IMPORTANT)
+
+The harness uses `paths:` frontmatter to decide when a rule file is injected into context:
+
+| File state | Injection behaviour |
+|---|---|
+| No frontmatter | Injected into **every** session unconditionally |
+| Has `paths:` frontmatter | Injected only when the project contains at least one file matching those globs |
+
+**Directory policy (enforced as of 2026-06-10):**
+
+- `common/` — deliberately **global** (no frontmatter). These are constitutional-layer rules that apply to every project regardless of stack.
+- All language directories (`typescript/`, `python/`, `golang/`, `swift/`, `php/`, etc.) — **path-scoped** via frontmatter. Files are injected only when matching source files are detected in the project.
+- `web/` — **path-scoped** as of 2026-06-10. Previously unscoped; adding frontmatter eliminated ~4 k tokens of context tax on every non-frontend session.
+
+**Rule:** When adding any new rule file, decide the injection domain first. Omitting `paths:` on a language- or domain-specific file contaminates every session's context window.
+
 ## Structure
 
 Rules are organized into a **common** layer plus **language-specific** directories:
@@ -77,17 +95,25 @@ Language-specific rule files reference relevant skills where appropriate. Rules 
 To add support for a new language (e.g., `rust/`):
 
 1. Create a `rules/rust/` directory
-2. Add files that extend the common rules:
+2. **Add `paths:` frontmatter to every file** — missing frontmatter means that file pollutes every session's context window regardless of project stack. Use this template at the very top of each file (adjust globs to match the language's source extensions):
+   ```yaml
+   ---
+   paths:
+     - "**/*.rs"
+     - "**/*.toml"
+   ---
+   ```
+3. Add files that extend the common rules:
    - `coding-style.md` — formatting tools, idioms, error handling patterns
    - `testing.md` — test framework, coverage tools, test organization
    - `patterns.md` — language-specific design patterns
    - `hooks.md` — PostToolUse hooks for formatters, linters, type checkers
    - `security.md` — secret management, security scanning tools
-3. Each file should start with:
+4. Each file should start with (place immediately after the closing `---` of the frontmatter block):
    ```
    > This file extends [common/xxx.md](../common/xxx.md) with <Language> specific content.
    ```
-4. Reference existing skills if available, or create new ones under `skills/`.
+5. Reference existing skills if available, or create new ones under `skills/`.
 
 For non-language domains like `web/`, follow the same layered pattern when there is enough reusable domain-specific guidance to justify a standalone ruleset.
 

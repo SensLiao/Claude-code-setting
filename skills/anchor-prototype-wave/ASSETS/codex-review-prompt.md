@@ -1,22 +1,30 @@
-# Cross-AI Review Prompt (external CLI)
+# Cross-AI Review Prompt (external reviewer)
 
 > Fire ONCE after the Stage 3 hi-fi wave completes. Output is the orthogonal
-> outside red team review. The external reviewer (e.g., Codex CLI / GPT-5)
+> outside red team review. The external reviewer (e.g., Codex / GPT-5)
 > must NOT restate Claude's self-grade.
 >
 > **Customize**: replace `{PLACEHOLDER}` tokens with project values per
-> SKILL.md §0.2. This template assumes Codex CLI as the external; substitute
-> the invocation for your project's chosen reviewer.
+> SKILL.md §0.2. This template assumes the Codex official plugin as the
+> external reviewer; substitute the invocation for your project's chosen one.
 
-## Invocation (Codex CLI example)
+## Invocation (Codex official plugin `codex@openai-codex`)
 
-```bash
-codex exec --sandbox workspace-write --skip-git-repo-check \
-  --cd "{PROJECT_ROOT}" \
-  "$(cat .claude/skills/anchor-prototype-wave/ASSETS/codex-review-prompt.md)"
+Pass this prompt (with placeholders filled) to `/codex:adversarial-review`
+(adversarial outside red team) or `/codex:review` (read-only). Pick the model
+with `--model`; long reviews can use `--background` + `/codex:status` /
+`/codex:result`.
+
+```
+/codex:adversarial-review focus="<this filled-in prompt>"
 ```
 
-Or paste the prompt body below into the chosen external CLI directly.
+> Windows: the plugin talks to codex-cli over its app-server channel — no need
+> for the old raw-CLI `--skip-git-repo-check` / GBK workarounds (those only
+> apply if you hand-run `codex exec`). If Codex quota is exhausted, fall back to
+> a second Claude subagent reviewer.
+
+Or paste the prompt body below into the chosen external reviewer directly.
 
 ## Prompt body (copy below verbatim, fill placeholders)
 

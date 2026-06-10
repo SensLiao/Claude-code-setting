@@ -43,12 +43,12 @@ Spawn one subagent per test fixture in parallel. Each subagent:
 
 ```
 You are a routing verification subagent. Your job: verify ONE routing test
-from C:\Users\<user>\.claude\tests\appsec-routing\expected-routes.json.
+from ~/.claude\tests\appsec-routing\expected-routes.json.
 
 Your assignment: test ID = "ROUTE-XXX"
 
 Steps:
-1. Read C:\Users\<user>\.claude\tests\appsec-routing\expected-routes.json
+1. Read ~/.claude\tests\appsec-routing\expected-routes.json
 2. Find the test case with id == "ROUTE-XXX"
 3. For the prompt_pattern, determine which skill SHOULD activate by:
    a. Searching skill frontmatter for matching trigger_phrases
@@ -58,7 +58,7 @@ Steps:
 5. Verify expected_behavior is documented in the matched skill
 6. Verify must_NOT_activate skills do not match (or are properly gated)
 7. Verify expected_downstream_consideration skills exist on disk
-8. Write a one-page report to C:\Users\<user>\.claude\tests\appsec-routing\results\<test-id>.md with:
+8. Write a one-page report to ~/.claude\tests\appsec-routing\results\<test-id>.md with:
    - PASS / FAIL / PARTIAL verdict
    - Evidence (file paths + line numbers)
    - Recommendations if FAIL

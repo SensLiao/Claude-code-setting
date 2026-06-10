@@ -31,7 +31,7 @@ The skill then runs end-to-end:
 - Runs an LLM grader filling 6 soft-score dimensions
 - Computes maturity-aware composite + verdict
   (`PASS_9PLUS | FIX_NEEDED | REDO | ESCALATE_HUMAN`)
-- Triggers cross-AI review (Codex via `codex-dispatch`) on REDO / FIX_NEEDED
+- Triggers cross-AI review (Codex via `/codex:adversarial-review`) on REDO / FIX_NEEDED
   / known-risk surfaces, plus 15% sampling on PASS_9PLUS
 - Loops fix-on-fail up to 3 retries per failing surface, then escalates
 - Aggregates a master gallery `index.html` mirroring the v2 layout
@@ -70,11 +70,12 @@ git clone https://github.com/SensLiao/anchor-prototype-wave.git `
   $HOME\.claude\skills\anchor-prototype-wave
 ```
 
-### Required companion skills
+### Required companion (Codex official plugin)
 
-| Skill | Why |
-|---|---|
-| `codex-dispatch` | Stage 9 cross-AI review (Codex CLI invocation) |
+Stage 9 cross-AI review uses the **Codex official plugin** (`codex@openai-codex`),
+not a local skill: `/codex:adversarial-review` (or `/codex:review`) for the
+cross-AI verdict. If Codex quota is exhausted, fall back to a second Claude
+subagent reviewer.
 
 ### Strongly recommended companion skills
 

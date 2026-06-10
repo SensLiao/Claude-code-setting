@@ -236,8 +236,45 @@ node ~/.claude/skills/workflow-creator/scripts/validate-workflow.mjs <path-to-fi
 ```
 
 It flags: missing or non-first `meta`, a non-literal `meta`, a missing
-`name`/`description`, banned non-deterministic calls, and an oversized script.
+`name`/`description`, banned non-deterministic calls, an oversized script, and a
+missing `@governance` block (warn-only — see the next section).
 Fix every error it reports before invoking the workflow.
+
+---
+
+## Step 5.5 — Saved workflow governance (CLAUDE.md §3.7 #6)
+
+Any workflow file **saved into** `~/.claude/workflows/` or a project's
+`.claude/workflows/` must carry a `@governance` frontmatter comment block as its
+**first content** (a `/* … */` block before `export const meta`). The parser
+ignores comments, so this block is safe to place above `meta`; the bundled linter
+warns when it is missing. This is a governance contract, not a runtime feature.
+
+Put this block at the very top of the file and fill it in:
+
+```js
+/* @governance
+ *   reviewed_by:             <human reviewer>
+ *   reviewed_at:             <YYYY-MM-DD>
+ *   allowed_scope:           exploration            # exploration | migration | research
+ *   release_gate_allowed:    false
+ *   destructive_ops_allowed: false
+ */
+export const meta = { /* … */ }
+```
+
+Rules:
+
+- **`release_gate_allowed` defaults to `false`.** A workflow may be used for an
+  appsec / qa release-readiness / commercial-cert / pentest / `/gsd-ship` **gate
+  verdict** only if it is `true` **and** a human has reviewed it. Do not flip it
+  to `true` on the user's behalf without an explicit human review.
+- **`destructive_ops_allowed` defaults to `false`.** Keep it false unless the
+  workflow genuinely performs reviewed destructive operations.
+- **`allowed_scope`** is one of `exploration` / `migration` / `research` — the
+  intended use of the workflow.
+- The `assets/templates/*` starters already ship this block with safe defaults
+  and `TODO` reviewer fields; fill them in before saving.
 
 ---
 

@@ -107,8 +107,3 @@ public class OrderNotFoundException extends RuntimeException {
 - Prefer method references when readable: `.map(Order::getTotal)`
 - Avoid side effects in stream operations
 - For complex logic, prefer a loop over a convoluted stream pipeline
-
-## References
-
-See skill: `java-coding-standards` for full coding standards with examples.
-See skill: `jpa-patterns` for JPA/Hibernate entity design patterns.

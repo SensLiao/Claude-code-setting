@@ -128,7 +128,7 @@ docs 机器可读
 L12 全层共享 **Script-first** 原则：
 
 1. **先跑脚本**，再让 AI 解释 — 不让 AI 直接读网页去"猜 AEO 是否合规"
-2. 所有 evidence 必须落 `evidence/discoverability/aeo/` 下的 JSON
+2. 归一化后的 channel evidence 必须落 `evidence/discoverability/<tag>/ai-search.json`（canonical channel key 是 `ai-search`，**不是** `aeo`；config 端 `channels.aeo` 仅是历史别名，见 §19）；raw 脚本产物落同一 tag 下的 `raw/` 工作目录，经 `discoverability-sdk evidence.append <tag> ai-search <file>` 归并
 3. AI 的角色：解读 JSON、route 到修复、决定 blocker vs warn
 4. **不重复造轮子**：`zubair-trabzada/geo-seo-claude` 已有 fetch / citability / llms / brand 工具，vendor 进来固定 commit 用
 5. Runner 输出 normalize 后再交给 AI，不让 AI 直接拼接 Python script
@@ -719,7 +719,7 @@ vendor: tools/vendor/geo-seo-claude/   (MIT © 2026 Zubair Trabzada, commit-pinn
 | `citability_scorer.py` | §7.3 passage 5 维评分（加权 + grade band A-F） | normalize JSON schema，不让 AI 直接读 raw score |
 | `llmstxt_generator.py` | validate + generate llms.txt / llms-full.txt，含 §6.5 path categorization | validate 模式 read-only；generate 模式写 build artifact 不写源码 |
 | `brand_scanner.py` | 扫 YouTube / Reddit / Wikipedia / Wikidata / LinkedIn 等信号；§8.3 Brand Authority Score | 输出 evidence-only，不阻断 release |
-| `generate_pdf_report.py` | JSON → PDF 报告；§13.1 8-section 标准结构 | 输出到 `evidence/discoverability/aeo/report.pdf` |
+| `generate_pdf_report.py` | JSON → PDF 报告；§13.1 8-section 标准结构 | 输出到 `evidence/discoverability/<tag>/raw/report.pdf` |
 
 ### 9.4 安全包装（必须）
 
@@ -765,11 +765,13 @@ vendor: tools/vendor/geo-seo-claude/   (MIT © 2026 Zubair Trabzada, commit-pinn
 
 ## 12. CLI 命令示例
 
-主入口由 orchestrator 统一暴露：
+主入口由 orchestrator 统一暴露。
+
+> **路径约定（v1.2 harness）**：下列 raw 脚本产物写到 **tag-scoped** 的 raw 工作目录 `evidence/discoverability/<tag>/raw/`，最终经 `discoverability-sdk evidence.append <tag> ai-search <file>` 归一化进 canonical channel evidence `evidence/discoverability/<tag>/ai-search.json`。**禁止**写 flat `evidence/discoverability/aeo/`（无 `<tag>` 维度 + `aeo` 是 forbidden evidence 文件名；canonical channel = `ai-search`）。下例用 shell 变量 `TAG` 占位。
 
 ```bash
 # 主命令
-pnpm discoverability:audit:aeo --url https://example.com --out evidence/discoverability/aeo
+pnpm discoverability:audit:aeo --url https://example.com --out "evidence/discoverability/$TAG/raw"
 ```
 
 内部组合调用：
@@ -777,45 +779,48 @@ pnpm discoverability:audit:aeo --url https://example.com --out evidence/discover
 ```bash
 # 1. 抓页面
 python tools/vendor/geo-seo-claude/scripts/fetch_page.py https://example.com \
-  --out evidence/discoverability/aeo/page-snapshot.json
+  --out "evidence/discoverability/$TAG/raw/page-snapshot.json"
 
 # 2. citability 评分
 python tools/vendor/geo-seo-claude/scripts/citability_scorer.py https://example.com \
-  --out evidence/discoverability/aeo/citability.json
+  --out "evidence/discoverability/$TAG/raw/citability.json"
 
 # 3. llms.txt validate
 python tools/vendor/geo-seo-claude/scripts/llmstxt_generator.py https://example.com validate \
-  --out evidence/discoverability/aeo/llms.validate.json
+  --out "evidence/discoverability/$TAG/raw/llms.validate.json"
 
 # 4. llms.txt generate（建议输出到 build artifact，不直接落到源码）
 python tools/vendor/geo-seo-claude/scripts/llmstxt_generator.py https://example.com generate \
-  --out evidence/discoverability/aeo/llms.generated.json
+  --out "evidence/discoverability/$TAG/raw/llms.generated.json"
 
 # 5. brand entity scan
 python tools/vendor/geo-seo-claude/scripts/brand_scanner.py "Example Inc" example.com \
-  --out evidence/discoverability/aeo/brand-entity-signals.json
+  --out "evidence/discoverability/$TAG/raw/brand-entity-signals.json"
 
 # 6. AI crawler policy 一致性 check（自建 runner，不在 vendor 里）
 node tools/runners/aeo/check-crawler-policy.mjs \
   --robots https://example.com/robots.txt \
   --policy ./docs/ai-content-policy.md \
-  --out evidence/discoverability/aeo/ai-crawler-policy.json
+  --out "evidence/discoverability/$TAG/raw/ai-crawler-policy.json"
 
 # 7. answer block 覆盖度 check（自建）
 node tools/runners/aeo/check-answer-blocks.mjs \
   --sitemap https://example.com/sitemap.xml \
-  --out evidence/discoverability/aeo/answer-block-coverage.json
+  --out "evidence/discoverability/$TAG/raw/answer-block-coverage.json"
 
 # 8. answer engine simulation tests（可选 — 真实查 AI 引擎效果，需要 API key；按 platform 分别跑）
 node tools/runners/aeo/run-answer-engine-tests.mjs \
   --queries ./tests/aeo/queries.json \
   --platforms chatgpt,perplexity,google-ai-overviews,gemini,bing-copilot \
-  --out evidence/discoverability/aeo/answer-engine-tests.json
+  --out "evidence/discoverability/$TAG/raw/answer-engine-tests.json"
 
 # 9. PDF 综合报告（§13.1 8-section 标准结构）
 python tools/vendor/geo-seo-claude/scripts/generate_pdf_report.py \
-  --in evidence/discoverability/aeo \
-  --out evidence/discoverability/aeo/report.pdf
+  --in "evidence/discoverability/$TAG/raw" \
+  --out "evidence/discoverability/$TAG/raw/report.pdf"
+
+# 10. 归一化进 canonical channel evidence（聚合所有 raw finding）
+python scripts/discoverability-sdk.py evidence.append "$TAG" ai-search "evidence/discoverability/$TAG/raw/citability.json"
 ```
 
 ---
@@ -841,7 +846,7 @@ python tools/vendor/geo-seo-claude/scripts/generate_pdf_report.py \
 
 ## 13. Evidence 输出（落盘文件）
 
-全部落到 `evidence/discoverability/aeo/`，schema 统一由 orchestrator 定义。
+归一化后的 channel evidence 落 `evidence/discoverability/<tag>/ai-search.json`（canonical key `ai-search`，schema 由 orchestrator / harness contract §4 定义）；下表的 raw 脚本产物落同一 tag 的 `raw/` 工作目录，被 `ai-search.json` 的 `findings[].evidence_path` 反查引用。**禁止** flat `evidence/discoverability/aeo/`、`aeo.json` 文件名、自产 `gate-result.json`（gate 产物只由 `discoverability-sdk gate.check` 写 `<tag>/gate-result.yaml`）。
 
 | 文件 | 内容 |
 |---|---|
@@ -992,7 +997,7 @@ python tools/vendor/geo-seo-claude/scripts/generate_pdf_report.py \
 
 ### 本 skill → 下游
 
-- evidence 归档到 `evidence/discoverability/aeo/`
+- evidence 归档到 `evidence/discoverability/<tag>/ai-search.json`（canonical channel key `ai-search`）
 - 向上汇报到 `discoverability-orchestrator` 的 release readiness aggregator
 - Blocker 触发时通知 `gsd-ship` / `gsd-verify-work` gate
 - AI bot 实际硬控制（UA 校验 / rate-limit / auth wall）需求 → escalate `security-app-llm`

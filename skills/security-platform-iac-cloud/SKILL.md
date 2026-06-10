@@ -207,6 +207,13 @@ Step 10 输出 + 路由
 - [ ] No long-lived access keys（用 IAM role / OIDC）
 - [ ] MFA enforced on root + privileged accounts
 
+### CloudFormation
+- [ ] 上述 Terraform / Cloud 资源级检查同样适用 CFN templates（S3 / IAM / RDS / KMS / SG / logging）
+- [ ] 用 cfn-lint + Checkov（`-d <cfn dir>`）/ cfn-nag 扫 template misconfig
+- [ ] No hardcoded secret 在 template / Parameters default（用 `NoEcho` + Secrets Manager / SSM dynamic reference）
+- [ ] IAM resource 用最小权限（no `Action: "*"` / `Resource: "*"`）+ no inline `Principal: "*"`
+- [ ] StackPolicy 防关键资源被意外 replace / delete
+
 ---
 
 ## 6. Hard Rules
@@ -223,6 +230,8 @@ Step 10 输出 + 路由
 ---
 
 ## 7. Output Contract
+
+> **v3.0 evidence sink**: machine-readable findings MUST be written via `appsec-sdk finding.add` (schema-validated against orchestrator §9, redacted first). Direct Write to `.appsec/findings/**` is blocked by the PreToolUse hook. The markdown report (vuln-report.md / SECURITY.md section) is the human-rendered view only.
 
 每次 review 产出：
 

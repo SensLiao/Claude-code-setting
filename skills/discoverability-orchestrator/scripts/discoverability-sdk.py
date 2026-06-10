@@ -46,6 +46,10 @@ ACTIVATION_TABLE: Dict[str, Dict[str, str]] = {
     "mobile_app":                         {"seo": "conditional_landing", "ai-search": "disabled",  "local": "conditional_local", "aso": "required"},
     "web_app_plus_mobile_app":            {"seo": "required",            "ai-search": "optional",  "local": "conditional_local", "aso": "required"},
 }
+# Placeholder tokens the init template ships for project.type. classify treats
+# these (case-insensitive) exactly like a missing type -> BLOCKED_NEEDS_CONFIG,
+# so a fresh `init` never silently classifies against an unfilled placeholder.
+PROJECT_TYPE_PLACEHOLDERS = ("set_me", "set-me", "todo", "changeme", "change_me", "<set_me>")
 SCORE_LIKE_KINDS = ("citability_score", "aeo_score", "geo_score", "ai_search_score")
 LLMS_TXT_BLOCKER_TYPES = ("api_with_public_docs",)
 DETERMINISTIC_SOURCES = {"script", "api", "framework_adapter"}
@@ -386,10 +390,19 @@ def ensure_disc_config(ctx: Context) -> bool:
         shutil.copyfile(str(template), str(ctx.config_path))
         err(f"init: created {ctx.rel_config()} from template")
     else:
+        # No hardcoded project.type fallback: ship an explicit placeholder the user
+        # MUST replace. classify() treats SET_ME (and other placeholders) as missing
+        # -> BLOCKED, so a fresh project can never silently classify against a guess.
         ctx.config_path.write_text(
-            "project:\n  type: content_site\nharness:\n  enabled: true\n  strict_mode: true\n",
+            "project:\n"
+            "  # REQUIRED: replace SET_ME with one of:\n"
+            "  #   content_site | ecommerce | local_service | b2b_saas_marketing |\n"
+            "  #   api_with_public_docs | pure_backend_api_no_public_surface |\n"
+            "  #   mobile_app | web_app_plus_mobile_app\n"
+            "  type: SET_ME\n"
+            "harness:\n  enabled: true\n  strict_mode: true\n",
             encoding="utf-8")
-        err(f"init: created minimal {ctx.rel_config()} (template missing)")
+        err(f"init: created minimal {ctx.rel_config()} (template missing) — set project.type (currently SET_ME placeholder)")
     return True
 
 def install_disc_hooks(ctx: Context) -> Dict[str, Any]:
@@ -471,7 +484,30 @@ def cmd_classify(args: argparse.Namespace, ctx: Context) -> int:
         emit_result({"command": "classify", "tag": tag, "exit_code": EXIT_FAIL, "error": "config_missing"})
         return EXIT_FAIL
     project_cfg = ctx.config.get("project") or {}
-    project_type = project_cfg.get("type") or "pure_backend_api_no_public_surface"
+    raw_type = project_cfg.get("type")
+    project_type = (str(raw_type).strip() if raw_type is not None else "")
+    # Never default a missing / placeholder / invalid project.type. Defaulting it
+    # (old behavior: -> pure_backend_api_no_public_surface) silently disabled every
+    # channel -> gate.check produced an empty hollow PASS. Align with the
+    # disc-scope-classifier contract ("project.type missing -> BLOCKED. Never guess").
+    is_placeholder = project_type == "" or project_type.lower() in PROJECT_TYPE_PLACEHOLDERS
+    if is_placeholder or project_type not in ACTIVATION_TABLE:
+        reason = ("project.type missing or placeholder" if is_placeholder
+                  else f"project.type '{project_type}' not one of {tuple(ACTIVATION_TABLE)}")
+        err(f"classify BLOCKED: {reason} — set a real project.type in {ctx.rel_config()} (never guessed)")
+        scope_path = ctx.evidence_dir(tag) / "00-scope.yaml"
+        atomic_write(scope_path, yaml_dump({
+            "_schema_version": "1.0.0", "tag": tag, "classified_at": now_iso(),
+            "classified_by": "discoverability-sdk classify",
+            "status": "BLOCKED_NEEDS_CONFIG", "blocked_reason": reason,
+            "project_type": None, "public_surfaces": [], "active_channels": {},
+            "geo_resolution": {"input_term_observed": None, "resolved_to": None, "reason": None},
+            "disabled_reasons": {},
+        }))
+        emit_result({"command": "classify", "tag": tag, "exit_code": EXIT_BLOCKED,
+                     "status": "BLOCKED_NEEDS_CONFIG", "error": "project_type_missing_or_invalid",
+                     "blocked_reason": reason, "scope_path": str(scope_path)})
+        return EXIT_BLOCKED
     channels_cfg = normalize_channels(ctx.config.get("channels") or {})
     resolved = resolve_activation(project_cfg, project_type)
     active: Dict[str, str] = {}; disabled: Dict[str, str] = {}

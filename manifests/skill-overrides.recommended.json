@@ -17,7 +17,6 @@
     "anchor-prototype-wave": "user-invocable-only",
     "brutalist-skill": "user-invocable-only",
     "output-skill": "user-invocable-only",
-    "codex-dispatch": "name-only",
     "skill-creator": "name-only"
   },
 
@@ -27,7 +26,7 @@
     "pentest-scope-and-roe": "Stays visible (on). This is the governance gate that proactively reminds Claude to confirm ROE before any active testing — hiding it would defeat its purpose. Allowed-tools: Read only.",
     "anchor-prototype-wave": "Multi-surface production wave with parallel subagents. Expensive; user should explicitly trigger.",
     "brutalist_style": "brutalist-skill: experimental L3 style — requires explicit user opt-in by name.",
-    "name_only_collection": "codex-dispatch / skill-creator: useful but description should not autoload to avoid drift; user-typed name still triggers."
+    "name_only_collection": "skill-creator: useful but description should not autoload to avoid drift; user-typed name still triggers. (Cross-model review/delegation is now the official Codex plugin codex@openai-codex — /codex:review, /codex:adversarial-review, /codex:rescue — not a local skill.)"
   },
 
   "merge_strategy": {

@@ -23,15 +23,15 @@ upstream:
   - security-governance-threat-modeling
 downstream:
   - security-remediation
-  - security-platform-iam
-  - appsec-security-orchestrator (back with findings)
+  - appsec-security-orchestrator (back with findings)  # IAM concerns → orchestrator §5.3 iam capability (no dedicated skill yet)
 description: >
   Multi-tenant isolation overlay. Reviews tenant ID propagation through every
   layer (request → auth → query → cache → log → background job → analytics →
   webhook → backup → export). Maps to OWASP Multi-Tenant Cheat Sheet + ASVS V4
   /V8 + API Top 10 (API1 BOLA, API5 BFLA). Activated for SaaS / B2B / shared
-  infrastructure projects. Does NOT replace IAM design (security-platform-iam) —
-  it overlays tenant-specific isolation concerns on top of IAM patterns.
+  infrastructure projects. Does NOT replace IAM design — route IAM concerns to
+  orchestrator §5.3 iam capability (no dedicated skill yet); this skill overlays
+  tenant-specific isolation concerns on top of IAM patterns.
 trigger_phrases:
   - multi-tenant / 多租户 / multitenancy / SaaS
   - tenant isolation / 租户隔离
@@ -49,7 +49,7 @@ trigger_phrases:
 
 **职责边界**：
 - **owns**: tenant boundary 验证 + 跨租户 risk patterns + 隔离策略选型
-- **不做**: IAM 整体设计（归 `security-platform-iam`）；不做 application logic 重构
+- **不做**: IAM 整体设计——route IAM concerns to orchestrator §5.3 iam capability (no dedicated skill yet)；不做 application logic 重构
 
 ---
 
@@ -233,6 +233,7 @@ ALTER TABLE orders FORCE ROW LEVEL SECURITY;
 3. RLS policies inventory + force RLS 状态
 4. Common attack pattern verification（每种 attack 已验证 mitigation）
 5. Findings → security-remediation
+   - ASVS refs in emitted findings must use the versioned `v5.0.0-<chapter>.<section>.<req>` form (the chapter labels in this skill are for scoping only).
 6. SECURITY.md multi-tenant section + AppSec Release Evidence §12 叠加层
 7. Tenant lifecycle policy（onboarding / data export / deletion / archive）
 8. Support / admin tooling audit policy

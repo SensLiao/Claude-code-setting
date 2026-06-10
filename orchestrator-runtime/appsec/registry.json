@@ -20,12 +20,11 @@
       "role": "parallel security review worker (per finder)",
       "required_tools": ["Read", "Grep", "Glob", "Bash"],
       "preferred_model_tier": "cheap_fast",
-      "preload_skills": ["security-app-code-review"],
       "_file_hint": "~/.claude/agents/appsec-reviewer.md"
     },
     "appsec-finding-triager": {
       "required": true,
-      "role": "normalize raw candidates + verify vote",
+      "role": "normalize raw candidates to schema v1.0",
       "required_tools": ["Read", "Grep", "Glob"],
       "preferred_model_tier": "cheap_fast",
       "_file_hint": "~/.claude/agents/appsec-finding-triager.md"
@@ -45,10 +44,13 @@
     "security-app-multitenant":        { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'multitenant'" },
     "security-app-websocket":          { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'websocket'" },
     "security-app-file-upload":        { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'file_upload'" },
+    "security-app-api":                { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'api' (REST/GraphQL/gRPC surface)" },
     "security-compliance-payment":     { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'payment'" },
     "security-compliance-cn-data":     { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'cn_data'" },
+    "security-compliance-privacy":     { "required": false, "trigger_mode": "on-demand", "activated_when": "overlays includes 'privacy' (EU/UK/California data subjects)" },
     "security-platform-secrets":       { "required": false, "trigger_mode": "on-demand", "activated_when": "deployment surface present" },
     "security-platform-iac-cloud":     { "required": false, "trigger_mode": "on-demand", "activated_when": "IaC files detected" },
+    "security-platform-supply-chain":  { "required": false, "trigger_mode": "on-demand", "activated_when": "dependency manifest / lockfile / container build / SBOM present" },
     "security-governance-threat-modeling": { "required": false, "trigger_mode": "on-demand", "activated_when": "release-gate or deep-sweep mode" },
     "security-remediation":            { "required": false, "trigger_mode": "on-demand", "activated_when": "post-find remediation requested" },
     "security-response-incident-response": { "required": false, "trigger_mode": "on-demand", "activated_when": "lifecycle_stage == 'incident'" },
@@ -162,7 +164,8 @@
         "redact",
         "roe.verify",
         "csf.coverage",
-        "overlay.activate"
+        "overlay.activate",
+        "migrate-evidence"
       ],
       "smoke_command": "bash ~/.claude/scripts/appsec-sdk.sh --help"
     }

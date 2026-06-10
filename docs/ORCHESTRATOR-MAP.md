@@ -2,7 +2,7 @@
 
 > Authority: CANONICALS.md (2026-05-25)
 > Cross-references: [CLAUDE.md](../CLAUDE.md) §1 + §3 | [SKILLS-INDEX.md](../SKILLS-INDEX.md) | [L12-DISCOVERABILITY.md](L12-DISCOVERABILITY.md) | [HANDOFFS.md](HANDOFFS.md)
-> Last reviewed: 2026-05-25 v4 architecture
+> Last reviewed: 2026-06-10 (was 2026-05-25 v4). 2026-06-10 refresh: AppSec sub-skill table → 16 skills (+security-app-api / security-platform-supply-chain / security-compliance-privacy); removed all dead `templates/<sub>/hooks/` + `settings.json.snippet` path descriptions (hook enumeration/triggers/install now point to `manifests/hook-registry.json` + `orchestrator-runtime/shared/install-subsystem-hooks.js`, per-family counts no longer hardcoded); route count aligned to SKILLS-INDEX 20-Route.
 
 This document is the architectural reference for the 5 primary orchestrators and the L12 downstream gate. Use it to decide which entry point to call for a given task and to understand the boundaries between subsystems.
 
@@ -91,7 +91,7 @@ Project setup ──► PM delivery ──┬──► UIUX main-line ──► 
 | Activation | **auto** — UI/UX design / visual / style / reference / audit UI work |
 | Trigger phrases | "UI / UX design / visual / style / reference / audit UI / 前端设计 / 给我做个页面" |
 | Owns | 13-layer skill routing (L0 foundation → L12 discoverability), L3 style lock (mutually exclusive: taste / luxury / brutalist; taste includes §11 variant modes A/B/C), workflow vs collection skill discipline |
-| Hook footprint | **Project-installed only** — 3 hooks live in `templates/uiux/hooks/`, registered via `templates/uiux/settings.json.snippet` |
+| Hook footprint | **Project-installed only** — hook enumeration / triggers / install are sourced from `manifests/hook-registry.json` + `orchestrator-runtime/shared/install-subsystem-hooks.js` (single source of truth; per-family counts are not written down in docs) |
 | Evidence | `.planning/<phase>/ui/` design artifacts |
 
 **Why project-installed hooks:** UIUX enforcement applies only when the project has actual UI surface. A pure backend project has no UI gate to enforce — installing UIUX hooks globally would create noise.
@@ -110,7 +110,7 @@ Project setup ──► PM delivery ──┬──► UIUX main-line ──► 
 | Activation | **auto** — testing / QA / E2E / release readiness / CI gate |
 | Trigger phrases | "测试策略 / QA / SDET / E2E / 集成测试 / visual regression / release readiness / CI 质量门禁 / 验收测试 / commercial quality / 工业级测试" |
 | Owns | Layered test strategy (static / unit/TDD / component / integration / contract / E2E / visual / a11y / perf / smoke), QA-owned sub-skills, references to execution agents (tdd-guide / e2e-runner / code-reviewer) |
-| Hook footprint | **Project-installed only** — 5 hooks live in `templates/qa/hooks/`, registered via `templates/qa/settings.json.snippet` |
+| Hook footprint | **Project-installed only** — hook enumeration / triggers / install are sourced from `manifests/hook-registry.json` + `orchestrator-runtime/shared/install-subsystem-hooks.js` (single source of truth; per-family counts are not written down in docs) |
 | Evidence | `.qa/` release evidence bundle |
 
 **Why project-installed hooks:** QA gates fire only when the project is past stub/prototype — early-phase code has no test surface to enforce.
@@ -132,19 +132,19 @@ Project setup ──► PM delivery ──┬──► UIUX main-line ──► 
 | Activation | **auto when triggers present** — backend / API / auth / user-data / file-upload / payment / admin / production + threat modeling / SAST / SCA / secrets / IaC / cloud / CSF 2.0 / incident response / recovery |
 | Trigger phrases | See `manifests/skill-routing-policy.json` `appsec_defensive` |
 | Owns | NIST CSF 2.0 six-function alignment (Govern / Identify / Protect / Detect / Respond / Recover), 6-layer capability routing (governance / app / platform / operations / response / compliance), ASVS 5.0 versioned identifiers |
-| Hook footprint | **Project-installed only** — 7 hooks live in `templates/appsec/hooks/`, registered via `templates/appsec/settings.json.snippet` |
+| Hook footprint | **Project-installed only** — hook enumeration / triggers / install are sourced from `manifests/hook-registry.json` + `orchestrator-runtime/shared/install-subsystem-hooks.js` (single source of truth; per-family counts are not written down in docs) |
 | Evidence | `.appsec/evidence/<tag>/` (canonical) + `.planning/security/` (deprecated alias via SDK adapter — see CANONICALS.md D2) |
 
-**13 sub-skills** organized by the 6-layer capability map:
+**16 sub-skills** (20 AppSec-family incl. dual pentest gates + GSD adapter — matches CLAUDE.md §3) organized by the 6-layer capability map. Canonical list: `manifests/skills.manifest.json` appsec_* families + `SKILLS-INDEX.md` AppSec table:
 
 | Layer | Sub-skills |
 |---|---|
 | governance | `security-governance-threat-modeling` |
 | app | `security-remediation`, `dast-baseline-scanning` |
-| app overlay | `security-app-mobile` / `security-app-llm` / `security-app-multitenant` / `security-app-websocket` / `security-app-file-upload` |
-| platform | `security-platform-secrets` / `security-platform-iac-cloud` |
+| app overlay | `security-app-mobile` / `security-app-llm` / `security-app-multitenant` / `security-app-websocket` / `security-app-file-upload` / `security-app-api` |
+| platform | `security-platform-secrets` / `security-platform-iac-cloud` / `security-platform-supply-chain` |
 | response | `security-response-incident-response` / `security-response-recovery` / `pentest-scope-and-roe` / `authorized-pentest-validation` |
-| compliance | `security-compliance-payment` / `security-compliance-cn-data` |
+| compliance | `security-compliance-payment` / `security-compliance-cn-data` / `security-compliance-privacy` |
 
 **Pentest dual gate** (safety-critical, never auto-fire):
 
@@ -234,15 +234,17 @@ Workflow skills (e.g. `redesign-skill`, `image-to-code-skill`, `frontend-design-
 
 ## 6. Hook scope clarification (CANONICALS.md D3)
 
+> **Single source of truth**: hook enumeration, per-hook triggers, snippet paths, and install commands live in `manifests/hook-registry.json`; the copy + settings-merge is performed by the one shared installer `orchestrator-runtime/shared/install-subsystem-hooks.js`. Per-family hook **counts are deliberately not written here** (they drift) — read the registry.
+
 | Subsystem | Scope | Registration |
 |---|---|---|
 | GSD | **Global** | `~/.claude/settings.json` always loaded |
-| AppSec (7 hooks) | **Project-installed only** | `appsec-sdk init` merges `templates/appsec/settings.json.snippet` into `<project>/.claude/settings.json` |
-| QA (5 hooks) | **Project-installed only** | `qa-sdk init` merges `templates/qa/settings.json.snippet` |
-| UIUX (3 hooks) | **Project-installed only** | `uiux-sdk init` merges `templates/uiux/settings.json.snippet` |
-| L12 (5 hooks) | **Project-installed only** | `python -m discoverability_sdk init` copies hooks + merges snippet |
+| AppSec | **Project-installed only** | `appsec-sdk init` (enumeration + snippet path per `hook-registry.json`, installed via `install-subsystem-hooks.js`) |
+| QA | **Project-installed only** | `qa-sdk init` (per `hook-registry.json`) |
+| UIUX | **Project-installed only** | `uiux-sdk init` (per `hook-registry.json`) |
+| L12 | **Project-installed only** | `python -m discoverability_sdk init` (per `hook-registry.json`) |
 
-**Implication for fresh projects**: subsystem hook enforcement is opt-in via SDK init. A bare `.claude/` install has only GSD hooks firing. Docs (CLAUDE.md §3, §4, §7; SKILLS-INDEX.md; rules/security-appsec.md; rules/discoverability-l12.md) must state this explicitly to avoid the misleading reading "20 hooks on disk but 0 registered = broken."
+**Implication for fresh projects**: subsystem hook enforcement is opt-in via SDK init. A bare `.claude/` install has only GSD hooks firing. Docs (CLAUDE.md §3, §4, §7; SKILLS-INDEX.md; rules/security-appsec.md; rules/discoverability-l12.md) must state this explicitly to avoid the misleading reading "many hooks on disk but 0 registered = broken."
 
 ---
 
@@ -273,7 +275,7 @@ Workflow skills (e.g. `redesign-skill`, `image-to-code-skill`, `frontend-design-
 | Doc | Purpose |
 |---|---|
 | [CLAUDE.md](../CLAUDE.md) | Operating charter; §1 three-mainline; §3 orchestrator table; §7 L12 |
-| [SKILLS-INDEX.md](../SKILLS-INDEX.md) | 13-Layer skill list, 17 routing rules, disambiguation table |
+| [SKILLS-INDEX.md](../SKILLS-INDEX.md) | 13-Layer skill list, 20-Route UIUX pipeline (A–T), disambiguation table |
 | [docs/L12-DISCOVERABILITY.md](L12-DISCOVERABILITY.md) | L12 sub-architecture: 4 narrow skills + 3 agents + 5 hooks + SDK |
 | [docs/HANDOFFS.md](HANDOFFS.md) | Cross-orchestrator payload schemas |
 | [docs/CANONICALS.md](CANONICALS.md) | Canonical decisions registry (read-only after 2026-05-25) |

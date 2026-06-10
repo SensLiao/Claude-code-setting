@@ -41,7 +41,7 @@
             {"name": "appsec-secret-access-guard.js", "trigger": "PreToolUse(Read|Bash)", "purpose": "Block raw secret material reads (Read .env/*.pem/*.key) and Bash cat/printenv exfil; require redaction"},
             {"name": "appsec-finding-schema-prewrite.js", "trigger": "PreToolUse(Write|Edit|MultiEdit)", "purpose": "Validate finding YAML/JSON against standardized schema before write; block direct Edit/MultiEdit of protected findings/decisions (E7 2026-06-05)"},
             {"name": "appsec-pentest-authorization.js", "trigger": "PreToolUse(Skill|Agent)", "purpose": "Hard gate for authorized-pentest-validation Skill/Agent invocation (11-item ROE + window + sign-off)"},
-            {"name": "appsec-finding-schema-postverify.js", "trigger": "PostToolUse(Write|Edit)", "purpose": "Post-write validation of finding artifacts"},
+            {"name": "appsec-finding-schema-postverify.js", "trigger": "PostToolUse(Write|Edit|MultiEdit)", "purpose": "Post-write validation of finding artifacts (matcher includes MultiEdit for symmetry with prewrite)"},
             {"name": "appsec-secret-redaction.js", "trigger": "Stop", "purpose": "Last-line defense: scan final assistant message/transcript for raw secret patterns; never downgradable to warn-only"},
             {"name": "appsec-evidence-required.js", "trigger": "Stop", "purpose": "Block phase completion if .appsec/evidence/<tag>/ is empty"},
             {"name": "appsec-preview-gate.js", "trigger": "PreToolUse(Workflow)", "purpose": "workflow-spec launch gate: recompute spec_hash + verify approval sentinel + TTL for deterministic appsec-orchestrator launches"},
@@ -71,7 +71,7 @@
           "hooks": [
             {"name": "uiux-gsd-plan-guard.js", "trigger": "PreToolUse(Skill)", "purpose": "Block /gsd-plan-phase Skill on a frontend phase when UI-SPEC.md is missing (strict)"},
             {"name": "uiux-style-mutex-guard.js", "trigger": "PreToolUse(Skill)", "purpose": "On Skill invocation: enforce L3 style mutex (taste/luxury/minimalist/soft mutually exclusive); reject workflow skills as L3"},
-            {"name": "uiux-release-guard.js", "trigger": "Stop", "purpose": "Gate release if .uiux/evidence/<tag>/ lacks required artifacts"}
+            {"name": "uiux-release-guard.js", "trigger": ["PreToolUse(Skill)", "Stop"], "purpose": "Dual-mode release gate. PreToolUse(Skill): hard-block /gsd-ship unless .uiux/decisions/<tag>/uiux_release_decision.yaml exists with decision PASS|CONDITIONAL_PASS. Stop: soft nag if assistant claims UI/shipping completion while a decision exists and is not PASS/CONDITIONAL_PASS (reads transcript_path fallback)"}
           ]
         },
         "discoverability": {
@@ -95,7 +95,8 @@
         {"name": "_appsec-common.js", "used_by": "appsec-*.js"},
         {"name": "_qa-common.js", "used_by": "qa-*.js"},
         {"name": "_uiux-common.js", "used_by": "uiux-*.js"},
-        {"name": "_disc-common.js", "used_by": "disc-*.js"}
+        {"name": "_disc-common.js", "used_by": "disc-*.js"},
+        {"name": "git-cmd.js", "used_by": "gsd-validate-commit.sh", "path": "hooks/lib/git-cmd.js", "note": "Conventional Commits gate token-walk classifier (isGitSubcommand); lives in hooks/lib/, NOT copied project-local (gsd hook is global)"}
       ]
     },
 

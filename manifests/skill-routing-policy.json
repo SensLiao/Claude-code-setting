@@ -32,12 +32,13 @@
         "UI", "UX", "design", "visual", "style", "theme",
         "reference", "参考", "image", "frontend visual",
         "audit UI", "UI 升级", "重做页面", "原型",
-        "premium", "luxury", "minimalist", "soft", "brutalist",
-        "design system", "tokens", "色彩", "字体"
+        "premium", "luxury", "brutalist",
+        "design system", "tokens", "色彩", "字体",
+        "做一个", "优化", "create", "optimize", "组合"
       ],
       "orchestrator": "uiux-product-orchestrator",
       "trigger_mode": "auto",
-      "notes": "Routes to sens-frontend-design / L3 style locks (taste-skill / luxury / brutalist-skill) / ux-principles (refinement) / etc. Resolves L3 style ambiguity by asking the user."
+      "notes": "create/optimize tasks run the v2.3 combination dispatch engine (uiux-product-orchestrator references/combination-policy.md): ask-first tier (min/optimal/max, default optimal) then a 6-phase state machine GROUND(reference-grounding hard pre-step; local design-system 58-brand corpus first, web fallback)->EXPLORE(multi-style sampling for user to pick, NOT a single skill)->PICK(user locks exactly one L3)->BUILD->UNIFY->REVIEW(loop, no early exit). This is a skill COMBINATION across layers, NOT single-skill dispatch. E4 client-proposal stays on sens-frontend-design (protected, unchanged). E6 local-patch / E7 audit use lightweight paths. Resolves L3 ambiguity by asking the user; L3 mutex enforced at PICK only (EXPLORE sampling is exempt)."
     },
     {
       "intent_category": "qa_testing",
@@ -113,6 +114,19 @@
       "notes": "Direct narrow route to IaC/cloud posture skill. Runtime cloud/cluster commands require user explicit confirmation (Tier B per skill §4)."
     },
     {
+      "intent_category": "appsec_narrow_supply_chain",
+      "intent_keywords": [
+        "SBOM", "software supply chain", "供应链安全", "SCA",
+        "dependency vulnerability", "依赖漏洞", "CycloneDX", "SPDX", "SLSA",
+        "provenance", "in-toto", "cosign", "sigstore", "image signing",
+        "镜像签名", "dependency confusion", "typosquatting",
+        "lockfile integrity", "VEX"
+      ],
+      "orchestrator": "security-platform-supply-chain",
+      "trigger_mode": "auto",
+      "notes": "Direct narrow route to supply-chain skill (SBOM gen + provenance/signing + deep SCA). The §16 Step 4 npm/pip/cargo/trivy audit remains the inline floor."
+    },
+    {
       "intent_category": "appsec_narrow_mobile",
       "intent_keywords": [
         "mobile security", "iOS security", "Android security",
@@ -166,6 +180,18 @@
       "notes": "File upload overlay. 12-step OWASP cheat sheet defense."
     },
     {
+      "intent_category": "appsec_narrow_api_security",
+      "intent_keywords": [
+        "API security", "API Top 10", "接口安全", "API 鉴权", "BOLA", "BFLA",
+        "mass assignment", "broken object level authorization", "REST security",
+        "GraphQL security", "endpoint authorization", "IDOR",
+        "excessive data exposure"
+      ],
+      "orchestrator": "security-app-api",
+      "trigger_mode": "auto",
+      "notes": "Direct narrow route to API security skill (OWASP API Top 10:2023, per-endpoint authz for REST / GraphQL / gRPC)."
+    },
+    {
       "intent_category": "appsec_narrow_payment",
       "intent_keywords": [
         "PCI DSS", "payment security", "card data security", "cardholder data",
@@ -187,6 +213,18 @@
       "orchestrator": "security-compliance-cn-data",
       "trigger_mode": "auto",
       "notes": "China data protection overlay. Covers PIPL + DSL + CSL + CAC export rules + 2024 new regulations + GenAI registration."
+    },
+    {
+      "intent_category": "appsec_narrow_privacy",
+      "intent_keywords": [
+        "GDPR", "CCPA", "CPRA", "privacy compliance", "data protection",
+        "隐私合规", "数据保护", "DSAR", "right to erasure", "data subject rights",
+        "consent", "DPIA", "cross-border transfer", "SCC",
+        "Global Privacy Control", "GPC"
+      ],
+      "orchestrator": "security-compliance-privacy",
+      "trigger_mode": "auto",
+      "notes": "Privacy compliance overlay for GDPR/CCPA/CPRA (ex-China). Composes alongside cn-data + payment, split by jurisdiction. De-conflict: China terms (PIPL / 数据出境 / 网信办 / CAC) stay with appsec_narrow_cn_data."
     },
     {
       "intent_category": "appsec_narrow_incident_response",

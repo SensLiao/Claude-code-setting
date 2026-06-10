@@ -17,6 +17,18 @@
   },
   "phases": [
     {
+      "name": "LayerSelect",
+      "type": "single",
+      "_dispatch_note": "runtime-qa#4 — StaticBaseline + UnitOrComponent both read state.LayerSelect.changed_surfaces; without this node the first phase render hard-throws. Mirrors graph-smoke LayerSelect.",
+      "model": "cheap_fast",
+      "resolved_model": "haiku",
+      "agentType": "qa-risk-classifier",
+      "prompt_ref": "layer-select.v1",
+      "schema_ref": "LAYER_SELECT_SCHEMA.v1",
+      "stall_ms": 180000,
+      "timeout_policy": "default_short_classification"
+    },
+    {
       "name": "StaticBaseline",
       "type": "single",
       "model": "cheap_fast",

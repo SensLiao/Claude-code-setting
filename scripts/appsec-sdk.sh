@@ -13,7 +13,7 @@
 #   appsec-sdk finding.add [<file>]                  # schema v1.0 + ASVS regex + raw-secret reject
 #   appsec-sdk gate.check <tag> [--strict|--lax] [--allow-conditional] [--legacy-path <path>]
 #   appsec-sdk redact                                # stdin → redacted stdout
-#   appsec-sdk roe.verify <roe-file>                 # 11-item ROE checklist
+#   appsec-sdk roe.verify <roe-file>                 # 13-field ROE checklist (11 user-visible sections)
 #   appsec-sdk csf.coverage <tag>                    # GV/ID/PR/DE/RS/RC YAML
 #   appsec-sdk overlay.activate <tag> <overlay-name>
 #   appsec-sdk migrate-evidence [--from <path>] [--to <path>] [--dry-run]
@@ -205,13 +205,24 @@ strip_yaml_comments() {
 # ★ P7 fix (code-reviewer HIGH #3): include JWT pattern + (Tier 1 #4) sk-proj-/sk-svcacct-/sk-admin- aware
 contains_raw_secret() {
   local content="$1"
-  local stripped; stripped=$(printf '%s' "$content" | strip_yaml_comments)
+  # ★ fix (2026-06-10): (1) strip our own <REDACTED:...> markers first so an ALREADY-redacted
+  # finding passes this gate; (2) add the credential-KV detector below — redact_stdin catches
+  # `password = "..."`-style secrets but this raw-secret gate previously did NOT, so a finding
+  # body with a hardcoded credential could land un-redacted via finding.add (the Bash path skips
+  # the prewrite hook). Keep the two detectors in lock-step with redact_stdin's key set.
+  local stripped; stripped=$(printf '%s' "$content" | strip_yaml_comments | sed -E 's/<REDACTED:[^>]*>//g')
   # Combined high-signal regex including JWT
   if printf '%s' "$stripped" | grep -qE '(AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,}|gho_[A-Za-z0-9]{30,}|ghu_[A-Za-z0-9]{30,}|ghs_[A-Za-z0-9]{30,}|ghr_[A-Za-z0-9]{30,}|sk-ant-[A-Za-z0-9_-]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})'; then
     return 1
   fi
   # OpenAI keys (sk-, sk-proj-, sk-svcacct-, sk-admin-) — body allows _ and -
   if printf '%s' "$stripped" | grep -qE 'sk-(proj-|svcacct-|admin-)?[A-Za-z0-9_-]{20,}'; then
+    return 1
+  fi
+  # credential KV — mirrors redact_stdin's PASSWORD|SECRET|TOKEN|API_KEY|… [:=] value{8,256}.
+  # value class is non-space (surrounding quotes counted toward the length); redaction markers
+  # were already stripped above so a properly-redacted finding does not trip this.
+  if printf '%s' "$stripped" | grep -qiE '(PASSWORD|PASSWD|PWD|SECRET|TOKEN|API_KEY|APIKEY|PRIVATE_KEY)[[:space:]]{0,8}[:=][[:space:]]{0,8}[^[:space:]]{8,256}'; then
     return 1
   fi
   return 0
@@ -332,7 +343,11 @@ cmd_evidence_validate_presence() {
     esac
   done
   # Required layers per §16 Dispatch Contract
-  local required=(threat-model sca secret-scan sast code-review headers-cookies csf2-coverage)
+  # ★ fix (2026-06-10): csf2-coverage removed from required INPUT layers. CSF 2.0 coverage is
+  # COMPUTED by `appsec-sdk csf.coverage` from the other layers' presence and folded into the
+  # release decision — it is NOT a stored input layer. Requiring a csf2-coverage/ dir that no
+  # pipeline step ever produces caused a spurious BLOCK on the documented happy path.
+  local required=(threat-model sca secret-scan sast code-review headers-cookies)
   if [[ -n "$expected_csv" ]]; then
     IFS=',' read -ra extra <<< "$expected_csv"
     for layer in "${extra[@]}"; do
@@ -471,7 +486,16 @@ validate_finding_yaml() {
     return 2
   fi
   if [[ -z "$asvs_entries" ]]; then
-    echo "appsec-sdk finding.add: asvs_mapping must list at least one ASVS 5.0 identifier" >&2
+    # contracts-appsec#1 (2026-06-10): empty asvs_mapping [] is acceptable IFF the
+    # finding carries a non-empty `unmapped_reason`. Many honest sca/secret_scan CVE
+    # findings have NO truthful ASVS mapping; forcing >=1 incentivizes fabrication
+    # (exactly what agents/appsec-finding-triager.md:64 warns against). Require an
+    # explicit reason instead of a fabricated identifier.
+    local unmapped; unmapped=$(extract_scalar "$content" "unmapped_reason")
+    if [[ -n "$unmapped" ]]; then
+      return 0   # empty mapping justified by unmapped_reason — accept
+    fi
+    echo "appsec-sdk finding.add: asvs_mapping is empty — provide at least one ASVS 5.0 identifier, OR add a non-empty 'unmapped_reason' explaining why no honest mapping exists (do NOT fabricate a mapping)" >&2
     return 2
   fi
   while IFS= read -r entry; do
@@ -680,6 +704,49 @@ gate_check_d2_freshness() {
   return 0
 }
 
+# D3 — per-finding SLA breach (deterministic backstop). The evidence-validator agent SHOULD already
+# reflect overdue findings in the decision, but the exit-code path CI / gsd-ship consumes must catch a
+# PASS that contradicts an overdue OPEN finding independently of agent diligence (§10 SLA enforcement
+# previously lived only in agent prose). Only open-ish findings count; mitigated/resolved/accepted
+# (incl. risk-accepted) are exempt. Called ONLY from the PASS branch — CONDITIONAL_PASS exceptions are
+# governed by risk_acceptance.
+gate_check_d3_sla() {
+  local tag="$1" mode="$2"
+  local fnd_dir="$PROJECT_ROOT/.appsec/findings/$tag"
+  [[ -d "$fnd_dir" ]] || return 0
+  local now_epoch; now_epoch=$(date -u +%s 2>/dev/null) || return 0
+  local breaches=() f content st due due_epoch id sev b
+  while IFS= read -r f; do
+    [[ -z "$f" ]] && continue
+    content=$(cat "$f" 2>/dev/null)
+    due=$(extract_scalar "$content" "sla_due")
+    [[ -z "$due" ]] && continue
+    st=$(extract_scalar "$content" "status")
+    case "$st" in
+      ""|open|in_progress|reopened|new) :;;   # open-ish → subject to SLA
+      *) continue;;                            # mitigated/resolved/accepted/false_positive/etc → exempt
+    esac
+    due_epoch=$(epoch_of_iso "$due") || due_epoch=""
+    [[ -z "$due_epoch" ]] && continue
+    if (( now_epoch > due_epoch )); then
+      id=$(extract_scalar "$content" "id"); [[ -z "$id" ]] && id="$(basename "$f")"
+      sev=$(extract_scalar "$content" "severity")
+      breaches+=("$id (severity=${sev:-?}, sla_due=$due, status=${st:-open})")
+    fi
+  done < <(find "$fnd_dir" -type f -name '*.yaml' 2>/dev/null)
+  if (( ${#breaches[@]} > 0 )); then
+    if [[ "$mode" == "lax" ]]; then
+      echo "appsec-sdk gate.check: WARN (lax) — ${#breaches[@]} open finding(s) past SLA due date:" >&2
+      for b in "${breaches[@]}"; do echo "    - $b" >&2; done
+      return 0
+    fi
+    echo "appsec-sdk gate.check: BLOCKED — ${#breaches[@]} open finding(s) past SLA due date (fix or formally risk-accept before release):" >&2
+    for b in "${breaches[@]}"; do echo "    - $b" >&2; done
+    exit 2
+  fi
+  return 0
+}
+
 cmd_gate_check() {
   need_arg "release-tag" "${1:-}"
   validate_safe_name "release-tag" "$1"
@@ -756,6 +823,7 @@ cmd_gate_check() {
 
   case "$decision" in
     PASS)
+      gate_check_d3_sla "$tag" "$mode"   # a PASS must not coexist with an overdue OPEN finding
       echo "appsec-sdk gate.check: PASS"; exit 0;;
     FAIL)
       echo "appsec-sdk gate.check: FAIL" >&2; exit 1;;
@@ -792,14 +860,18 @@ cmd_roe_verify() {
   need_arg "roe-file" "${1:-}"
   local roe="$1"
   if [[ ! -f "$roe" ]]; then echo "appsec-sdk roe.verify: file not found: $roe" >&2; exit 2; fi
-  # 11-item ROE checklist (canonical names from §17.1 / pentest-scope-and-roe)
+  # 13 canonical field names (= 11 user-visible ROE sections per §17.1 / pentest-scope-and-roe;
+  # emergency_contact + rollback are split out, authorization_proof is an anchor field).
   local required=(target_identification authorization_proof environment scope \
                   allowed_methods disallowed_methods time_window rate_limits \
                   test_accounts data_handling emergency_contact rollback reporting_format)
   local missing=()
   for k in "${required[@]}"; do
+    # Match EITHER a machine-readable YAML key (e.g. `target_identification:`) OR a markdown
+    # section header — tolerating a numbered prefix like "## 1. Target Identification" (the
+    # shipped PENTEST-ROE.md template uses numbered headers; the `[0-9.]*` allows them).
     if ! grep -qE "^[[:space:]]{0,4}${k}[[:space:]]*:" "$roe" && \
-       ! grep -qiE "^#+[[:space:]]*${k//_/ }" "$roe"; then
+       ! grep -qiE "^#+[[:space:]]*[0-9.]*[[:space:]]*${k//_/ }" "$roe"; then
       missing+=("$k")
     fi
   done
@@ -808,7 +880,7 @@ cmd_roe_verify() {
     for k in "${missing[@]}"; do echo "  - $k" >&2; done
     exit 2
   fi
-  echo "appsec-sdk roe.verify: ROE 11-item checklist OK"
+  echo "appsec-sdk roe.verify: ROE 13-field checklist OK (11 user-visible sections)"
   exit 0
 }
 
@@ -872,8 +944,8 @@ cmd_overlay_activate() {
   ensure_project_root
   local tag="$1" overlay="$2"
   case "$overlay" in
-    mobile|llm|multitenant|websocket|file_upload|payment|cn_data) :;;
-    *) echo "appsec-sdk overlay.activate: unknown overlay '$overlay' (allowed: mobile|llm|multitenant|websocket|file_upload|payment|cn_data)" >&2; exit 2;;
+    mobile|llm|multitenant|websocket|file_upload|payment|cn_data|api|privacy) :;;
+    *) echo "appsec-sdk overlay.activate: unknown overlay '$overlay' (allowed: mobile|llm|multitenant|websocket|file_upload|payment|cn_data|api|privacy)" >&2; exit 2;;
   esac
   local dir="$PROJECT_ROOT/.appsec/evidence/$tag/overlay-$overlay"
   mkdir -p "$dir"

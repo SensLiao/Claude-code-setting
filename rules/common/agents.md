@@ -118,5 +118,5 @@ For complex problems, use split role sub-agents:
 |---|---|
 | 多 variant 探索 | parallel general-purpose × N（每个 variant 一个 agent，同 prompt 不同 style）|
 | 全 surface 量产 | anchor-prototype-wave 内置 parallel subagent × 4-15 |
-| 跨 AI 设计 review（santa-loop） | 2 个 Opus reviewer（Claude + Codex via codex-dispatch）双盲 |
+| 跨 AI 设计 review（santa-loop） | 2 个 reviewer（Claude Opus + Codex via `/codex:adversarial-review`）双盲；Codex 额度耗尽 → fallback 到第二个 Claude subagent |
 | 设计 audit + fix 一站式 | 1 code-reviewer (opus audit) → 1 general-purpose (sonnet fix) → 1 code-reviewer (opus verify) |

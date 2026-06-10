@@ -49,15 +49,48 @@
 
 #### 3.1 内部执行者路由
 
-为每个子任务决定由谁执行：
+为每个子任务决定由谁执行。Codex 走 **官方 plugin `codex@openai-codex`**（review 用 `/codex:review` 只读 / `/codex:adversarial-review` 对抗式；委派执行用 `/codex:rescue`，支持 `--model` / `--effort` / `--background`），不再走旧的 local skill：
 
-| 判断维度 | Codex（codex-dispatch） | Claude subagent | Claude 主线程 |
+| 判断维度 | Codex（`codex@openai-codex` plugin） | Claude subagent | Claude 主线程 |
 |---------|------------------------|-----------------|--------------|
-| 任务性质 | 具体编码/测试/迁移/扫描/格式化 | 需要当前上下文或 Codex 不适合 | 架构决策/审查/用户交互 |
+| 任务性质 | 具体编码/测试/迁移/扫描/格式化（`/codex:rescue`）；跨模型 review（`/codex:review`、`/codex:adversarial-review`） | 需要当前上下文或 Codex 不适合 | 架构决策/审查/用户交互 |
 | 边界清晰度 | 输入输出明确 | 有一定模糊性 | 需要判断力 |
 | 风险等级 | 低（可验证） | 中 | 高（不可委派） |
 
 优先级：**任务适配度 > 省 token**。选最适合的执行者，节省 token 是附带收益。
+
+**固定不可委派（留 Claude 主线程，Codex 至多辅助调查不拍板）**：需求理解与任务拆分 / 架构与方案决策 / 高风险事项（安全·权限·认证·支付·数据迁移·公共 API·核心逻辑）/ 最终审查与合并决策 / 是否接受 reviewer 意见的判断。
+
+**额度 fallback**：Codex 返回额度错误（rate limit / quota / 402）时，立即 fallback 到 Claude subagent（`Agent` tool，按 Step 4 模型路由选 `sonnet`/`opus`）。
+
+**施工单模板**（经 `/codex:rescue` 委派执行任务时使用——边界清晰 + 可验证；纯 review 走 `/codex:review` 或 `/codex:adversarial-review`，可加 `focus`）：
+
+```
+## 任务目标
+{一句话}
+
+## 上下文摘要
+{Codex 需要的背景，≤500 字；它拿不到当前对话上下文}
+
+## 可改文件范围
+{明确列出可改的文件/目录}
+
+## 禁改文件范围
+{明确列出不可改的文件/目录}
+
+## 验收标准
+{明确、可验证的条件}
+
+## 必跑验证项
+{改完后必须执行的命令}
+
+## 返回格式
+1. 本轮完成内容（一句话）
+2. 修改文件列表
+3. 改动说明
+4. 验证结果
+5. 未完成项 / 风险项
+```
 
 #### 3.2 外部协作路由（GPT-5.5 Thinking ↔ Opus）
 

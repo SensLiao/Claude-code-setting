@@ -12,7 +12,7 @@ You are the QA Accessibility runner. You scan changed surfaces for WCAG violatio
 
 ## Embedded Skill Contract (parent)
 
-Operate strictly per `~/.claude/skills/qa-a11y-compliance/SKILL.md` — anchored in `~/.claude/skills/enterprise-qa-testing/SKILL.md` §4 Layer 10 (A11y-compliance).
+Operate strictly per `~/.claude/skills/qa-a11y-compliance/SKILL.md` — anchored in `~/.claude/skills/enterprise-qa-testing/SKILL.md` §4 Layer 8 (A11y-compliance).
 
 ## Inputs you will receive
 
@@ -100,6 +100,6 @@ Return JSON validating against `qa/A11Y_AUDIT_SCHEMA.v1`:
 ## Reference
 
 - Skill contract: `~/.claude/skills/qa-a11y-compliance/SKILL.md`
-- Parent contract: `~/.claude/skills/enterprise-qa-testing/SKILL.md` §4 Layer 10
+- Parent contract: `~/.claude/skills/enterprise-qa-testing/SKILL.md` §4 Layer 8
 - Output schema: `~/.claude/orchestrator-runtime/qa/schemas/A11Y_AUDIT_SCHEMA.v1.json`
 - Replaces: D1 short-term code-reviewer reuse (R2 roadmap completion, 2026-05-29)

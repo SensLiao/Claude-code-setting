@@ -2,10 +2,10 @@
 name: uiux-product-orchestrator
 canonical_id: uiux.orchestrator
 aliases: [uiux, uiux-orchestrator, ui-orchestrator, frontend-orchestrator]
-version: 2.1.0
+version: 2.3.0
 status: stable
 created_date: 2026-05-23
-last_updated: 2026-05-25
+last_updated: 2026-06-10
 allowed-tools: Read, Write, Bash, Glob, Grep, Agent, AskUserQuestion
 upstream:
   - gsd-pipeline-orchestrator       # GSD master pipeline
@@ -18,20 +18,24 @@ downstream:
 description: >
   Use when UI/UX design, visual direction, reference research, style selection,
   design system, brand visual, screenshot-to-code, or UI audit work begins.
-  GSD-native UIUX contract gate. v2.1 = thin bridge layer that mirrors GSD
-  `.planning/phases/<N>/UI-SPEC.md` and `UI-REVIEW.md` into machine-readable
-  `.uiux/lock/chassis.yaml` and `.uiux/decisions/<tag>/uiux_release_decision.yaml`,
-  enforces L3 style mutex, and provides release gate for `/gsd-ship`. Does NOT
-  replace `/gsd-ui-phase` / `/gsd-ui-review` / `gsd-ui-researcher` /
-  `gsd-ui-checker` / `gsd-ui-auditor` — those are GSD-owned and remain the
-  single source of truth. Routes UIUX skills (L0-L8 in references/uiux-routing-table.md).
-  Trigger phrases: "UI/UX 设计 / 视觉方向 / 参考研究 / 风格选型 / design system /
-  品牌视觉 / 前端 design / 截图还原 / UI audit / chassis lock / release readiness UI".
+  GSD-native UIUX contract gate. v2.3 = thin GSD-bridge layer PLUS a 6-phase
+  quality-combination engine (GROUND→EXPLORE→PICK→BUILD→UNIFY→REVIEW, ask-first
+  min/optimal/max) driving create/optimize reference-first, looping review until
+  it passes. Mirrors GSD UI-SPEC.md / UI-REVIEW.md into `.uiux/lock/chassis.yaml`
+  and `.uiux/decisions/<tag>/uiux_release_decision.yaml`, enforces L3 style mutex
+  (lock-presence keyed), and is the `/gsd-ship` release gate. Does NOT replace
+  `/gsd-ui-phase` / `/gsd-ui-review` / `gsd-ui-researcher` / `gsd-ui-checker` /
+  `gsd-ui-auditor` — those stay GSD-owned single source of truth. Routes UIUX
+  skills (L0-L8 in references/uiux-routing-table.md). Trigger phrases: "UI/UX 设计 /
+  视觉方向 / 参考研究 / 风格选型 / design system / 品牌视觉 / 前端 design / 截图还原 /
+  UI audit / chassis lock / release readiness UI".
 ---
 
-# UIUX Product Orchestrator v2.1 — GSD-native UI Contract Gate
+# UIUX Product Orchestrator v2.3 — GSD-native UI Contract Gate + Quality Combination Engine
 
 > **Execution mode: SKILL-direct only**（2026-05-29 user lock）— 本 skill **NOT** migrating to Workflow tool workflow-spec mode. Reason: L3 风格互斥 + collection skill / workflow skill 边界 + ui-ux-pro-max 67 风格自动匹配是 inherently interactive 模式，单 pass DAG workflow 无法覆盖。所有 UIUX 工作通过 SKILL 主线 + `gsd-ui-*` agent + L3-L9 inline skill 派发。详 `~/.claude/CLAUDE.md §3.5`。
+>
+> **v2.3 重塑（2026-06-10 user lock）** — 根治"第一版质量次 / 自动只挑 1-2 个 skill / 凭空生造无参考"。本 orchestrator 从纯 thin-bridge 扩成**也驱动一个分阶段质量组合调度引擎**(phase state machine)。create/optimize 任务默认走该引擎(GROUND→EXPLORE→PICK→BUILD→UNIFY→REVIEW,ask-first 三档 min/optimal/max),**先扒参考再动手、先出几版给用户挑、评审循环不早退**。引擎规格见 [references/combination-policy.md](references/combination-policy.md);接地查找表见 [references/local-template-index.md](references/local-template-index.md)。**GSD bridge / mirror / release gate 职责完整保留不变**(§3-§7);L3 互斥完整保留(§4)。
 
 ---
 
@@ -41,19 +45,21 @@ UIUX 主线 contract gate。把 GSD 已有的 UI 工作流（`/gsd-ui-phase` →
 变成可 gate、可复用、可交给 QA/AppSec/GSD ship 的机器契约。
 
 **职责**：
+- **驱动质量组合调度引擎**（create/optimize 任务的默认；6 阶段 phase state machine + ask-first 三档，详 §2.0 + [references/combination-policy.md](references/combination-policy.md)）—— **这是 v2.3 新增的承重职责**
 - 路由 UIUX skill（9 层 L0-L8，详 [references/uiux-routing-table.md](references/uiux-routing-table.md)）
 - 把 GSD UI-SPEC.md mirror 成 `.uiux/lock/chassis.yaml`
 - 把 GSD UI-REVIEW.md mirror 成 `.uiux/evidence/<tag>/gsd-ui-review.yaml`
-- 锁定 L3 风格唯一（hook 强制 mutex）
+- 锁定 L3 风格唯一（hook 强制 mutex；EXPLORE 采样阶段例外，详 §4）
 - 在 `/gsd-plan-phase` / `/gsd-ship` 前做轻量 gate
 - 输出 `uiux_release_decision.yaml` 给 GSD ship / QA / AppSec 消费
 
 **不做**：
-- ❌ 替代 `/gsd-ui-phase` 自己生成 UI-SPEC（GSD `gsd-ui-researcher` 的活）
-- ❌ 替代 `/gsd-ui-review` 自己做 6-pillar 视觉审计（GSD `gsd-ui-auditor` 的活）
+- ❌ 替代 `/gsd-ui-phase` 自己生成 UI-SPEC（GSD `gsd-ui-researcher` 的活）—— 引擎 BUILD 阶段调度生成 skill，但 UI-SPEC 真相源仍是 GSD
+- ❌ 替代 `/gsd-ui-review` 自己做 6-pillar 视觉审计（GSD `gsd-ui-auditor` 的活）—— 引擎 REVIEW 阶段**调度** `gsd-ui-review`，不重写它
 - ❌ 替代 `gsd-ui-checker` 自己校 UI-SPEC（已有 PASS/FLAG/BLOCK）
 - ❌ binary 判断"设计好不好看"（审美不可机器化）
-- ❌ 每次 UI 请求都从 Step 0 跑到 Step 8（event-driven only）
+- ❌ 把每个琐碎 UI 请求都拖进完整组合引擎 —— **只有 create/optimize 默认走引擎**；局部修补(E6)/纯 audit(E7)走轻量路径(§2.0)
+- ❌ 让组合引擎的质量循环当 release/安全/合规签字 —— 它只是**设计质量评审**，绝不进 governed gate verdict 路径
 - ❌ 与 `.planning/` 抢 source of truth（mirror only）
 
 ---
@@ -75,12 +81,31 @@ UIUX 主线 contract gate。把 GSD 已有的 UI 工作流（`/gsd-ui-phase` →
 
 ---
 
-## 2.0 Entry-Situation Router（入口情景分流）— 路由第一步，必过 (v2.2, 2026-06-02)
+## 2.0 Entry-Situation Router（入口情景分流）— 路由第一步，必过 (v2.3, 2026-06-10)
 
 > 起因：用户反馈「做前端不总是从头开始 —— 很多时候是先给了料（reference 图 / 要还原的截图 / 客户提案 / 现有项目）再做」。原 §2.0 只处理 reference 一种入口（2026-05-27），现升级为完整 7 入口分流。
 > **核心原则：先看用户给了什么料，再动态决定进哪条线。** 不是每个 UI 任务都从 `ux-principles` 一路走到底。
 
-### 入口判定表（从上往下匹配，命中即停 — 这是 §3-§7 的前置分流）
+### 2.0.A 调度引擎是骨架（create/optimize 必读 — v2.3 重塑核心）
+
+> **入口路由不是终点，是"从哪进引擎"的分流。** create/optimize 任务的骨架是 [references/combination-policy.md](references/combination-policy.md) 定义的 **6 阶段调度引擎**:
+
+```
+P0 GROUND → P1 EXPLORE → P2 PICK → P3 BUILD → P4 UNIFY → P5 REVIEW
+先扒参考     多版给你挑    你拍板     锁风格建   细节统一    UX+交叉评审(循环)
+```
+
+- **入口路由(下表)决定**:① 从哪个 phase 进 ② GROUND/EXPLORE 是否已被用户给的料部分满足 ③ 默认 tier。
+- **ask-first 三档**(2026-06-10 user lock):任何 create/optimize 任务**先问一句**再跑 ——
+
+  > "走哪档?**(1) min** 快出(仍接地+一趟评审)/ **(2) optimal** 完整质量循环(推荐,第一版即达标)/ **(3) max** 旗舰(深度参考+多轮对抗+下游交付)。"
+
+  默认建议 **optimal**。例外免问:用户已说"快一点/先看看"→直接 min;已说"全力/旗舰/给客户发布"→直接 max。三档定义(走哪些阶段+每阶段多深)见 combination-policy.md §3。
+- **铁律**:P0 GROUND 是**硬前置**——无 `design/grounding.md` 不得进 P3 BUILD(根治"凭空生造")。本地 58 品牌 DESIGN.md 语料(**直接读** `…/awesome-design-md/design-md/<slug>/DESIGN.md`,查找表见 [references/local-template-index.md](references/local-template-index.md))优先,本地无品类匹配才走 web。
+- **L3 互斥**:P1 EXPLORE 多版是**锁前采样**(无 lock → guard 不拦,不写 chassis);P2 PICK 才 lock 唯一 L3。详 §4 + combination-policy.md §6。
+- **轻量例外**:E6 局部修补 / E7 纯 audit **不**进完整引擎,走轻量路径(见下表)。
+
+### 入口判定表（从上往下匹配，命中即停 — 这是 §3-§7 的前置分流；入口→引擎 phase 映射见表下 §2.0.B）
 
 | # | 入口情景 | 触发信号（用户给了什么 / 说了什么） | 直接进 | 主力 skill / 路径 |
 |---|---|---|---|---|
@@ -94,6 +119,21 @@ UIUX 主线 contract gate。把 GSD 已有的 UI 工作流（`/gsd-ui-phase` →
 | **E8** | AI-native 对话式产品 | "对话式 AI 原生产品 / conversation-first / 生成式 UI / 骨架库 / show-then-ask / continuous-interface / URL-as-state / 没有页面只有一场对话" | paradigm + L3 并行 | `ai-native-interface`(范式层) **＋** 同时另选锁定的 L3（视觉皮肤，§4 单选）**＋** `ux-principles`（Show-Then-Ask / Give-Before-Take 两条新 law）**＋** `security-app-llm`（AI surface 安全） |
 
 > **E8 关键边界**：`ai-native-interface` 是 **interaction-architecture / paradigm 层（orthogonal overlay）**，决定"对话怎么流、骨架库怎么取、状态怎么连续"；它**与 L3 组合（composes with L3），永远不是 L3 风格、不占 L3 锁、不违反 §4 L3 互斥**。E8 落地时仍要按 §4 单独锁一个 L3 当视觉皮肤（taste / luxury / brutalist 任一），两者同时存在：paradigm 决定 interaction，L3 决定 visual skin。orchestrator 只做 thin router —— **不在此 authoring 范式内容**，范式内容全在 `ai-native-interface` skill 里。
+
+### 2.0.B 入口 → 引擎 phase + tier 映射
+
+| 入口 | 进引擎哪个 phase | GROUND/EXPLORE 状态 | 默认 tier |
+|---|---|---|---|
+| **E1** 从零想法 | P0 GROUND(全流程 6 阶段) | 全要跑 | optimal(ask-first) |
+| **E2** 给了 reference 图 | P0 GROUND→ anchor 三步走(= GROUND+EXPLORE+PICK 的特例) | 用户给的图算 SOURCE,仍补本地/web 接地 | optimal |
+| **E3** 截图还原 | P3 BUILD(`image-to-code`)→ 仍过 P4 UNIFY + P5 REVIEW | EXPLORE 跳过(目标已定) | min/optimal |
+| **E4** 客户提案 | **`sens-frontend-design` 自有 3-stage**(PROTECTED,不进本引擎) | sens 自带接地 | n/a |
+| **E5** 现有升级 | P0 GROUND(对照参考诊断)→ P3/`redesign` → P4 → P5 | EXPLORE 可跳(已有基线) | optimal |
+| **E6** 局部修补 | **轻量**:P4 UNIFY 局部(`ux-principles` MODE B) | 不进完整引擎 | min |
+| **E7** 上线前审计 | **轻量**:P5 REVIEW only(MODE C + `gsd-ui-review`) | 不进完整引擎 | n/a |
+| **E8** AI-native | P0 GROUND 全引擎 + Layer P `ai-native-interface` 正交叠加 | 全要跑 | optimal/max |
+
+> **要点**:E1/E2/E5/E8 走完整引擎;E3 从 BUILD 进但**补 UNIFY+REVIEW**;E4 是 sens 自有流(保护不动);E6/E7 轻量不进引擎。无论从哪进,**P0 GROUND 接地 + P5 REVIEW 评审是质量地板**(除 E6/E7 轻量例外)。完整阶段合同 + 三档深度矩阵 → [references/combination-policy.md](references/combination-policy.md)。
 
 ### 分流后的通用规则
 - **E1/E2/E4 各自入口流程跑完后，仍回到 §3-§7**（GSD routing / style mutex / chassis lock / release gate / handoff）。入口路由是**前置分流**，不替代后续。
@@ -181,6 +221,8 @@ Step 4 — Implementation
 
 **核心规则**：同一 release_tag 内只能锁一个 L3 风格。
 
+**EXPLORE 例外（v2.3，回应"组合 ≠ 打破单选"）**：互斥的真正含义是"**BUILD 起（P3+）恰好一个 L3 在写 chassis/token**"。调度引擎 P1 EXPLORE 阶段出 N 个多风格候选是**锁前采样（sampling）**——不写 `chassis.yaml`、无 `style-lock.yaml`、`uiux-style-mutex-guard.js` **不 fire**（没有任何 L3 被当锁定风格调用）。P2 PICK 用户挑定后**才** `lock.style`,此后第二个 L3 被拒（exit 2，行为不变）。多风格 = 锁前采样（允许）；单风格 = 锁后强制（互斥）。详 [references/combination-policy.md](references/combination-policy.md) §6 + [references/style-lock-policy.md](references/style-lock-policy.md)。
+
 允许的 L3 候选（由 `.uiux/config.json.allowed_l3_styles` 项目级白名单决定，全局默认）：
 
 - `taste-skill` — **默认通用 premium craft**，含 §11 三档变体模式（A Editorial Monochrome / B Double-Bezel Agency / C GSAP Scrollytelling）。已吸收原 `soft-skill` / `gpt-tasteskill` / `minimalist-skill` 三者风格，用语义切换即可。
@@ -254,6 +296,8 @@ Drift 检测：`uiux-sdk drift.check <tag>` 比对 `.uiux/lock/chassis.yaml` vs 
 
 ## 8. References
 
+- [combination-policy.md](references/combination-policy.md) — **v2.3 调度引擎规格**:6 阶段 phase state machine + 每阶段调度策略 + min/optimal/max 深度矩阵 + 双源参考接地 + 状态产物链 + L3 互斥保全(create/optimize 的真相源)
+- [local-template-index.md](references/local-template-index.md) — **参考接地 SOURCE A 查找表**:本地 58 品牌 DESIGN.md 语料(直接读 `…/awesome-design-md/design-md/<slug>/DESIGN.md`)+ 历史 token 集 + 字体/主题/UX 参考的本地索引
 - [gsd-bridge-contract.md](references/gsd-bridge-contract.md) — Step 0-8 dispatch contract + activation matrix
 - [uiux-routing-table.md](references/uiux-routing-table.md) — 9 层 L0-L8 完整路由（v1 substance preserved）
 - [style-lock-policy.md](references/style-lock-policy.md) — L3 mutex + unlock/relock 流程 + blacklist

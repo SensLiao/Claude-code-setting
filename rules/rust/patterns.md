@@ -162,7 +162,3 @@ pub enum ApiResponse<T: serde::Serialize> {
     Error { message: String },
 }
 ```
-
-## References
-
-See skill: `rust-patterns` for comprehensive patterns including ownership, traits, generics, concurrency, and async.

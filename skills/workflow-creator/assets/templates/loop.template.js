@@ -2,6 +2,13 @@
 // Topology: unknown count · accumulate until a target, or until the budget is low.
 // Replace the TODOs, rename the file to <your-name>.js, drop it in .claude/workflows/.
 
+/* @governance
+ *   reviewed_by:             TODO (human reviewer) — fill before saving to a workflows/ dir
+ *   reviewed_at:             TODO (YYYY-MM-DD)
+ *   allowed_scope:           exploration            # exploration | migration | research
+ *   release_gate_allowed:    false   # leave false; true REQUIRES human review (CLAUDE.md §3.7 #6)
+ *   destructive_ops_allowed: false
+ */
 export const meta = {
   name: 'TODO-loop',
   description: 'TODO: one line — what this produces',

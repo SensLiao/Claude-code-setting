@@ -46,7 +46,7 @@
     "frontend-design": false,
     "design-system": false,
     "competitive-teardown": false,
-    "codex-dispatch": false
+    "codex-plugin": false
   },
   "output_root": "output/<YYYY-MM-DD>-<nickname>/",
   "last_updated": null,

@@ -218,6 +218,8 @@ R&C 故障不是 attacker → 用 STRIDE 6 类硬套（"Denial of Service" 太�
 
 ## 8. Output Contract
 
+> **v3.0 evidence sink**: machine-readable findings MUST be written via `appsec-sdk finding.add` (schema-validated against orchestrator §9, redacted first). Direct Write to `.appsec/findings/**` is blocked by the PreToolUse hook. The markdown report (risk-register.md) is the human-rendered view only.
+
 每次 threat modeling 必须产出：
 
 1. `threat-model-STRIDE.md`（per system / feature）— 完整 STRIDE 模板填写

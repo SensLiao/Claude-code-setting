@@ -2,7 +2,10 @@
 // uiux-style-mutex-guard — PreToolUse(Skill) hook (sync block on L3 style mutex violations)
 // SKILL.md §4 + references/style-lock-policy.md.
 // Behavior:
-//   1. If invoked skill is in WORKFLOW_NOT_STYLE list AND there's no L3 lock yet → block as "cannot use workflow skill before L3 lock"
+//   1. If invoked skill is a POST-LOCK production workflow (BLOCK_BEFORE_LOCK) AND there's no
+//      L3 lock yet → block as "decide style first". Pre-lock-legal flows (prototyping-ui-directions
+//      EXPLORE sampler / image-to-code import / sens-frontend-design proposal) are NOT blocked —
+//      combination-policy.md P1 EXPLORE is an intentionally lock-free window.
 //   2. If invoked skill is an L3 family AND a different L3 family is already locked → block
 //   3. Same L3 family / not an L3 at all → pass through
 // Silent if no .uiux/config.json.
@@ -12,7 +15,7 @@
 const {
   readInputSafe, preflight,
   getInvokedSkillName,
-  skillToL3Family, isWorkflowSkill,
+  skillToL3Family, isBlockBeforeLock,
   readStyleLockFamily,
   preToolBlockMessage, preToolWarnMessage,
 } = require('./_uiux-common.js');
@@ -42,12 +45,15 @@ if (!skill) process.exit(0);
 const projectRoot = pre.projectRoot;
 const lockedFamily = readStyleLockFamily(projectRoot);
 const invokedFamily = skillToL3Family(skill);
-const isWorkflow = isWorkflowSkill(skill);
+const blockBeforeLock = isBlockBeforeLock(skill);
 
-// Case 1: workflow skill before L3 is locked → block (a.k.a. "decide style first")
-if (isWorkflow && !lockedFamily) {
-  const reason = `style-mutex-guard BLOCKED: workflow skill '${skill}' invoked before any L3 style locked. ` +
-    `Decide and lock an L3 style first (taste|luxury|minimalist|soft|brutalist|gpt-tasteskill) via uiux-sdk lock.style.`;
+// Case 1: POST-lock production workflow invoked before any L3 is locked → block
+// ("decide style first"). Pre-lock-legal exploration/import skills are NOT in
+// BLOCK_BEFORE_LOCK, so the v2.3 engine's EXPLORE/import window passes through here.
+if (blockBeforeLock && !lockedFamily) {
+  const reason = `style-mutex-guard BLOCKED: production workflow skill '${skill}' invoked before any L3 style locked. ` +
+    `Decide and lock an L3 style first (taste|luxury|brutalist) via uiux-sdk lock.style. ` +
+    `(Pre-lock exploration/import — prototyping-ui-directions / image-to-code-skill — is allowed.)`;
   if (pre.mode === 'warn') { preToolWarnMessage(reason); process.exit(0); }
   preToolBlockMessage(reason);
   process.exit(2);

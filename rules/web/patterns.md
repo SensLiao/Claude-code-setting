@@ -1,3 +1,14 @@
+---
+paths:
+  - "**/*.html"
+  - "**/*.css"
+  - "**/*.scss"
+  - "**/*.jsx"
+  - "**/*.tsx"
+  - "**/*.vue"
+  - "**/*.svelte"
+  - "**/*.astro"
+---
 > This file extends [common/patterns.md](../common/patterns.md) with web-specific patterns.
 
 # Web Patterns

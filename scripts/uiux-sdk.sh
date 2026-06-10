@@ -594,9 +594,11 @@ cmd_lock_style() {
   done
   ensure_project_root
 
-  # Workflow blacklist (never as L3)
+  # Workflow blacklist (NEVER_LOCKABLE — can never BE an L3 style; see style-lock-policy.md §5).
+  # prototyping-ui-directions added 2026-06-10: the mutex hook no longer blocks it pre-lock
+  # (it is a legit EXPLORE sampler), so the SDK is now the sole guard against locking it as L3.
   case "$style" in
-    redesign-skill|image-to-code-skill|stitch-skill|frontend-design-pro|frontend-design|frontend-pipeline|anchor-prototype-wave|sens-frontend-design)
+    redesign-skill|image-to-code-skill|stitch-skill|frontend-design-pro|frontend-design|frontend-pipeline|anchor-prototype-wave|sens-frontend-design|prototyping-ui-directions)
       echo "uiux-sdk lock.style: BLOCKED — '$style' is a workflow skill, not an L3 style (see references/style-lock-policy.md §5)" >&2
       exit 2
       ;;

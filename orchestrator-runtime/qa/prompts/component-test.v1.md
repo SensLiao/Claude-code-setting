@@ -11,7 +11,7 @@ Operate strictly per ~/.claude/skills/qa-component-behavior/SKILL.md (anchored i
 
 ## Boundary (STRICT)
 1. ONLY run the existing component-test script — auto-discover from package.json (test:component / vitest run --project=component / jest --selectProjects=component, etc.).
-2. ONLY write under .qa/evidence/{{ release_tag }}/component/{{ item.surface_id }}/. NEVER edit source, NEVER edit snapshots (qa-block-update-snapshots hook will block --update-snapshots / -u anyway), NEVER add new test files in this node (TDD bridge handles new tests).
+2. ONLY write under .qa/evidence/{{ release_tag }}/component/ (use a slug of surface.path as the per-surface subdir). NEVER edit source, NEVER edit snapshots (qa-block-update-snapshots hook will block --update-snapshots / -u anyway), NEVER add new test files in this node (TDD bridge handles new tests).
 3. command_evidence[] MUST contain at least one entry with cmd + exit_code. If exit_code != 0 → decision MUST be FAIL or BLOCKED, never PASS.
 4. If the framework cannot resolve the surface (no matching test file) → decision = MISSING; record a stderr_excerpt entry in command_evidence (exit_code != 0) — do NOT silently PASS.
 5. failure_samples[] capped at 10 entries; trim long traces.

@@ -186,216 +186,17 @@
       "Bash(git push -f *)"
     ]
   },
+  "model": "claude-fable-5[1m]",
   "skillOverrides": {
-    "claude-env-bootstrap": "user-invocable-only",
-    "authorized-pentest-validation": "user-invocable-only",
-    "pentest-scope-and-roe": "on",
-    "frontend-pipeline": "user-invocable-only",
     "anchor-prototype-wave": "user-invocable-only",
+    "authorized-pentest-validation": "user-invocable-only",
     "brutalist-skill": "user-invocable-only",
-    "gpt-tasteskill": "user-invocable-only",
-    "stitch-skill": "name-only",
-    "imagegen-frontend-mobile": "name-only",
+    "claude-env-bootstrap": "user-invocable-only",
     "output-skill": "user-invocable-only",
-    "skill-creator": "name-only",
-    "codex-dispatch": "name-only",
-    "brand-guidelines": "user-invocable-only",
-    "app-store-screenshots": "user-invocable-only"
+    "pentest-scope-and-roe": "on",
+    "skill-creator": "name-only"
   },
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "npx block-no-verify@1.1.2"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/auto-tmux-dev.js\""
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:bash:tmux-reminder\" \"scripts/hooks/pre-bash-tmux-reminder.js\" \"strict\""
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:bash:git-push-reminder\" \"scripts/hooks/pre-bash-git-push-reminder.js\" \"strict\""
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:bash:commit-quality\" \"scripts/hooks/pre-bash-commit-quality.js\" \"strict\""
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:write:doc-file-warning\" \"scripts/hooks/doc-file-warning.js\" \"standard,strict\""
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:edit-write:suggest-compact\" \"scripts/hooks/suggest-compact.js\" \"standard,strict\""
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags-shell.sh\" \"pre:observe\" \"skills/continuous-learning-v2/hooks/observe.sh\" \"standard,strict\"",
-            "timeout": 10,
-            "async": true
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:governance-capture\" \"scripts/hooks/governance-capture.js\" \"standard,strict\"",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:config-protection\" \"scripts/hooks/config-protection.js\" \"standard,strict\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:mcp-health-check\" \"scripts/hooks/mcp-health-check.js\" \"standard,strict\""
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-prompt-guard.js\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-read-guard.js\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-workflow-guard.js\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"C:/Users/<USER>/.claude/hooks/gsd-validate-commit.sh\"",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:compact\" \"scripts/hooks/pre-compact.js\" \"standard,strict\""
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/session-start-bootstrap.js\""
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/detect-bootstrap-needed.js\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-check-update.js\""
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"C:/Users/<USER>/.claude/hooks/gsd-session-state.sh\""
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Bash",
@@ -485,22 +286,11 @@
         ]
       },
       {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags-shell.sh\" \"post:observe\" \"skills/continuous-learning-v2/hooks/observe.sh\" \"standard,strict\"",
-            "timeout": 10,
-            "async": true
-          }
-        ]
-      },
-      {
         "matcher": "Bash|Edit|Write|MultiEdit|Agent|Task",
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-context-monitor.js\"",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-context-monitor.js\"",
             "timeout": 10
           }
         ]
@@ -510,7 +300,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-read-injection-scanner.js\"",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-read-injection-scanner.js\"",
             "timeout": 5
           }
         ]
@@ -520,7 +310,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"C:/Users/<USER>/.claude/hooks/gsd-phase-boundary.sh\"",
+            "command": "bash \"__CLAUDE_HOME_JSON__/hooks/gsd-phase-boundary.sh\"",
             "timeout": 5
           }
         ]
@@ -528,11 +318,215 @@
     ],
     "PostToolUseFailure": [
       {
-        "matcher": "*",
+        "matcher": "mcp__.*",
         "hooks": [
           {
             "type": "command",
             "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:mcp-health-check\" \"scripts/hooks/mcp-health-check.js\" \"standard,strict\""
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:compact\" \"scripts/hooks/pre-compact.js\" \"standard,strict\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/hooks/governed-gate-workflow-guard.js\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx block-no-verify@1.1.2"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/auto-tmux-dev.js\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:bash:tmux-reminder\" \"scripts/hooks/pre-bash-tmux-reminder.js\" \"strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:bash:git-push-reminder\" \"scripts/hooks/pre-bash-git-push-reminder.js\" \"strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:bash:commit-quality\" \"scripts/hooks/pre-bash-commit-quality.js\" \"strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:write:doc-file-warning\" \"scripts/hooks/doc-file-warning.js\" \"standard,strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:edit-write:suggest-compact\" \"scripts/hooks/suggest-compact.js\" \"standard,strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:governance-capture\" \"scripts/hooks/governance-capture.js\" \"standard,strict\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:config-protection\" \"scripts/hooks/config-protection.js\" \"standard,strict\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:mcp-health-check\" \"scripts/hooks/mcp-health-check.js\" \"standard,strict\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-prompt-guard.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-read-guard.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-workflow-guard.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__CLAUDE_HOME_JSON__/hooks/gsd-validate-commit.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const path=require('path');const {spawnSync}=require('child_process');const raw=fs.readFileSync(0,'utf8');const rel=path.join('scripts','hooks','run-with-flags.js');const hasRunnerRoot=candidate=>{const value=typeof candidate==='string'?candidate.trim():'';return value.length>0&&fs.existsSync(path.join(path.resolve(value),rel));};const root=(()=>{const envRoot=process.env.CLAUDE_PLUGIN_ROOT||'';if(hasRunnerRoot(envRoot))return path.resolve(envRoot.trim());const home=require('os').homedir();const claudeDir=path.join(home,'.claude');if(hasRunnerRoot(claudeDir))return claudeDir;for(const candidate of [path.join(claudeDir,'plugins','everything-claude-code'),path.join(claudeDir,'plugins','everything-claude-code@everything-claude-code'),path.join(claudeDir,'plugins','marketplace','everything-claude-code')]){if(hasRunnerRoot(candidate))return candidate;}try{const cacheBase=path.join(claudeDir,'plugins','cache','everything-claude-code');for(const org of fs.readdirSync(cacheBase,{withFileTypes:true})){if(!org.isDirectory())continue;for(const version of fs.readdirSync(path.join(cacheBase,org.name),{withFileTypes:true})){if(!version.isDirectory())continue;const candidate=path.join(cacheBase,org.name,version.name);if(hasRunnerRoot(candidate))return candidate;}}}catch{}return claudeDir;})();const script=path.join(root,rel);if(fs.existsSync(script)){const result=spawnSync(process.execPath,[script,'session:end:marker','scripts/hooks/session-end-marker.js','minimal,standard,strict'],{input:raw,encoding:'utf8',env:process.env,cwd:process.cwd(),timeout:30000});const stdout=typeof result.stdout==='string'?result.stdout:'';if(stdout)process.stdout.write(stdout);else process.stdout.write(raw);if(result.stderr)process.stderr.write(result.stderr);if(result.error||result.status===null||result.signal){const reason=result.error?result.error.message:(result.signal?'signal '+result.signal:'missing exit status');process.stderr.write('[SessionEnd] ERROR: hook runner failed: '+reason+String.fromCharCode(10));process.exit(1);}process.exit(Number.isInteger(result.status)?result.status:0);}process.stderr.write('[SessionEnd] WARNING: could not resolve ECC plugin root; skipping hook'+String.fromCharCode(10));process.stdout.write(raw);\"",
+            "timeout": 10,
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/session-start-bootstrap.js\""
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/detect-bootstrap-needed.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-check-update.js\""
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"__CLAUDE_HOME_JSON__/hooks/gsd-session-state.sh\""
           }
         ]
       }
@@ -601,57 +595,36 @@
           }
         ]
       }
-    ],
-    "SessionEnd": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node -e \"const fs=require('fs');const path=require('path');const {spawnSync}=require('child_process');const raw=fs.readFileSync(0,'utf8');const rel=path.join('scripts','hooks','run-with-flags.js');const hasRunnerRoot=candidate=>{const value=typeof candidate==='string'?candidate.trim():'';return value.length>0&&fs.existsSync(path.join(path.resolve(value),rel));};const root=(()=>{const envRoot=process.env.CLAUDE_PLUGIN_ROOT||'';if(hasRunnerRoot(envRoot))return path.resolve(envRoot.trim());const home=require('os').homedir();const claudeDir=path.join(home,'.claude');if(hasRunnerRoot(claudeDir))return claudeDir;for(const candidate of [path.join(claudeDir,'plugins','everything-claude-code'),path.join(claudeDir,'plugins','everything-claude-code@everything-claude-code'),path.join(claudeDir,'plugins','marketplace','everything-claude-code')]){if(hasRunnerRoot(candidate))return candidate;}try{const cacheBase=path.join(claudeDir,'plugins','cache','everything-claude-code');for(const org of fs.readdirSync(cacheBase,{withFileTypes:true})){if(!org.isDirectory())continue;for(const version of fs.readdirSync(path.join(cacheBase,org.name),{withFileTypes:true})){if(!version.isDirectory())continue;const candidate=path.join(cacheBase,org.name,version.name);if(hasRunnerRoot(candidate))return candidate;}}}catch{}return claudeDir;})();const script=path.join(root,rel);if(fs.existsSync(script)){const result=spawnSync(process.execPath,[script,'session:end:marker','scripts/hooks/session-end-marker.js','minimal,standard,strict'],{input:raw,encoding:'utf8',env:process.env,cwd:process.cwd(),timeout:30000});const stdout=typeof result.stdout==='string'?result.stdout:'';if(stdout)process.stdout.write(stdout);else process.stdout.write(raw);if(result.stderr)process.stderr.write(result.stderr);if(result.error||result.status===null||result.signal){const reason=result.error?result.error.message:(result.signal?'signal '+result.signal:'missing exit status');process.stderr.write('[SessionEnd] ERROR: hook runner failed: '+reason+String.fromCharCode(10));process.exit(1);}process.exit(Number.isInteger(result.status)?result.status:0);}process.stderr.write('[SessionEnd] WARNING: could not resolve ECC plugin root; skipping hook'+String.fromCharCode(10));process.stdout.write(raw);\"",
-            "timeout": 10,
-            "async": true
-          }
-        ]
-      }
     ]
   },
   "disableSkillShellExecution": true,
   "statusLine": {
     "type": "command",
-    "command": "\"C:/Program Files/nodejs/node.exe\" \"C:/Users/<USER>/.claude/hooks/gsd-statusline.js\""
+    "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-statusline.js\""
   },
   "enabledPlugins": {
-    "cli-anything@cli-anything": true,
-    "frontend-design@claude-plugins-official": true,
-    "vercel@claude-plugins-official": true,
-    "bencium-controlled-ux-designer@bencium-marketplace": false,
     "bencium-innovative-ux-designer@bencium-marketplace": true,
-    "design-research@designer-skills": false,
+    "cli-anything@cli-anything": true,
     "design-systems@designer-skills": true,
-    "ux-strategy@designer-skills": false,
-    "ui-design@designer-skills": true,
+    "frontend-design@claude-plugins-official": true,
     "interaction-design@designer-skills": true,
-    "prototyping-testing@designer-skills": false,
-    "design-ops@designer-skills": false,
-    "designer-toolkit@designer-skills": false,
-    "visual-critique@designer-skills": true,
     "interface-design@interface-design": true,
-    "ui-ux-pro-max@ui-ux-pro-max-skill": false,
-    "frontend-design-pro@frontend-design-pro": false,
-    "ux-design@wondelai-skills": false
+    "ui-design@designer-skills": true,
+    "vercel@claude-plugins-official": true,
+    "visual-critique@designer-skills": true,
+    "codex@openai-codex": true
   },
   "extraKnownMarketplaces": {
-    "cli-anything": {
-      "source": {
-        "source": "github",
-        "repo": "HKUDS/CLI-Anything"
-      }
-    },
     "bencium-marketplace": {
       "source": {
         "source": "github",
         "repo": "bencium/bencium-claude-code-design-skill"
+      }
+    },
+    "cli-anything": {
+      "source": {
+        "source": "github",
+        "repo": "HKUDS/CLI-Anything"
       }
     },
     "designer-skills": {
@@ -666,35 +639,26 @@
         "repo": "Dammyjay93/interface-design"
       }
     },
-    "ui-ux-pro-max-skill": {
+    "openai-codex": {
       "source": {
         "source": "github",
-        "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
-      }
-    },
-    "frontend-design-pro": {
-      "source": {
-        "source": "github",
-        "repo": "claudekit/frontend-design-pro-demo"
-      }
-    },
-    "wondelai-skills": {
-      "source": {
-        "source": "github",
-        "repo": "wondelai/skills"
+        "repo": "openai/codex-plugin-cc"
       }
     }
   },
   "effortLevel": "xhigh",
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
   "mcpServers": {
     "tavily": {
-      "command": "npx",
       "args": [
         "-y",
         "tavily-mcp@latest"
       ],
+      "command": "npx",
       "env": {
         "TAVILY_API_KEY": "${TAVILY_API_KEY}"
       }

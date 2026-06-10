@@ -23,6 +23,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/uiux-release-guard.js\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "Stop": [

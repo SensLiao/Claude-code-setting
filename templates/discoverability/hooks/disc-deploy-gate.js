@@ -67,7 +67,7 @@ const reasons = [];
 if (!activeTag) {
   reasons.push(
     `no active L12 run tag in .discoverability/state.json. ` +
-    `Run \`python scripts/discoverability-sdk.py init <tag>\` then full audit before deploying.`
+    `Run \`python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py --project-root . init <tag>\` then full audit before deploying.`
   );
 } else {
   // Check gate_status
@@ -82,7 +82,7 @@ if (!activeTag) {
   // Load gate-result.yaml
   const gr = loadGateResult(projectRoot, activeTag);
   if (!gr.exists) {
-    reasons.push(`gate-result.yaml not found at ${gr.path || `evidence/discoverability/${activeTag}/gate-result.yaml`}. Run \`discoverability-sdk gate.check ${activeTag}\` first.`);
+    reasons.push(`gate-result.yaml not found at ${gr.path || `evidence/discoverability/${activeTag}/gate-result.yaml`}. Run \`python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py --project-root . gate.check ${activeTag}\` first.`);
   } else if (!gr.decision) {
     reasons.push(`gate-result.yaml exists but decision field could not be parsed`);
   } else if (gr.decision !== 'PASS' && gr.decision !== 'WARN') {
@@ -105,10 +105,11 @@ if (reasons.length === 0) {
 
 const blockHeader = `deploy command '${matchedCommand}' blocked by L12 Discoverability gate`;
 const detailLines = reasons.map(r => `  - ${r}`).join('\n');
+const SDK = '~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py';
 const guidance =
   '\nTo proceed:\n' +
-  `  1. python scripts/discoverability-sdk.py audit <tag> --channel <c>  (for each active channel)\n` +
-  `  2. python scripts/discoverability-sdk.py gate.check <tag>\n` +
+  `  1. python ${SDK} --project-root . audit <tag> --channel <c>  (for each active channel)\n` +
+  `  2. python ${SDK} --project-root . gate.check <tag>\n` +
   `  3. confirm gate-result.yaml decision is PASS or WARN, then retry deploy.\n` +
   'If you must deploy despite this gate, set harness.hook_modes.deploy_gate=off in discoverability.config.yaml (not recommended for production).';
 

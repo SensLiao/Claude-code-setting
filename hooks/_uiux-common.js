@@ -88,24 +88,123 @@ function preflight(input) {
   return { mode: 'strict', config, projectRoot };
 }
 
+// ───── last-assistant-text extraction (Stop-hook payload + transcript fallback) ─────
+//
+// Stop-hook payloads on current Claude Code carry session_id / transcript_path /
+// stop_hook_active and DO NOT carry the assistant's final message inline. The Stop
+// branch of uiux-release-guard must scan the final assistant turn for completion
+// claims, so it falls back to the JSONL transcript when no inline field is present.
+//
+// Mirrors _appsec-common.js readLastAssistantText (kept as a local copy because the
+// installer copies _uiux-common.js — not _appsec-common.js — into <project>/.claude/hooks/,
+// so a cross-require would dangle at runtime). Returns string when found, else null. Never throws.
+function _textFromContent(content) {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    const parts = [];
+    for (const c of content) {
+      if (c && typeof c.text === 'string') parts.push(c.text);
+    }
+    return parts.join('\n');
+  }
+  return '';
+}
+
+function readLastAssistantText(payload, maxKB) {
+  const cap = (typeof maxKB === 'number' && maxKB > 0 ? maxKB : 256) * 1024;
+  if (payload) {
+    if (typeof payload.last_assistant_message === 'string' && payload.last_assistant_message) {
+      return payload.last_assistant_message;
+    }
+    if (typeof payload.assistant_message === 'string' && payload.assistant_message) {
+      return payload.assistant_message;
+    }
+    if (typeof payload.transcript_excerpt === 'string' && payload.transcript_excerpt) {
+      return payload.transcript_excerpt;
+    }
+    if (Array.isArray(payload.messages)) {
+      for (let i = payload.messages.length - 1; i >= 0; i--) {
+        const m = payload.messages[i];
+        if (m && m.role === 'assistant') {
+          const t = _textFromContent(m.content);
+          if (t) return t;
+        }
+      }
+    }
+  }
+  const tp = payload && typeof payload.transcript_path === 'string' ? payload.transcript_path : '';
+  if (!tp) return null;
+  let content;
+  try {
+    if (!fs.existsSync(tp)) return null;
+    const stat = fs.statSync(tp);
+    const start = Math.max(0, stat.size - cap);
+    const fd = fs.openSync(tp, 'r');
+    try {
+      const buf = Buffer.alloc(stat.size - start);
+      fs.readSync(fd, buf, 0, buf.length, start);
+      content = buf.toString('utf8');
+    } finally {
+      fs.closeSync(fd);
+    }
+  } catch { return null; }
+  const lines = content.split(/\r?\n/);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i].trim();
+    if (!line || line[0] !== '{') continue;
+    let obj;
+    try { obj = JSON.parse(line); } catch { continue; }
+    const role = obj.role || obj.type || (obj.message && obj.message.role);
+    if (role !== 'assistant') continue;
+    const msg = obj.message || obj;
+    const t = _textFromContent(msg.content != null ? msg.content : msg.text);
+    if (t) return t;
+  }
+  return null;
+}
+
 // ───── L3 + workflow recognition ─────
 
-// Canonical L3 family names → list of skill ids that map into that family
+// Canonical L3 family names → list of skill ids that map into that family.
+// Current set (2026-06-10): taste / luxury / brutalist only.
+// minimalist / soft / gpt-tasteskill were folded into taste-skill §11 variant modes (A/B/C) and deleted.
 const L3_FAMILIES = {
   taste:           ['taste-skill', 'taste'],
   luxury:          ['luxury', 'luxury-editorial-site-builder'],
-  minimalist:      ['minimalist-skill', 'minimalist'],
-  soft:            ['soft-skill', 'soft'],
   brutalist:       ['brutalist-skill', 'brutalist'],
-  'gpt-tasteskill':['gpt-tasteskill'],
 };
 
-// Workflow skills that are NEVER allowed as L3 styles
-const WORKFLOW_NOT_STYLE = new Set([
-  'redesign-skill', 'image-to-code-skill', 'stitch-skill',
-  'frontend-design-pro', 'frontend-design', 'frontend-design@frontend-design-pro',
-  'frontend-pipeline', 'anchor-prototype-wave', 'sens-frontend-design',
+// Two-layer workflow-skill policy (split 2026-06-10 to stop the mutex hook from
+// blocking the v2.3 engine's own pre-lock EXPLORE/import path — combination-policy.md
+// P1 EXPLORE is an intentionally LOCK-FREE sampling window).
+//
+// NEVER_LOCKABLE — workflow skills that can NEVER be the L3 style itself
+//   (style-lock-policy.md §5). The SDK lock.style command refuses these. Kept as the
+//   superset for documentation/export parity. (The bash SDK keeps its own copy of this
+//   list at lock.style; this set is the JS-side mirror.)
+const NEVER_LOCKABLE = new Set([
+  'redesign-skill', 'image-to-code-skill',
+  'frontend-design', 'frontend-design@claude-plugins-official',
+  'anchor-prototype-wave', 'sens-frontend-design', 'prototyping-ui-directions',
 ]);
+
+// BLOCK_BEFORE_LOCK — the SUBSET the mutex hook Case 1 refuses while no L3 is locked
+//   ("decide style first"). These are POST-lock production workflows (upgrade an
+//   existing UI / mass-produce surfaces) that only make sense AFTER a style exists.
+//   Deliberately EXCLUDES the pre-lock-legal flows:
+//     - prototyping-ui-directions : P1 EXPLORE multi-direction sampler (runs lock-free)
+//     - image-to-code-skill       : screenshot/reference/DESIGN.md import (can seed a lock)
+//     - sens-frontend-design      : 3-stage proposal (legitimate pre-lock exploration)
+//   These three stay NEVER_LOCKABLE (can't BE the style) but are NOT blocked pre-lock.
+const BLOCK_BEFORE_LOCK = new Set([
+  'redesign-skill',
+  'frontend-design', 'frontend-design@claude-plugins-official',
+  'anchor-prototype-wave',
+]);
+
+// Back-compat alias: existing import sites used WORKFLOW_NOT_STYLE for the "can't be L3"
+// meaning — that semantic now lives in NEVER_LOCKABLE.
+const WORKFLOW_NOT_STYLE = NEVER_LOCKABLE;
 
 function skillToL3Family(skillName) {
   if (!skillName) return null;
@@ -116,10 +215,19 @@ function skillToL3Family(skillName) {
   return null;
 }
 
+// True if the skill can never be the L3 style itself (SDK lock.style refusal semantic).
 function isWorkflowSkill(skillName) {
   if (!skillName) return false;
   const norm = String(skillName).toLowerCase().replace(/^skill:/, '').replace(/^\/+/, '');
-  return WORKFLOW_NOT_STYLE.has(norm);
+  return NEVER_LOCKABLE.has(norm);
+}
+
+// True if the mutex hook should block this skill while NO L3 is locked yet
+// (post-lock-only production workflow). Pre-lock exploration/import skills return false.
+function isBlockBeforeLock(skillName) {
+  if (!skillName) return false;
+  const norm = String(skillName).toLowerCase().replace(/^skill:/, '').replace(/^\/+/, '');
+  return BLOCK_BEFORE_LOCK.has(norm);
 }
 
 // ───── GSD command recognition ─────
@@ -241,11 +349,15 @@ module.exports = {
   loadConfig,
   loadPlanningConfig,
   getActiveReleaseTag,
+  readLastAssistantText,  // ★ Stop-hook payload + transcript_path fallback (last assistant turn)
   preflight,
   L3_FAMILIES,
-  WORKFLOW_NOT_STYLE,
+  WORKFLOW_NOT_STYLE,    // back-compat alias of NEVER_LOCKABLE
+  NEVER_LOCKABLE,        // ★ 2026-06-10 — can-never-be-L3 set (SDK lock refusal)
+  BLOCK_BEFORE_LOCK,     // ★ 2026-06-10 — mutex hook Case 1 pre-lock-block subset
   skillToL3Family,
   isWorkflowSkill,
+  isBlockBeforeLock,     // ★ 2026-06-10 — mutex hook Case 1 predicate
   getInvokedSkillName,
   isGsdCommand,
   readStyleLockFamily,

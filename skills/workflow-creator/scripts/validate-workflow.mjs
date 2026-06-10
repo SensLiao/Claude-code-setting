@@ -144,6 +144,16 @@ for (const [re, label] of [
   }
 }
 
+// --- 7. saved-workflow governance frontmatter (CLAUDE.md §3.7 #6) -------------
+// A workflow saved into a workflows/ dir must carry a `@governance` comment block.
+// Searched in raw src (it is a comment, blanked out of the stripped copy). Warn-only.
+if (!/@governance\b/.test(src)) {
+  warnings.push('no `@governance` block — any workflow saved to ~/.claude/workflows/ or '
+    + '.claude/workflows/ must carry one (reviewed_by / reviewed_at / allowed_scope / '
+    + 'release_gate_allowed: false / destructive_ops_allowed: false) per CLAUDE.md §3.7 #6; '
+    + 'release_gate_allowed: true requires human review')
+}
+
 // --- report ------------------------------------------------------------------
 const name = path.split('/').pop()
 for (const w of warnings) console.log(`  warn  ${w}`)

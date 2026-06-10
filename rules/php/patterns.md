@@ -26,8 +26,3 @@ paths:
 
 - Isolate ORM models from domain decisions when the model layer is doing more than persistence.
 - Wrap third-party SDKs behind small adapters so the rest of the codebase depends on your contract, not theirs.
-
-## Reference
-
-See skill: `api-design` for endpoint conventions and response-shape guidance.
-See skill: `laravel-patterns` for Laravel-specific architecture guidance.

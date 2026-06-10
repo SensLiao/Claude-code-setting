@@ -8,7 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { readInputSafe, preflight, getActiveReleaseTag, emitStopBlock } = require('./_appsec-common.js');
+const { readInputSafe, preflight, getActiveReleaseTag, readLastAssistantText, emitStopBlock } = require('./_appsec-common.js');
 
 // ★ P7 fix (Tier 1 #1): fail-closed on JSON parse failure
 const { input, parseError } = readInputSafe();
@@ -38,24 +38,9 @@ const CLAIM_PATTERNS = [
   /appsec\s*release[- ]decision\s*[:=]\s*PASS/i,
 ];
 
-function extractAssistantText(inp) {
-  const parts = [];
-  if (typeof inp.last_assistant_message === 'string') parts.push(inp.last_assistant_message);
-  if (typeof inp.assistant_message === 'string') parts.push(inp.assistant_message);
-  if (Array.isArray(inp.messages)) {
-    for (const m of inp.messages) {
-      if (m && m.role === 'assistant') {
-        if (typeof m.content === 'string') parts.push(m.content);
-        if (Array.isArray(m.content)) {
-          for (const c of m.content) if (c && typeof c.text === 'string') parts.push(c.text);
-        }
-      }
-    }
-  }
-  return parts.join('\n');
-}
-
-const text = extractAssistantText(input);
+// Read the final assistant turn — inline payload field if present, else fall back to
+// the transcript_path JSONL tail (Stop payloads omit message text on current Claude Code).
+const text = readLastAssistantText(input, 256) || '';
 const claimed = CLAIM_PATTERNS.some(re => re.test(text));
 if (!claimed) process.exit(0);
 

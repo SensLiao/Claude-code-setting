@@ -265,4 +265,3 @@ go test -race -cover ./...
 ## Related
 
 - Skill: `skills/golang-testing/`
-- Skill: `skills/tdd-workflow/`

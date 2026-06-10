@@ -2,6 +2,13 @@
 // Topology: independent units · one pass each · barrier before the synthesis step.
 // Replace the TODOs, rename the file to <your-name>.js, drop it in .claude/workflows/.
 
+/* @governance
+ *   reviewed_by:             TODO (human reviewer) — fill before saving to a workflows/ dir
+ *   reviewed_at:             TODO (YYYY-MM-DD)
+ *   allowed_scope:           exploration            # exploration | migration | research
+ *   release_gate_allowed:    false   # leave false; true REQUIRES human review (CLAUDE.md §3.7 #6)
+ *   destructive_ops_allowed: false
+ */
 export const meta = {
   name: 'TODO-fan-out',                          // required — the workflow's name
   description: 'TODO: one line — what this produces', // required — shown in the permission dialog

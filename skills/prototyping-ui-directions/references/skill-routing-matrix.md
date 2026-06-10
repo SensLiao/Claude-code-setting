@@ -10,14 +10,14 @@
 | 0 | `surface-architecture.md` 出 surface 列表 | 主线程 | — | 1 |
 | 0 | Gate 0 red-team | 主线程独立 owner（**不是产出者**） | `taste-skill`（如果装了） | 1 |
 | 1 | `stage1-reference-acquisition.md` 选型 | 主线程 | `competitive-teardown` | 1 |
-| 1 | `reference-intelligence.md` 跑 clone / 截图 | 主线程 / Claude subagent | `codex-dispatch`（量大时） | 4 |
+| 1 | `reference-intelligence.md` 跑 clone / 截图 | 主线程 / Claude subagent | `/codex:rescue`（量大时） | 4 |
 | 1 | manifest 写入 | 主线程 | — | 1 |
 | 1 | Gate 1 red-team | 独立 owner | — | 1 |
-| 2 | `reference-intelligence.md` 提取卡 | Claude subagent (Task) sonnet × N | `codex-dispatch` | 6 |
+| 2 | `reference-intelligence.md` 提取卡 | Claude subagent (Task) sonnet × N | `/codex:rescue` | 6 |
 | 2 | cross-reference matrix | 主线程 | `competitive-teardown` | 1 |
 | 2 | `design-direction.md` direction 候选 | 主线程 | `design-system` | 1 |
 | 2 | Gate 2 red-team | 独立 owner — 看差异化是否够 | `taste-skill` | 1 |
-| 3 | 多 variant 生成 | `codex-dispatch` × variant（首选） / Claude subagent × variant | `frontend-design` | 5 |
+| 3 | 多 variant 生成 | `/codex:rescue` × variant（首选） / Claude subagent × variant | `frontend-design` | 5 |
 | 3 | palette.json + palette.html | 同上 | — | 跟随 variant |
 | 3 | 红队 | 独立 owner | `taste-skill`（强推） | 1 |
 | 3 | Gate 3 red-team | 独立 owner | `taste-skill` | 1 |
@@ -31,7 +31,7 @@
 | `frontend-design` | Stage 3 写 variant HTML | Stage 0/1 拍方向 |
 | `design-system` | Stage 2 调色板 / typography 候选输入 | 直接覆盖最终 token、当主设计师 |
 | `competitive-teardown` | Stage 1 reference 选型 / Stage 2 cross-ref | 拍最终 direction |
-| `codex-dispatch` | Stage 1 大量 acquisition / Stage 2 提取 / Stage 3 variant 加速 | 做决策性工作 |
+| Codex plugin (`/codex:rescue`) | Stage 1 大量 acquisition / Stage 2 提取 / Stage 3 variant 加速 | 做决策性工作 |
 
 ## 三类禁令
 
@@ -43,7 +43,7 @@
 
 | 情况 | 降级到 |
 |------|--------|
-| `codex-dispatch` 额度用完 | Claude subagent (Task) sonnet × N |
+| Codex（`/codex:rescue`）额度用完 | Claude subagent (Task) sonnet × N |
 | Claude subagent 也跑不动（context 太满） | 串行（用 1 个 subagent 跑完一个 variant 再跑下一个） |
 | 没装 `taste-skill` | 主线程按 `references/anti-patterns.md` 自审，明确告诉用户"未经独立红队" |
 | 没装 `frontend-design` | 主线程写基础 HTML，并在 readme 注明"未经 frontend-design 润色" |

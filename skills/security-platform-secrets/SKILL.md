@@ -241,6 +241,8 @@ jobs:
 
 ## 10. Output Contract
 
+> **v3.0 evidence sink**: machine-readable findings MUST be written via `appsec-sdk finding.add` (schema-validated against orchestrator §9, redacted first). Direct Write to `.appsec/findings/**` is blocked by the PreToolUse hook. The markdown report (vuln-report.md / SECURITY.md section) is the human-rendered view only.
+
 每次 review 产出：
 
 1. `SECURITY.md §11 Secret Management` 章节填充 / 更新

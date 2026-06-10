@@ -209,6 +209,7 @@ trigger_phrases:
 6. AV / CDR / parser hardening config
 7. Common attack pattern verification
 8. Findings → security-remediation
+   - ASVS refs in emitted findings must use the versioned `v5.0.0-<chapter>.<section>.<req>` form (the chapter labels in this skill are for scoping only).
 9. SECURITY.md File Upload section + AppSec Release Evidence §12 叠加层
 10. EXIF / metadata stripping verification
 

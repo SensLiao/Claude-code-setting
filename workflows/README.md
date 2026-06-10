@@ -30,18 +30,22 @@ comment, so it never interferes with the Workflow tool's `meta` parsing:
 
 - `release_gate_allowed: true` requires `reviewed_by` = a human + `allowed_scope: governed-gate`.
 - An unreviewed / `release_gate_allowed: false` workflow that tries to emit a gate verdict
-  is a governance violation — the `governed-gate-workflow-guard` hook blocks inline
-  model-authored Dynamic Workflows during an active gate, and gate verdicts only come from
-  `appsec-sdk gate.check` / `qa-sdk gate.check` over the evidence bundle.
+  is a governance violation. The `governed-gate-workflow-guard` hook enforces this two ways
+  during an ACTIVE gate: (a) it blocks inline model-authored Dynamic Workflows (no name/scriptPath),
+  and (b) it blocks a saved workflow launched by `name`/`scriptPath` whose `@governance` header does
+  NOT declare `release_gate_allowed: true` (read directly from the resolved file). Gate verdicts only
+  come from `appsec-sdk gate.check` / `qa-sdk gate.check` over the evidence bundle.
 
-## Current inventory (2026-05-29)
+## Current inventory (2026-06-10)
 
 | Workflow | scope | release_gate_allowed | notes |
 |---|---|---|---|
-| `appsec-orchestrator.js` | governed-gate | **true** | Deterministic AppSec spec-runner. Reviewed + runtime-proven (P0). Verdict path. Walks approved spec; never authors Dynamic Workflows. |
-| `qa-orchestrator.js` | governed-gate | **true** | Deterministic QA spec-runner. Reviewed + B.2/B.3 proven. Verdict path. Walks approved spec. |
-| `appsec-full-sweep.js` | exploration | **false** | Legacy, separate from `appsec-orchestrator.js`. Not the canonical gate executor — do not use for release verdicts. |
-| `hello-test.js` | exploration | **false** | Demo / smoke-test workflow. Never a gate verdict. |
+| `appsec-orchestrator.js` | governed-gate | **true** | Deterministic AppSec spec-runner. Reviewed + runtime-proven (P0). Verdict path. Walks approved spec; never authors Dynamic Workflows. Carries the `@governance` header. |
+| `qa-orchestrator.js` | governed-gate | **true** | Deterministic QA spec-runner. Reviewed + B.2/B.3 proven. Verdict path. Walks approved spec. Carries the `@governance` header. |
+| `hello-test.js` | exploration | **false** | Demo / smoke-test workflow. Never a gate verdict. No `@governance` header → the guard blocks it by name/scriptPath during an active gate. |
+
+> `appsec-full-sweep.js` (legacy, gate-shaped but never preview-gated) was **deleted 2026-06-10** — the
+> canonical gate executor is `appsec-orchestrator.js`. Any release verdict goes through `appsec-sdk gate.check`.
 
 > When adding a workflow: include the `@governance` header, default `release_gate_allowed: false`,
 > and only flip to `true` after human review confirms it is a deterministic, spec_hash-bound runner.

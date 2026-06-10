@@ -199,7 +199,7 @@ Step 13 输出 + 路由
         → Findings → security-remediation
         → API key issues → security-platform-secrets
         → 模型 / 数据来源 issues → supply chain register
-        → 隐私 issues → operations.privacy + 合规
+        → 隐私 issues → orchestrator §5.4 privacy capability + 合规
         → 更新 SECURITY.md AI section + AppSec Release Evidence §12 叠加层
 ```
 
@@ -279,6 +279,7 @@ Step 13 输出 + 路由
 11. Model + data provenance documentation
 12. Compliance overlay status
 13. Findings → security-remediation
+    - ASVS refs in emitted findings must use the versioned `v5.0.0-<chapter>.<section>.<req>` form (the chapter labels in this skill are for scoping only).
 14. SECURITY.md AI section + AppSec Release Evidence §12 叠加层
 
 ---

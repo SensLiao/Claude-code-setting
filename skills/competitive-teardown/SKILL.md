@@ -21,6 +21,49 @@ description: "Analyzes competitor products and companies by synthesizing data fr
 
 ---
 
+## Design-Reference Visual Mode (additive — not the business teardown)
+
+> Added for the UIUX dispatch engine. This is a **separate, lighter mode** that does NOT replace or alter the 12-dimension business scorecard below. Use the full teardown for strategy/sales; use this mode only when the intent is **visual / design-reference extraction**.
+
+**Trigger this mode when** the ask is design-flavored rather than business-flavored — e.g. "拆一下这个产品的视觉 / 它的设计参考 / steal their look & feel / 它的配色和排版怎么做的 / pull a design reference from competitor X", or when invoked as a P0 GROUND web source by `uiux-product-orchestrator` (`references/combination-policy.md`). In the dispatch engine this mode is **SOURCE B** (the *web / live-competitor* reference source), complementing SOURCE A (local `design-system` 58-brand DESIGN.md corpus + each archetype's `reference-anchors.md`). Its output feeds `design/grounding.md` so downstream skills build from a **real matched reference**, not from model priors.
+
+**What changes in this mode:**
+- Run ONLY the **UX-Audit** dimension (#3) and the **Brand** dimension (#10) — but go *deep* on them visually. Skip the other 10 business dimensions and skip the SWOT / pricing / positioning / action-plan / stakeholder-deck outputs.
+- Do NOT emit the numeric 12-dimension scorecard. Emit a **visual-pattern extract card** instead (format below).
+- Stay observational: capture what is actually visible on the live product/site/app, not inferred strategy.
+
+**Output — Visual-Pattern Extract Card:**
+
+```
+## Visual-Pattern Extract — <competitor / product> (SOURCE B, captured <date>)
+
+### Palette
+- background / surface / text / hairline + 1 accent — hex or closest-observed, with where each appears
+- light vs dark posture; saturation discipline (muted vs vivid)
+
+### Typography
+- display vs body families (or closest grotesk/serif observed), weight range used
+- scale contrast (hero vs body), tracking on large type, case treatment of labels
+
+### Layout & Spacing
+- grid logic (columns, max-width feel, bento vs editorial vs stacked)
+- section rhythm, whitespace generosity, alignment posture (centered vs asymmetric)
+- recurring component shapes (card style, radius language, divider/stroke use)
+
+### Motion / Interaction (if observable)
+- entrance / scroll / hover behavior, easing feel, reveal patterns
+
+### Exemplar anchors
+- 2–4 strongest reference moments worth matching (the "do it like this" screenshots/sections)
+
+### Notes / caveats
+- what could not be observed; confidence level
+```
+
+This card is intentionally lightweight and reference-only. For anything beyond "what does it look like and how do we match it", fall back to the full Teardown Workflow below.
+
+---
+
 ## Teardown Workflow
 
 Follow these steps in sequence to produce a complete teardown:
