@@ -7,6 +7,8 @@ license: typeui.sh redistributed; original at https://typeui.sh
 
 # Luxury — Dark Editorial Design System
 
+> **DEPRECATED as the standalone L3 pick (2026-06-14)**：暗色奢华改由 Style-Lens registry 的 **`dark-editorial`** lens 承担——修正了本 skill 的三处 AI-tell（纯黑 `#000000` / Oswald 单字体撑全身份 / 零运动语言；详 `uiux-product-orchestrator/references/style-lens-registry.md` §3.1）。本文件**保留**为 `dark-editorial` 的 token 出发点之一 + 向后兼容（旧 `l3_style: luxury` lock 映射到 `dark-editorial`），不再作为 PICK 首选的锁定风格。L3 互斥 `luxury` family 仍存在（`catalog.json` mutex 不变）。
+
 > Source: https://www.typeui.sh (Luxury skill, 2026-03-08)
 > Installed: 2026-05-21
 > Use this skill when the user asks for **dark editorial / fashion / luxury portfolio / black-and-white bold typography** UI.

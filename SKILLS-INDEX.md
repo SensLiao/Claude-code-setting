@@ -379,10 +379,11 @@ skillOverrides            8 overrides (user-invocable-only / name-only)
 | `codex-dispatch`（2026-06-10 新增 v2） | auto（窄，决策/纪律层，非执行） | "用 codex / 让 codex / 派给 codex / codex 调度 / cross-review with codex / 跨模型 review / 该不该用 codex"。**决定何时用 Codex、用哪个上面 plugin 命令、带什么纪律**（决策树 / 施工单模板 / 切尺度 caps / wave 强制 cross-review / Windows UTF-8 / fallback / 版本号不写死 / governed-gate 边界）。**不自己调 `codex exec`**——执行全部转交官方 plugin。详 `skills/codex-dispatch/SKILL.md`。 |
 | `gitnexus-repo-map` (2026-05-25 新增) | auto（窄） | "GitNexus / repo map / visual code graph / architecture topology / 读开源项目 / 仓库架构 / 模块地图 / clusters" — 看全局、看图、读陌生 repo |
 | `codegraph-cli` (2026-05-25 新增) | auto（窄） | "callers / callees / impact / blast radius / affected tests / who calls / what calls / code context / 调用链 / 影响面 / 受影响测试 / 读代码" — 查局部、查影响、辅助开发和测试 |
+| `arch-viz` (2026-06-14 登记) | auto（窄） | "可视化 / 画 / 看架构 / architecture diagram / code graph / 给客户看的架构图 / 提交架构 bundle / refresh docs/architecture" — 扫 repo 出**可提交**的架构 bundle（`graph.json` + 离线 viewer + svg + md）；要 shareable/committable 架构图时用它（gitnexus 是 Noncommercial 不能提交，arch-viz 是 permissive） |
 
-#### L11 子段：Code Reading Tools（2026-05-25 新增）
+#### L11 子段：Code Reading Tools（2026-05-25 新增；2026-06-14 加 arch-viz）
 
-> 两把刀，不是子系统。**GitNexus 看全局，CodeGraph CLI 打局部。** 详 `~/.claude/skills/{gitnexus-repo-map,codegraph-cli}/SKILL.md`。
+> 三把刀（tools，不是子系统/gate/source-of-truth）。**GitNexus 看全局（探索，Noncommercial 不提交），CodeGraph CLI 打局部（symbol / 影响面），arch-viz 出可提交的架构 bundle（给客户/团队看，permissive license）。** 详 `~/.claude/skills/{gitnexus-repo-map,codegraph-cli,arch-viz}/SKILL.md`。
 
 ```
 陌生 repo / 架构拓扑 / 可视化
@@ -456,7 +457,7 @@ skillOverrides            8 overrides (user-invocable-only / name-only)
 
 ```
 A: ai-native-interface (Layer P paradigm — AI-native 对话式产品交互范式，composes with L3 非 L3 风格),
-   anchor-prototype-wave (L4), app-aso (L12)
+   anchor-prototype-wave (L4), app-aso (L12), arch-viz (L11 Code Reading)
 B: bencium-innovative-ux-designer (L4), brandkit (L8), brutalist-skill (manual L3)
 C: canvas-design (L8), codegraph-cli (L11 Code Reading),
    competitive-teardown (L1)

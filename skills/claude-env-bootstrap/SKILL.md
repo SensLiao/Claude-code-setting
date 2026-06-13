@@ -536,6 +536,7 @@ EXECUTE 写完了文件, 但环境未就绪:
 
 | Skill | 关系 |
 |---|---|
+| `gsd-pipeline-orchestrator` | **上游 PM 入口** — 按 CLAUDE.md §2 Step 1,任何 non-trivial 工作先调 PM 总编排器;bootstrap 作为其 Phase-0 环境先决条件,建议在调 `gsd-pipeline-orchestrator` 之前完成 |
 | `gsd-new-project` | 协同 — GSD Phase 0 可先跑 bootstrap |
 | `/init` | 互补 — `/init` 写 CLAUDE.md 业务部分,bootstrap 写 manifest + skill 装配 |
 | `skill-creator` | 不冲突 — 创建新 skill 后,需手动加 catalog.json 条目 |

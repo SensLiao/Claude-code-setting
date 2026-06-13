@@ -1,5 +1,6 @@
-schema_version: 1.0
+schema_version: 1.1
 release_tag: REPLACE_WITH_RELEASE_TAG
+intent: multi-surface   # single-surface | multi-surface — decides whether the completeness ledger is REQUIRED (multi → REQUIRED; single may omit)
 surfaces:
   - id: REPLACE_WITH_SURFACE_ID
     surface_type: marketing   # marketing | dashboard | settings | auth | onboarding | error | empty | payment | admin
@@ -9,5 +10,7 @@ surfaces:
     a11y_critical: true
     design_pass_skill: null
     evidence_path: null
-    audit_status: pending   # pending | designed | audited-pass | audited-fail
+    build_status: pending     # pending | built | failed — set by P3 BUILD fan-out loop; failed must be surfaced to user, never silently dropped
+    review_status: pending    # pending | reviewed-pass | reviewed-fail — set by P5 REVIEW per-surface coverage loop
+    audit_status: pending     # pending | designed | audited-pass | audited-fail
     data_classes: []   # for AppSec handoff: [credentials, session, PII, email, payment]

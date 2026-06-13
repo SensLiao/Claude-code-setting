@@ -39,15 +39,11 @@ Three things drive this ordering:
 
 **This phase produces nothing visible — it produces context. Don't skip it.**
 
-### Step 1: Load aesthetic skill into context
+### Step 1: Load aesthetic baseline (taste-skill MODE A — Editorial Monochrome)
 
-Run `ls ~/.claude/skills/ | grep -iE 'taste|design|visual'` to find which is installed. In priority order:
-- `high-end-visual-design` (preferred for this skill)
-- `design-taste-frontend`
-- `gpt-taste`
-- `stitch-design-taste`
+Invoke `Skill(taste-skill)` and select §11 MODE A (Editorial Monochrome — Notion / Linear / warm-monochrome) as the editorial-luxury baseline. This is the canonical replacement for the removed `high-end-visual-design` / `design-taste-frontend` / `gpt-taste` / `stitch-design-taste` skills (deleted 2026-06-02). The taste preset prompts (palette / type / motion / restraint) load into context — build against them directly.
 
-Invoke it via the Skill tool. The taste skill's preset prompts (palette, type system, motion, restraint rules) load into your context — this is the "aesthetic baseline" you'll build against.
+> NEVER fall back to `ls ~/.claude/skills | grep taste` discovery — that path is dead (the 4 skills above were deleted 2026-06-02). The aesthetic baseline is **taste-skill MODE A, hard-named**. If `taste-skill` is missing, STOP and warn the user — do NOT generate against model priors.
 
 ### Step 2: Interview the user
 

@@ -253,3 +253,46 @@ After harness is green:
 - v4: per-skill auto-upgrade migration agent
 
 These are deferred; harness normalization (PR-0 to PR-6) is the prerequisite.
+
+---
+
+## 10. Blueprint Integration Scope Decisions (2026-06-14)
+
+> Authority: User explicit sign-off + autonomy grant during the "Harness Engineering 蓝图" integration session.
+> Source: sandbox `Desktop/harness building/{BLUEPRINT,INTEGRATION-PLAN}.md` + `gap/A-D-*.md` (4-agent audit).
+> **Next review: 2026-12-14** (re-justify or retire per [OPERATING-PRINCIPLES.md](OPERATING-PRINCIPLES.md) §6).
+
+### D5 — Blueprint verdict: harness ALREADY ~80% of the maximalist blueprint
+4-agent audit cross-mapped the "AI software company" blueprint vs the live harness. Security / QA / PM(GSD) / Cost / Audit-trace / Reliability-design are all COVERED under different names. The blueprint is a large-org ideal; this is a **single-operator** harness whose scarce resource is operator judgment (§1). Verdict: **selective adoption, not wholesale rebuild.**
+
+### D6 — Two standing constraints (apply to ALL future blueprint-style work)
+1. **Don't touch GSD** — `gsd-*` skills/agents are upstream-maintained; local edits get clobbered. Any integration needing `gsd-planner` / `gsd-ship` / `gsd-codebase-mapper` is **OFF-LIMITS** → re-home off GSD or drop.
+2. **Visualization = tool, NOT a mandatory project layer** — `arch-viz` / `codegraph-cli` / `gitnexus-repo-map` stay "hand-held knives" (§7). No path-scoped auto-injecting viz-governance rule; no forcing viz into every project. `arch-viz` is registered as a **tool only** (SKILLS-INDEX L11 三把刀).
+
+### D7 — Considered, deliberately NOT built (deferred)
+| Item | Why |
+|---|---|
+| Contract governance (project OpenAPI/AsyncAPI existence gate) | needed `gsd-planner` injection (D6.1) + mandatory governance (against D6.2 spirit) |
+| Data Gate (DBML/migration lint enforcement) | mandatory project layer; `database-reviewer` already covers on-demand |
+| Pre-ship cross-subsystem gate aggregator | core landing point `gsd-ship` = GSD off-limits (D6.1) |
+| Intent overlay (as-designed vs as-built drift + ADR store) | mandatory-governance-leaning; conflicts with D6.2 |
+| `visualization-governance` path-scoped rule | rejected per D6.2 (would force viz into every code project) |
+| `gsd-codebase-mapper` ASCII-template fix | GSD off-limits (D6.1) |
+
+If a non-GSD / opt-in version is later wanted, revisit — default is NOT built.
+
+### D8 — OVER-ENGINEERING WATCHLIST (never adopt for a single-operator harness)
+Adopting any would violate §6 (un-reviewed process) or §7 (no real decision surface / duplicate):
+- Backstage/TechDocs standing portal · Structurizr as architecture-model store · all 12 blueprint portal pages — CODEMAPS + arch-viz + manifests already cover; single-operator = ceremony.
+- Langfuse / Agent Trace Viewer subsystem — `history.jsonl` + evidence bundle already stronger.
+- Allure / SchemaSpy / OpenTelemetry / Prometheus / Grafana **standing services** — project-level one-shot tools; harness has no runtime to monitor.
+- Cost Agent · standing SRE Agent · separate PM Agent · Data department · monolithic Backend Agent — duplicate/collection, zero new decision surface.
+- LangGraph / Temporal / CrewAI / MetaGPT / AutoGen as orchestration layer — dependency drift, no new governance; Workflow + SKILL-direct dual-mode suffices.
+- Promoting `arch-viz`/`codegraph`/`gitnexus` to governed subsystems — §7 "hand-held knife 永不晋升" boundary.
+
+### D9 — What WAS applied (2026-06-14)
+- **Wave 0**: HARNESS-FIX-BUNDLE 6 hygiene fixes (catalog registration: brutalist-skill mutex / ai-native-interface / 3 appsec skills + hello-test governance + 4 doc fixes).
+- **Wave 1 (reduced)**: `arch-viz` registered as a tool in SKILLS-INDEX L11 (三把刀 + 字母索引).
+- **UIUX P0**: luxury-editorial 4 ghost skills → `taste-skill` MODE A; corpus presence-check + STOP rule; verified plugin zombies/orphans already `enabledPlugins=false` (no destructive surgery).
+- **UIUX P1**: surface-inventory ledger (`build_status`/`review_status`) + BUILD fan-out loop + no-silent-truncation gates (P3/P5) + N_explore≠N_surface — fixes "做一半就停".
+- **UIUX P2**: `anti-slop-suite.md` (suite-level, all lenses) + `style-lens-registry.md` (6 lenses, unified Style-DNA, 3-tier token contract, **additive** over the 3-family mutex — mutex零变化) + luxury→`dark-editorial` deprecation; `bencium-innovative-ux-designer` routed into Layer 4.

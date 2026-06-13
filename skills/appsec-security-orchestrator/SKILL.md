@@ -760,7 +760,7 @@ of all consumers:
 |---|---|
 | Workflow registered name | `appsec-orchestrator` — legacy `appsec-full-sweep` DELETED 2026-06-10 |
 | Workflow scriptPath | `~/.claude/workflows/appsec-orchestrator.js` |
-| Args top-level fields | `spec`, `target`, `run_id`, `severity_floor`, `finders`, `policy`, `oracle`, `previous_results`, `spec_hash` |
+| Args top-level fields | `spec`, `target`, `run_id`, `severity_floor`, `finders`, `policy`, `oracle`, `previous_results`, `spec_hash`, `model_policy`, `seeded_state` — `model_policy` = 可选 `{alias: literalModel}` 覆盖映射(被 body 的 pickModel() 用)；`seeded_state` = 可选,把"不在 spec.phases 里的阶段"的原始输出直接注入 state(如 incident-response 预置 Normalize+Verify),区别于 previous_results(指纹化跨 session resume cache) |
 | Spec top-level fields | `engine_version` (const `"1.0"`), `orchestrator` (const `"appsec"`), `phases`, `prompts`, `schemas`, `ops_allowed` |
 | Canonical phase names | `Scope`, `Plan`, `Find`, `Normalize`, `Dedup`, `Verify`, `Map`, `Gate`, `Synthesize`, `PersistEvidence` (presets may add `PersistCnDataOverlay`, `PersistPaymentOverlay`, `PersistIncidentResponse`, `PersistRecovery`) |
 | Deterministic OPS | `fingerprint_cluster`, `appsec_gate_policy`, `compute_recall` |
@@ -805,7 +805,7 @@ When `mode == "workflow-spec"` is selected (§16.10.1), Skill main thread execut
 10. Render Execution Preview（§16.13，用 `shared/preview-template.md`）→ display + wait reply
 11. Match user reply against §16.13 approval whitelist（精确，大小写无关，trim）→ no match = no sentinel = next Workflow call blocked
 12. Write sentinel JSON → `.appsec/state/preview-approved/<safeRunId>.json` = `{run_id, spec_hash, preview_hash, approved_at, approval_text, ttl_seconds}`（**fail-closed**：Bash 写失败 → abort）
-13. Invoke `Workflow({scriptPath:'~/.claude/workflows/appsec-orchestrator.js', args:{spec, target, run_id, severity_floor, finders, policy, oracle, previous_results, spec_hash}})` — 错误绝不 silent re-launch
+13. Invoke `Workflow({scriptPath:'~/.claude/workflows/appsec-orchestrator.js', args:{spec, target, run_id, severity_floor, finders, policy, oracle, previous_results, spec_hash, model_policy, seeded_state}})` — model_policy / seeded_state 可选,不需要时省略或传 undefined。错误绝不 silent re-launch
 14. Map `result.phase_outputs` through §16.10.4 SDK persist（Skill 主线 / haiku 调 Bash `appsec-sdk`，过 redact）→ write workflow-state resume snapshot
 
 **Non-negotiable Skill discipline（违反 = silent bug）**：

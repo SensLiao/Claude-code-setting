@@ -169,6 +169,7 @@ Everything after `meta` is the body. It runs inside an `async` function, so you
 | `phase(title)` | Group the agents that follow under a heading in `/workflows`. |
 | `log(msg)` | Emit a narrator line above the progress tree. |
 | `console` | A standard-looking `console` — its output is routed into the workflow log. |
+| `setTimeout` / `clearTimeout` | The standard timer pair — injected and abort-aware; pending timers are cleared if the workflow is aborted. There is no `sleep`; do not busy-wait. Rarely needed in practice. |
 | `budget` | `{ total, spent(), remaining() }` — token target for budget-aware loops. |
 | `args` | Whatever was passed as the Workflow tool's `args` input — **passed through unchanged** (an object stays an object). `undefined` if nothing was passed. Normalize it before reading fields (see below). |
 | `workflow(name, args?)` | Run another workflow inline. One level of nesting only. |
@@ -319,6 +320,17 @@ These are the mistakes that actually break workflows:
   the 1000-agent lifetime cap and throws.
 - **`isolation: 'worktree'` is expensive** (~200–500 ms + disk per agent). Use it
   only when parallel agents mutate files and would otherwise collide.
+
+**Stall timeout — `agent(prompt, { stallMs })`.** Overrides the per-agent stall
+timeout (default **180 000 ms / 3 min**) for this call only. Raise it for a
+legitimately slow agent (large-codebase scan, heavy structured-output extraction)
+so the runtime does not abort it as "stalled". Real but absent from the Workflow
+tool's own input-schema description — confirmed in `references/api-reference.md` §6.
+
+> **Resume cache key.** The four opts baked into the resume cache key are
+> `schema`, `model`, `isolation`, `agentType`. `label` and `phase` are cosmetic —
+> relabelling or reassigning an agent to a different phase group never invalidates
+> a cached result.
 
 ---
 
