@@ -6,11 +6,29 @@
 
 ---
 
+## 0. Corpus Resolution Protocol(P0 GROUND 进入前必跑 — v2.4)
+
+GROUND 阶段加载本地语料前,按顺序解析 corpus 根,**第一个存在的胜出**:
+1. `.uiux/config.json.corpus_root`(项目级覆盖,最高优先)
+2. 环境变量 `$UIUX_DESIGN_CORPUS`
+3. canonical 默认:`C:/Users/廖神/Desktop/Innovation_projects/Self-project/awesome-design-md/design-md/`
+4. 仓内 vendored 副本:`reference/repos/awesome-design-md/design-md/`(若项目 clone 了参考库)
+
+**presence-check**:对解析出的根跑一次 Glob `<root>/*/DESIGN.md`。
+- 命中 ≥1 → 记 `provenance = 解析根`,正常 GROUND。
+- 0 命中(全部候选都不存在)→ **STOP,向用户报**:
+  > 本地 58 品牌语料库未找到(已试 `config.corpus_root` / `$UIUX_DESIGN_CORPUS` / Desktop canonical / 仓内 `reference/repos`)。请二选一:(a) 告诉我 corpus 在哪(我写进 `.uiux/config.json.corpus_root`);(b) 授权我走 web SOURCE B 接地(Godly / design-inspiration MCP,标 lower-confidence)。在你选之前我不动手——**绝不凭印象编 design token**。
+- **铁律**:corpus 缺失时 NEVER fall back to model priors。要么用户给路径,要么显式授权 web,要么停。
+
+> 本节是 corpus 路径的**单一真相源**(§7 维护)。`combination-policy.md` §4 SOURCE A 引用本节解析结果,不再各写一份绝对路径——消除"双真相源"漂移风险。
+
+---
+
 ## 1. 主接地源:本地 58 品牌 DESIGN.md 语料(直接读,无需 skill)
 
 **SOURCE A 的一等接地源是本地的 58 品牌 DESIGN.md 语料库** —— 58 个从顶级网站抽取的真实品牌 DESIGN.md(Google Stitch 9-section 格式:theme / color / typography / component / layout / depth / do-dont / responsive / agent-prompt),每个品牌配 `preview.html` + `preview-dark.html`。
 
-- **语料根(canonical,直接读)**:`~/Desktop/Innovation_projects/Self-project/awesome-design-md/design-md/<slug>/DESIGN.md`
+- **语料根(canonical,直接读)**:`C:/Users/廖神/Desktop/Innovation_projects/Self-project/awesome-design-md/design-md/<slug>/DESIGN.md`
   - `<slug>` 见 §2 的 9 桶 / §3 的 archetype 锚(全名是目录名,如 `linear.app` / `stripe` / `vercel` / `ferrari`)。
   - 每个 `<slug>/` 目录含:`DESIGN.md`(9-section 主文件)+ `preview.html` + `preview-dark.html` + `README.md`。
   - 语料自带 `README.md` + `SKILL.md`(在语料根 `…/awesome-design-md/`,非本 `~/.claude` 下,作为可选的桶/recipe 说明文档)。
@@ -70,7 +88,7 @@ P1 EXPLORE 加载某个 product archetype 时,按下表先验挑参考品牌(GRO
 | agent-console ui-lab c1–c5 | `…/Company/agent-console/ui-lab/v1 - static-html/c*/tokens.candidate.css` | agent console / 静态 HTML 后台 |
 | dashboard 生产 tokens | `…/AI agents应用/dashboard/apps/web/src/styles/tokens.css` | 已上生产的真实 token |
 
-> 根前缀 `…` = `~/Desktop/Innovation_projects/Self-project/Personal AI Infrastructure/`。
+> 根前缀 `…` = `C:/Users/廖神/Desktop/Innovation_projects/Self-project/Personal AI Infrastructure/`。
 
 ---
 

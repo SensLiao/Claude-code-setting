@@ -80,11 +80,12 @@ P5 REVIEW  ux-principles MODE C + gsd-ui-review + santa-loop + Codex plugin /cod
 - `image-to-code-skill`(截图 → 代码;`mode=reference` 提取 anchor / 默认 image-first 还原)
 
 ## Layer 3 — Style Lock(互斥,一次只一个)
+> **Style-Lens registry(2026-06-14)**:6 个 lens(`editorial` / `soft-organic` / `swiss` / `brutalist` / `terminal` / `dark-editorial`)+ 统一 Style-DNA + 3 层 token 见 [`style-lens-registry.md`](style-lens-registry.md)。下列 3 个 skill 是 **mutex family**;PICK 选 lens → 锁对应 family + 记 `active_lens`。mood→lens 复用 `local-template-index.md` §2 的 9 桶。互斥机制零变化。
 - `taste-skill` — **默认通用 premium craft**，含 §11 三档变体(语义切换,一次一档):
   - **MODE A Editorial Monochrome** — Notion / Linear / SaaS / warm monochrome / 文档感(原 `minimalist-skill`)
   - **MODE B Double-Bezel Agency** — $150k agency / 嵌套硬件感 / 浅色高级 / fluid-glass nav(原 `soft-skill`)
   - **MODE C GSAP Scrollytelling** — 高动效 / pinning / 滚动叙事 / Awwwards(原 `gpt-tasteskill`)
-- `luxury` — 暗色编辑 / Oswald / fashion / architect
+- `luxury` family — 暗色编辑 / fashion / architect;**首选 lens `dark-editorial`**(修正纯黑/Oswald/无运动,详 [style-lens-registry.md](style-lens-registry.md) §3.1)+ `terminal` lens(dark-tech / developer)
 - `brutalist-skill`(user-invocable only)— Swiss / 数据密集 / 工业粗野
 
 ## Layer 4 — Production
@@ -92,6 +93,7 @@ P5 REVIEW  ux-principles MODE C + gsd-ui-review + santa-loop + Codex plugin /cod
 - `sens-frontend-design`(3-stage 客户提案型,静态原型可部署/截图进 PDF)
 - `luxury-editorial-site-builder`(brand landing 专用 workflow,不占 L3 锁)
 - `frontend-design@official`(生产 React 默认)
+- `bencium-innovative-ux-designer`(创意执行备选,与 frontend-design@official 同层;**NEVER_LOCKABLE** —— 是 production workflow,不占 L3 锁、不参与 L3 互斥)
 
 ## Layer 5 — Platform Overlay
 - `vercel:nextjs` / `vercel:react-best-practices` / `vercel:shadcn` / `vercel:turbopack`

@@ -4,19 +4,11 @@ This reference covers the first two phases (alignment interview + skeleton build
 
 ## Phase 0 step-by-step
 
-### Step A — Discover which taste skill is installed
+### Step A — Load the aesthetic baseline (taste-skill MODE A, hard-named)
 
-```bash
-ls ~/.claude/skills/ | grep -iE 'taste|design|visual'
-```
+Invoke `Skill(taste-skill)` and select §11 MODE A (Editorial Monochrome). This is the canonical replacement for the removed `high-end-visual-design` / `design-taste-frontend` / `gpt-taste` / `stitch-design-taste` skills (deleted 2026-06-02). MODE A carries the strongest editorial-luxury presets (warm-monochrome palette, variable serif + sans pairing, restrained motion, anti-AI-slop rules) — they load into your context. **Don't paraphrase — build against them directly.**
 
-Priority for invocation (use the highest available):
-1. `high-end-visual-design` — preferred; has the strongest "high-end agency" presets (fonts, spacing, shadows, casing)
-2. `design-taste-frontend` — strong fallback; senior UI/UX presets
-3. `gpt-taste` — GSAP-leaning; OK fallback
-4. `stitch-design-taste` — Google Stitch flavor; fallback
-
-Invoke via the Skill tool: `Skill(skill: "high-end-visual-design")`. The skill's preset prompts load into your context — colors, type pairings, spacing scales, motion philosophy. **Don't paraphrase those — they're now in your context, build against them directly.**
+> NEVER `ls ~/.claude/skills | grep` to "discover" a taste skill — that path is dead (the 4 skills above were deleted 2026-06-02). The baseline is **taste-skill MODE A, hard-named**. If `taste-skill` is missing, STOP and warn the user — do NOT generate against model priors.
 
 ### Step B — The 7-question alignment interview
 

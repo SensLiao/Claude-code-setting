@@ -11,7 +11,7 @@
 
 ```json
 {
-  "$schema_version": "1.0.0",
+  "$schema_version": "2.0.0",
   "bootstrap": {
     "skill": "claude-env-bootstrap",
     "skill_version": "1.0.0",
@@ -29,7 +29,7 @@
   "skills": [
     {
       "name": "sens-frontend-design",
-      "source_path": "~/.claude/skills/sens-frontend-design",
+      "source_path": "C:/Users/廖神/.claude/skills/sens-frontend-design",
       "target_path": ".claude/skills/sens-frontend-design",
       "global_version_at_install": "1.0.0",
       "global_version_at_last_update": "1.0.0",
@@ -37,12 +37,17 @@
       "last_updated_at": null,
       "user_modified": false,
       "user_modified_files": [],
+      "selector_evidence": {
+        "predicate": "ui_present == true",
+        "matched_signal": "ui_present",
+        "signal_value": true
+      },
       "install_reason": "Project has Design/ folder with 3-stage structure — primary methodology",
       "tier": "T1"
     },
     {
       "name": "ux-principles",
-      "source_path": "~/.claude/skills/ux-principles",
+      "source_path": "C:/Users/廖神/.claude/skills/ux-principles",
       "target_path": ".claude/skills/ux-principles",
       "global_version_at_install": "1.x.x",
       "global_version_at_last_update": "1.x.x",
@@ -55,7 +60,7 @@
     },
     {
       "name": "gsd-new-project",
-      "source_path": "~/.claude/skills/gsd-new-project",
+      "source_path": "C:/Users/廖神/.claude/skills/gsd-new-project",
       "target_path": ".claude/skills/gsd-new-project",
       "global_version_at_install": "n/a",
       "global_version_at_last_update": "n/a",
@@ -117,6 +122,12 @@
 - 列出哪些文件被改在 `user_modified_files`
 - 后续 `--update` 跳过 user_modified=true 的 skill,除非用户强制 `--force`
 
+### `skills[].selector_evidence`（v2 新增）
+
+记录该 skill 被选中的依据:哪个 selector predicate 命中、命中的 signal key 与值。
+VERIFY 阶段(§7.5.1)检查 `$schema_version >= 2.0.0` 且每个 skill 条目存在本字段,
+缺失 → `manifest_v2_valid = false` → BLOCK。
+
 ### `skills[].install_reason`
 
 一句话说"为什么装这个"。给未来的自己 / 团队成员看。
@@ -176,7 +187,7 @@ for skill in user_selected:
 
 ```json
 {
-  "$schema_version": "1.0.0",
+  "$schema_version": "2.0.0",
   "bootstrap": {
     "skill": "claude-env-bootstrap",
     "skill_version": "1.0.0",

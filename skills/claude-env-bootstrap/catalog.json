@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "updated": "2026-05-25",
+  "updated": "2026-06-14",
   "schema_ref": "templates/SCAN-VECTOR-SCHEMA.md",
   "mutex_groups": {
     "l3-style": "At most one of taste-skill / luxury / brutalist-skill can be installed."
@@ -114,6 +114,18 @@
       "mutex_group": "l3-style",
       "priority": "medium"
     },
+    "brutalist-skill": {
+      "domain": "uiux",
+      "kind": "l3-style",
+      "selector": {
+        "all_of": [
+          {"signal": "ui_present", "equals": true},
+          {"signal": "style_intent", "equals": "brutalist"}
+        ]
+      },
+      "mutex_group": "l3-style",
+      "priority": "medium"
+    },
     "prototyping-ui-directions": {
       "domain": "uiux",
       "kind": "workflow",
@@ -138,6 +150,18 @@
         ]
       },
       "priority": "low"
+    },
+    "ai-native-interface": {
+      "domain": "uiux",
+      "kind": "overlay",
+      "selector": {
+        "all_of": [
+          {"signal": "ui_present", "equals": true},
+          {"signal": "ai_pattern", "in": ["chat", "agentic"]}
+        ]
+      },
+      "_note": "Composes on top of the locked L3 style; NOT an L3 style itself — does NOT join the l3-style mutex.",
+      "priority": "medium"
     },
 
     "enterprise-qa-testing": {
@@ -345,6 +369,37 @@
       "requires": ["pentest-scope-and-roe"],
       "agent_addon": ["authorized-pentest-validator"],
       "priority": "low"
+    },
+    "security-app-api": {
+      "domain": "appsec",
+      "kind": "overlay",
+      "selector": {"all_of": [{"signal": "risk_surface", "contains": "public-api"}]},
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "high"
+    },
+    "security-platform-supply-chain": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "ci_state", "in": ["github-actions", "gitlab-ci", "jenkins"]},
+          {"signal": "deploy_target", "contains_any": ["k8s", "serverless", "docker-compose"]}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "medium"
+    },
+    "security-compliance-privacy": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "risk_surface", "contains": "pii"},
+          {"signal": "_derived.is_consumer_web", "equals": true}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "high"
     },
 
     "discoverability-orchestrator": {

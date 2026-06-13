@@ -26,6 +26,7 @@ release_tag: <tag>
 l3_style: taste | luxury | brutalist            # taste 含 §11 三档变体 A/B/C(语义切换,不是独立 enum)
 l3_style_skill_id: <exact skill name>           # 例 taste-skill / luxury / brutalist-skill / luxury-editorial-site-builder
 l3_variant_mode: A | B | C | null               # 仅 taste:A=Editorial Monochrome / B=Double-Bezel Agency / C=GSAP Scrollytelling
+active_lens: <lens_id> | null                    # v1.2(2026-06-14,additive,optional):Style-Lens registry 选定的 lens(editorial/soft-organic/swiss/brutalist/terminal/dark-editorial)。mutex 仍按 l3_style family;lens 是该 family 下的 Style-DNA 具体化。缺省=按 registry §5 映射推断。详 references/style-lens-registry.md
 
 rationale: |
   <≤ 200 chars,user-confirmed reason for picking this style>
@@ -47,6 +48,8 @@ locked_until_release: <next-release-tag> | "permanent"
 | `brutalist-skill` | **manual-only** | Swiss / 数据密集 / 工业粗野 |
 
 `luxury` 和 `luxury-editorial-site-builder` 在同一 release_tag 内视为**互相兼容**(同一 family);但不能再混入 `taste-skill` / `brutalist-skill`。
+
+> **Style-Lens registry(2026-06-14,additive)**:上表 4 个候选是 **mutex family**;真正的设计词汇是 `references/style-lens-registry.md` 的 6 个 lens(各声明 `mutex_l3_family`)。PICK 选 lens → 锁对应 family(`taste|luxury|brutalist`)+ 记 `active_lens`。`luxury` family 首选 lens = **`dark-editorial`**(修正版,非裸 `luxury` 的纯黑/Oswald)。互斥机制(family enum + lock-presence-keyed guard)**零变化**。
 
 ## 3. 项目级白名单
 
