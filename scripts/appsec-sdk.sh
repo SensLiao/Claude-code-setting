@@ -225,7 +225,12 @@ contains_raw_secret() {
   # `password = "..."`-style secrets but this raw-secret gate previously did NOT, so a finding
   # body with a hardcoded credential could land un-redacted via finding.add (the Bash path skips
   # the prewrite hook). Keep the two detectors in lock-step with redact_stdin's key set.
-  local stripped; stripped=$(printf '%s' "$content" | strip_yaml_comments | sed -E 's/<REDACTED:[^>]*>//g')
+  # ★ S6 fix (2026-06-14 adversarial sweep): strip ONLY whole-line comments, NOT inline `value # ...`
+  # — an inline '#' can sit INSIDE a quoted YAML string (`description: "tok # sk-proj-…"`), and
+  # strip_yaml_comments would have stripped the real secret out of the scan. Whole-line comments are
+  # unambiguous; a secret after an inline '#' must still be caught (fail-closed). <REDACTED> markers
+  # still stripped so an already-redacted finding passes.
+  local stripped; stripped=$(printf '%s' "$content" | sed -E 's/^[[:space:]]*#.*$//' | sed -E 's/<REDACTED:[^>]*>//g')
   # Combined high-signal regex including JWT
   if printf '%s' "$stripped" | grep -qE '(AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{30,}|gho_[A-Za-z0-9]{30,}|ghu_[A-Za-z0-9]{30,}|ghs_[A-Za-z0-9]{30,}|ghr_[A-Za-z0-9]{30,}|sk-ant-[A-Za-z0-9_-]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,})'; then
     return 1
@@ -413,13 +418,44 @@ extract_scalar() {
     | sed -E 's/[[:space:]]+$//'
 }
 
+# ★ Adversarial-sweep fix (Codex + 5-agent, 2026-06-14) — the grep/sed/awk field extractors have
+# no YAML structural awareness, so a CLASS of constructs let a non-compliant artifact pass:
+# TAB indentation, block scalars (| >) / YAML type tags (!!) / anchors|aliases (& *) on a
+# security-critical key all defeat line-based matching. Canonical decision/finding files NEVER use
+# these; refusing them is fail-closed-correct. $1=content, $2=ERE alternation of critical key names.
+# Prints a reason + returns 2 if non-canonical; returns 0 if structurally simple/canonical.
+_block_noncanonical_yaml() {
+  local content="$1" crit="$2" tab; tab=$(printf '\t')
+  if printf '%s\n' "$content" | grep -qE "^ *${tab}"; then
+    echo "noncanonical YAML: TAB indentation (invalid YAML; defeats space-based parsing)"; return 2
+  fi
+  if printf '%s\n' "$content" | grep -qE "^(${crit})[[:space:]]*:[[:space:]]*[|>]"; then
+    echo "noncanonical YAML: block scalar (| or >) on a critical key (string content is not a structured value)"; return 2
+  fi
+  if printf '%s\n' "$content" | grep -qE "^(${crit})[[:space:]]*:[[:space:]]*!!"; then
+    echo "noncanonical YAML: YAML type tag (!!) on a critical key (defeats exact-value matching)"; return 2
+  fi
+  if printf '%s\n' "$content" | grep -qE "^(${crit})[[:space:]]*:[[:space:]]*[&*]"; then
+    echo "noncanonical YAML: YAML anchor/alias (& or *) on a critical key (defeats value extraction)"; return 2
+  fi
+  return 0
+}
+
 # Validate finding YAML against schema v1.0
 # Returns 0 if valid; non-zero with stderr explanation otherwise.
 validate_finding_yaml() {
   local content="$1"
+  # ★ structural guard (2026-06-14 adversarial sweep) — reject non-canonical YAML BEFORE line-based
+  # field checks (closes block-scalar-buried fields, tagged/anchored values, tab indent).
+  local _nc
+  if ! _nc=$(_block_noncanonical_yaml "$content" 'schema_version|id|source|detector|severity|confidence|asvs_mapping|csf_function|status|sla_due|exception_expiry|unmapped_reason'); then
+    echo "appsec-sdk finding.add: rejected — $_nc" >&2
+    return 2
+  fi
   local missing=()
+  # col-0 only: a key buried in a block scalar (e.g. inside description: |) is NOT a real top-level field.
   for k in schema_version id source detector severity confidence asvs_mapping csf_function description; do
-    if ! printf '%s' "$content" | grep -qE "^[[:space:]]{0,4}${k}[[:space:]]*:"; then
+    if ! printf '%s' "$content" | grep -qE "^${k}[[:space:]]*:"; then
       missing+=("$k")
     fi
   done
@@ -735,6 +771,13 @@ gate_check_d3_sla() {
   while IFS= read -r f; do
     [[ -z "$f" ]] && continue
     content=$(cat "$f" 2>/dev/null)
+    # ★ structural guard (2026-06-14): a tagged/anchored/block-scalar status (e.g. `status: !!str OPEN`)
+    # would defeat the open-ish case below and exempt an overdue finding from the SLA backstop.
+    if ! _block_noncanonical_yaml "$content" 'status|severity|sla_due' >/dev/null; then
+      id=$(extract_scalar "$content" "id"); [[ -z "$id" ]] && id="$(basename "$f")"
+      breaches+=("$id (non-canonical YAML — status/sla not trustworthy; refusing)")
+      continue
+    fi
     due=$(extract_scalar "$content" "sla_due")
     [[ -z "$due" ]] && continue
     st=$(extract_scalar "$content" "status")
@@ -801,10 +844,19 @@ cmd_gate_check() {
     exit 2
   fi
 
+  # ★ structural guard (2026-06-14 adversarial sweep) — refuse non-canonical YAML (block scalar /
+  # type tag / anchor on a critical key, or TAB indent) BEFORE line-based extraction can be fooled.
+  local _ncg
+  if ! _ncg=$(_block_noncanonical_yaml "$(cat "$decision_file")" 'decision|decided_at|redaction|risk_acceptance|timestamp'); then
+    echo "appsec-sdk gate.check: BLOCKED — $_ncg in $decision_file (refusing ambiguous artifact)" >&2
+    exit 2
+  fi
+
   local decision
+  # col-0 ONLY: a nested key (e.g. audit.decision indented 2 spaces) is NOT the release verdict.
   decision=$(grep -v '^[[:space:]]*#' "$decision_file" \
-    | grep -E '^[[:space:]]{0,4}decision[[:space:]]*:' | head -n1 \
-    | sed -E 's/^[[:space:]]*decision[[:space:]]*:[[:space:]]*"?([A-Z_]+)"?.*/\1/')
+    | grep -E '^decision[[:space:]]*:' | head -n1 \
+    | sed -E 's/^decision[[:space:]]*:[[:space:]]*"?([A-Z_]+)"?.*/\1/')
   if [[ -z "$decision" ]]; then
     echo "appsec-sdk gate.check: BLOCKED — decision field missing in $decision_file" >&2
     exit 2
@@ -816,12 +868,12 @@ cmd_gate_check() {
   # gate must REFUSE to guess. Same for decided_at (freshness integrity). Count uses the SAME pattern
   # the extractor uses, so any ambiguity the extractor could resolve arbitrarily is caught.
   local _dco _dao
-  _dco=$(grep -v '^[[:space:]]*#' "$decision_file" | grep -cE '^[[:space:]]{0,4}decision[[:space:]]*:' || true)
+  _dco=$(grep -v '^[[:space:]]*#' "$decision_file" | grep -cE '^decision[[:space:]]*:' || true)
   if (( _dco > 1 )); then
     echo "appsec-sdk gate.check: BLOCKED — $_dco conflicting 'decision:' keys in $decision_file (ambiguous/duplicate — refusing to guess; possible smuggling)" >&2
     exit 2
   fi
-  _dao=$(grep -v '^[[:space:]]*#' "$decision_file" | grep -cE '^[[:space:]]{0,4}decided_at[[:space:]]*:' || true)
+  _dao=$(grep -v '^[[:space:]]*#' "$decision_file" | grep -cE '^decided_at[[:space:]]*:' || true)
   if (( _dao > 1 )); then
     echo "appsec-sdk gate.check: BLOCKED — $_dao 'decided_at:' keys in $decision_file (ambiguous timestamp — refusing to guess)" >&2
     exit 2
@@ -831,8 +883,8 @@ cmd_gate_check() {
   # Both honor existing --strict (default) / --lax semantics: strict blocks, lax WARNs only.
   local decided_at_val
   decided_at_val=$(grep -v '^[[:space:]]*#' "$decision_file" \
-    | grep -E '^[[:space:]]{0,4}decided_at[[:space:]]*:' | head -n1 \
-    | sed -E 's/^[[:space:]]*decided_at[[:space:]]*:[[:space:]]*"?([^"#[:space:]]+)"?.*/\1/')
+    | grep -E '^decided_at[[:space:]]*:' | head -n1 \
+    | sed -E 's/^decided_at[[:space:]]*:[[:space:]]*"?([^"#[:space:]]+)"?.*/\1/')
   # E7 codex finding 3 (2026-06-05): canonical gate-decision-shaped files use `timestamp:` rather
   # than the rich decision's `decided_at:`. Prefer decided_at, fall back to a top-level timestamp
   # before D2 fail-closes — defensive, never loosens (still requires SOME parseable timestamp).
@@ -1584,6 +1636,13 @@ cmd_exception_sweep() {
     while IFS= read -r f; do
       [[ -z "$f" ]] && continue
       content=$(cat "$f" 2>/dev/null)
+      # ★ structural guard (2026-06-14): an anchored/tagged status (e.g. `status: &s ACCEPTED_RISK`)
+      # would make the extraction below miss ACCEPTED_RISK and silently skip an expired exception.
+      if ! _block_noncanonical_yaml "$content" 'status|exception_expiry' >/dev/null; then
+        echo "  REVIEW-DUE: $(basename "$f") non-canonical YAML (status/expiry not trustworthy; refusing)"
+        unbounded=$(( unbounded + 1 ))
+        continue
+      fi
       status=$(printf '%s\n' "$content" | grep -E '^[[:space:]]*status[[:space:]]*:' | head -n1 | sed -E 's/^[[:space:]]*status[[:space:]]*:[[:space:]]*"?([A-Za-z_]+)"?.*/\1/')
       [[ "$status" != "ACCEPTED_RISK" ]] && continue
       total_ar=$(( total_ar + 1 ))
