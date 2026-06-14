@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://claude.local/schemas/tool-risk.schema.json",
+  "title": "Tool / MCP Risk Registry",
+  "description": "Per-tool capability classification on a T0-T6 side-effect ladder, with default policy + approval/evidence binding. The AI-native 'permissions department': as Claude Code leans harder on MCP (direct read/write of GitHub/Jira/DB/secrets/monitoring), a tool is no longer a name in a list — it is a permission boundary. `appsec-sdk tool.gate` BLOCKs when a high-risk tool (T4 external-write / T5 credential-data / T6 active-security) is reachable but unclassified. Lives at <project>/.harness/tool-risk.yaml (project surface) and ~/.claude/templates/harness/tool-risk.seed.yaml (the harness's own MCP surface seed). Decoupled from the LLM overlay (was prose-only there).",
+  "type": "object",
+  "required": ["schema_version", "tools"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "generated_by": { "type": "string" },
+    "scope": { "type": "string", "description": "e.g. 'harness self-surface' or '<project> tool surface'" },
+    "tools": {
+      "type": "array",
+      "minItems": 0,
+      "items": { "$ref": "#/$defs/Tool" }
+    }
+  },
+  "$defs": {
+    "Tool": {
+      "type": "object",
+      "required": ["tool_id", "risk_tier", "side_effect"],
+      "additionalProperties": true,
+      "properties": {
+        "tool_id": { "type": "string", "minLength": 1, "description": "e.g. Read / Bash / mcp__github__create_pr / mcp__claude_ai_Gmail__create_draft" },
+        "provider": { "type": "string", "description": "builtin / mcp.<server> / plugin.<name>" },
+        "risk_tier": { "type": "string", "enum": ["T0", "T1", "T2", "T3", "T4", "T5", "T6"] },
+        "side_effect": {
+          "type": "string",
+          "enum": ["read-only", "local-write", "command-exec", "network-read", "external-write", "credential-data", "active-security"]
+        },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "network": { "type": "boolean" },
+            "write": { "type": "boolean" },
+            "secret": { "type": "boolean" },
+            "exec": { "type": "boolean" }
+          }
+        },
+        "prompt_injection_surface": { "type": "boolean", "description": "true if the tool returns attacker-influenceable content (web/issue/email body) that re-enters the prompt" },
+        "default_policy": {
+          "type": "string",
+          "enum": ["allow", "allow-with-route", "hook-guard", "log", "approval", "strict-gate", "roe-manual-only"]
+        },
+        "allowed_routes": { "type": "array", "items": { "type": "string" } },
+        "denied_routes": { "type": "array", "items": { "type": "string" } },
+        "requires_approval": { "type": "array", "items": { "type": "string" } },
+        "evidence_required": { "type": "array", "items": { "type": "string" } },
+        "blast_radius": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    }
+  },
+  "x-tier-ladder": {
+    "T0": { "side_effect": "read-only", "examples": ["Read", "Grep", "Glob"], "default_policy": "allow" },
+    "T1": { "side_effect": "local-write", "examples": ["Edit", "Write", "NotebookEdit"], "default_policy": "allow-with-route" },
+    "T2": { "side_effect": "command-exec", "examples": ["Bash"], "default_policy": "hook-guard" },
+    "T3": { "side_effect": "network-read", "examples": ["WebFetch", "WebSearch", "issue-tracker read", "mcp read"], "default_policy": "log" },
+    "T4": { "side_effect": "external-write", "examples": ["GitHub PR create", "Jira update", "mcp write"], "default_policy": "approval" },
+    "T5": { "side_effect": "credential-data", "examples": ["DB access", "secrets", "prod logs"], "default_policy": "strict-gate" },
+    "T6": { "side_effect": "active-security", "examples": ["nmap", "sqlmap", "nuclei", "ffuf", "hydra"], "default_policy": "roe-manual-only" }
+  },
+  "x-gate-policy": {
+    "block_when": "a tool resolved as risk_tier in [T4, T5, T6] is reachable in the active route but absent from the registry (unclassified high-risk) → BLOCKED",
+    "fail_when": "a registered T4+/T5/T6 tool used without its requires_approval / evidence_required satisfied → FAIL"
+  }
+}

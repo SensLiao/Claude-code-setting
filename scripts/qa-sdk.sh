@@ -267,6 +267,7 @@ cmd_gate_check() {
     esac
   done
   ensure_project_root
+  _LEDGER_TAG="$tag"; _LEDGER_STAGE="gate.check"; trap _qa_ledger_on_exit EXIT
   local bundle="$PROJECT_ROOT/.qa/evidence/$tag/qa_evidence_bundle.yaml"
   if [[ ! -f "$bundle" ]]; then
     echo "qa-sdk gate.check: BLOCKED — $bundle missing" >&2
@@ -767,6 +768,46 @@ cmd_sentinel_show() {
   " "$sentinel"
 }
 
+# ───── T1.1 (ADDITIVE — run-ledger black box; record-only, NEVER blocks) ─────
+NODE_BIN="${NODE_BIN:-node}"
+RUN_LEDGER="${RUN_LEDGER:-$CLAUDE_HOME/orchestrator-runtime/shared/run-ledger.js}"
+_qa_ledger() {
+  local tag="$1" decision="$2" stage="$3"
+  [[ -f "$RUN_LEDGER" ]] || return 0
+  command -v "$NODE_BIN" >/dev/null 2>&1 || return 0
+  "$NODE_BIN" "$RUN_LEDGER" append --project "$PROJECT_ROOT" \
+    "--run_id=$tag" --subsystem=qa "--stage=$stage" "--decision=$decision" \
+    "--gate_result=$PROJECT_ROOT/.qa/evidence/$tag/qa_evidence_bundle.yaml" >/dev/null 2>&1 || true
+}
+_qa_ledger_on_exit() {
+  local rc=$? decision="${_LEDGER_DECISION:-}"
+  if [[ -z "$decision" ]]; then
+    case "$rc" in 0) decision=PASS;; 1) decision=FAIL;; 2) decision=BLOCKED;; 3) decision=CONDITIONAL_PASS;; *) decision=RECORDED;; esac
+  fi
+  _qa_ledger "${_LEDGER_TAG:-unknown}" "$decision" "${_LEDGER_STAGE:-gate.check}"
+  return 0
+}
+cmd_ledger_append() {
+  ensure_project_root
+  if [[ ! -f "$RUN_LEDGER" ]] || ! command -v "$NODE_BIN" >/dev/null 2>&1; then
+    echo "qa-sdk ledger.append: WARN — node/run-ledger unavailable; skipped (record-only, never blocks)" >&2; return 0
+  fi
+  local fwd=( append --project "$PROJECT_ROOT" --subsystem=qa )
+  if [[ -n "${1:-}" && "$1" != --* ]]; then fwd+=( "--run_id=$1" ); shift; fi
+  while (( "$#" )); do
+    case "$1" in
+      --decision) fwd+=( "--decision=$2" ); shift 2;;
+      --stage) fwd+=( "--stage=$2" ); shift 2;;
+      --task) fwd+=( "--task=$2" ); shift 2;;
+      --gate-result) fwd+=( "--gate_result=$2" ); shift 2;;
+      --stdin) fwd+=( --stdin ); shift;;
+      --*=*) fwd+=( "$1" ); shift;;
+      *) shift;;
+    esac
+  done
+  "$NODE_BIN" "$RUN_LEDGER" "${fwd[@]}"
+}
+
 main() {
   if (( $# < 1 )); then usage; exit 2; fi
   local cmd="$1"; shift
@@ -783,6 +824,7 @@ main() {
     spec.hash)                    cmd_spec_hash "$@";;
     sentinel.write)               cmd_sentinel_write "$@";;
     sentinel.show)                cmd_sentinel_show "$@";;
+    ledger.append)                cmd_ledger_append "$@";;
     -h|--help|help)               usage; exit 0;;
     *) echo "qa-sdk: unknown command $cmd" >&2; usage; exit 2;;
   esac

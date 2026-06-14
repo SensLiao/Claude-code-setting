@@ -307,7 +307,13 @@
         "roe.verify",
         "csf.coverage",
         "overlay.activate",
-        "migrate-evidence"
+        "migrate-evidence",
+        "ledger.append",
+        "control.matrix.verify",
+        "tool.registry",
+        "tool.gate",
+        "lifecycle.transition",
+        "exception.sweep"
       ]
     },
     "qa": {
@@ -331,7 +337,8 @@
         "report",
         "mark-stale",
         "explain",
-        "status"
+        "status",
+        "ledger.append"
       ]
     }
   },

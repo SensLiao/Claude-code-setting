@@ -866,6 +866,7 @@ def cmd_gate_check(args: argparse.Namespace, ctx: Context) -> int:
     exit_code = {"PASS": EXIT_OK, "WARN": EXIT_OK, "FAIL": EXIT_FAIL,
                  "BLOCKED": EXIT_BLOCKED, "STALE": EXIT_STALE}[decision]
     _update_state_after_gate(ctx, state, decision, gate_path)
+    _ledger_append(ctx, tag, decision, "gate.check")  # T1.1 black box (best-effort, never blocks)
     err(f"gate.check decision={decision} channels={channels_summary}")
     emit_result({"command": "gate.check", "tag": tag, "decision": decision,
                  "exit_code": exit_code, "channels": channels_summary,
@@ -1003,6 +1004,35 @@ def cmd_status(args: argparse.Namespace, ctx: Context) -> int:
                  "state": state, "gate_summary": gate_summary})
     return EXIT_OK
 
+# ----- T1.1 run-ledger black box (ADDITIVE; record-only, NEVER blocks) ------
+
+def _run_ledger_path() -> Optional[Path]:
+    env = os.environ.get("CLAUDE_HOME")
+    base = Path(env) if env else Path(__file__).resolve().parents[3]
+    rl = base / "orchestrator-runtime" / "shared" / "run-ledger.js"
+    return rl if rl.exists() else None
+
+def _ledger_append(ctx: "Context", tag: str, decision: str, stage: str) -> None:
+    """Best-effort append of a run-ledger row. Never raises, never blocks the gate."""
+    try:
+        rl = _run_ledger_path()
+        if rl is None or not shutil.which("node"):
+            return
+        gate_ref = str(ctx.evidence_dir(tag) / "gate-result.yaml")
+        subprocess.run(
+            ["node", str(rl), "append", "--project", str(ctx.project_root),
+             "--subsystem=discoverability", f"--run_id={tag}", f"--stage={stage}",
+             f"--decision={decision}", f"--gate_result={gate_ref}"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15, check=False)
+    except Exception:
+        pass
+
+def cmd_ledger_append(args: argparse.Namespace, ctx: Context) -> int:
+    decision = getattr(args, "decision", None) or "RECORDED"
+    _ledger_append(ctx, args.tag, decision, getattr(args, "stage", None) or "manual")
+    err(f"ledger.append: recorded tag={args.tag} decision={decision}")
+    return EXIT_OK
+
 # ----- CLI dispatch ---------------------------------------------------------
 
 COMMANDS = {
@@ -1010,6 +1040,7 @@ COMMANDS = {
     "evidence.append": cmd_evidence_append, "evidence.validate": cmd_evidence_validate,
     "gate.check": cmd_gate_check, "report": cmd_report,
     "mark-stale": cmd_mark_stale, "explain": cmd_explain, "status": cmd_status,
+    "ledger.append": cmd_ledger_append,
 }
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1030,6 +1061,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--reason", required=True); sp.add_argument("--file", default=None)
     sp = sub.add_parser("explain"); sp.add_argument("tag"); sp.add_argument("--finding", default=None)
     sp = sub.add_parser("status"); sp.add_argument("--tag", default=None)
+    sp = sub.add_parser("ledger.append"); sp.add_argument("tag")
+    sp.add_argument("--decision", default=None); sp.add_argument("--stage", default=None)
     return p
 
 def main(argv: Optional[List[str]] = None) -> int:

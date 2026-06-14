@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://claude.local/schemas/vuln-lifecycle.schema.json",
+  "title": "Vulnerability Lifecycle (9-state)",
+  "description": "Audit C11 hardening. The AppSec finding schema (§9) already had owner/sla_due/status/verification_status/risk_acceptance + a deterministic SLA-BLOCK; this adds the explicit 9-state machine, legal-transition enforcement (no illegal jumps), and the commit/PR/expiry fields so an exception cannot quietly outlive its review date. Enforced by schemas/lifecycle-transition-verify.js + appsec-sdk lifecycle.transition / exception.sweep.",
+  "type": "object",
+  "required": ["status"],
+  "additionalProperties": true,
+  "properties": {
+    "status": { "$ref": "#/$defs/State" },
+    "affected_commit": { "type": "string", "description": "commit where the vuln was introduced/observed" },
+    "fix_commit": { "type": "string", "description": "commit that remediated it" },
+    "fix_pr": { "type": "string", "description": "PR/MR ref for the fix" },
+    "exception_expiry": { "type": "string", "description": "ISO date/datetime an ACCEPTED_RISK exception expires; past expiry → EXPIRED_EXCEPTION (auto-reopen)" },
+    "verification_status": { "type": "string" }
+  },
+  "$defs": {
+    "State": {
+      "type": "string",
+      "enum": ["OPEN", "TRIAGED", "FIXING", "FIXED", "RETEST_REQUIRED", "RETEST_FAILED", "ACCEPTED_RISK", "EXPIRED_EXCEPTION", "CLOSED"]
+    }
+  },
+  "x-transitions": {
+    "OPEN": ["TRIAGED", "ACCEPTED_RISK"],
+    "TRIAGED": ["FIXING", "ACCEPTED_RISK"],
+    "FIXING": ["FIXED", "RETEST_REQUIRED"],
+    "FIXED": ["RETEST_REQUIRED", "CLOSED"],
+    "RETEST_REQUIRED": ["RETEST_FAILED", "CLOSED"],
+    "RETEST_FAILED": ["FIXING", "ACCEPTED_RISK"],
+    "ACCEPTED_RISK": ["EXPIRED_EXCEPTION", "CLOSED", "FIXING"],
+    "EXPIRED_EXCEPTION": ["FIXING", "TRIAGED", "ACCEPTED_RISK"],
+    "CLOSED": ["OPEN"]
+  },
+  "x-rules": {
+    "no_illegal_jump": "e.g. OPEN->FIXED (skips triage/fixing) and OPEN->CLOSED (close without resolution) are rejected",
+    "auto_reopen": "ACCEPTED_RISK whose exception_expiry < now MUST move to EXPIRED_EXCEPTION (appsec-sdk exception.sweep finds these and exits non-zero)",
+    "closed_reopen": "CLOSED->OPEN is allowed (regression auto-reopen)"
+  }
+}

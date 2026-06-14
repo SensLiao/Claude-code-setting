@@ -1,0 +1,77 @@
+{
+  "_profile": "portable",
+  "_doc": "项目移交配置——把项目交给他人时使用。不包含任何机器特定路径（无硬编码的 C:/Users/廖神/ 路径）。采用保守权限：只允许 read-only 审查类操作和标准测试命令，禁止所有破坏性操作和凭证访问。启用 project-scoped customization，接收方可以在项目 .claude/ 目录中添加自己的配置，不需要修改用户全局 settings.json。",
+
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+
+  "permissions": {
+    "allow": [
+      "Bash(npm audit)",
+      "Bash(pnpm audit)",
+      "Bash(yarn audit)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run lint)",
+      "Bash(npm run test)",
+      "Bash(npm run test:unit)",
+      "Bash(npm run test:integration)",
+      "Bash(npx vitest run *)",
+      "Bash(npx playwright test *)",
+      "Bash(cargo audit)",
+      "Bash(pip-audit)",
+      "Bash(go test ./...)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf /*)",
+      "Bash(dd if=/dev/zero of=/dev/sd*)",
+      "Bash(mkfs.* /dev/sd*)",
+      "Bash(hydra *)",
+      "Bash(medusa *)",
+      "Bash(ncrack *)",
+      "Bash(msfconsole *)",
+      "Bash(msfvenom *)",
+      "Bash(sqlmap *)",
+      "Bash(nikto *)",
+      "Bash(masscan *)",
+      "Bash(zap-full-scan.py *)",
+      "Bash(beef-xss *)",
+      "Bash(empire *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(npm run db:reset *)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.gcp/**)",
+      "Read(~/.azure/**)",
+      "Read(**/credentials)",
+      "Read(**/credentials.json)",
+      "Read(**/private*.pem)",
+      "Read(**/private*.key)",
+      "Read(**/*.p12)",
+      "Read(**/*.pfx)",
+      "Read(**/*.env)",
+      "Write(~/.ssh/**)",
+      "Write(~/.aws/**)",
+      "Write(**/credentials.json)",
+      "Bash(ssh *)",
+      "Bash(scp *)",
+      "Bash(nc *)",
+      "Bash(curl * --data*@*)"
+    ]
+  },
+
+  "disableSkillShellExecution": true,
+
+  "effortLevel": "high",
+
+  "_portability_notes": [
+    "无机器特定路径 — hooks 应在项目 .claude/ 中定义，不依赖 ~/.claude/hooks/",
+    "接收方应运行对应 sdk init 安装项目级 hooks（appsec-sdk / qa-sdk / uiux-sdk / discoverability-sdk）",
+    "disableWorkflows 未设置 — 接收方根据需要在项目级设置",
+    "allowManagedHooksOnly 未设置 — 不干预接收方的用户全局配置 (verify key name against your Claude Code version)",
+    "CLAUDE_CODE_WORKFLOWS 未启用 — Dynamic Workflows 需要接收方明确开启"
+  ]
+}
