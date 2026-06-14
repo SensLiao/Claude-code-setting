@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://claude.local/schemas/budget.schema.json",
+  "title": "Budget Reconciliation Record",
+  "description": "Audit C13 hardening. commercial-cert already has a fail-closed budget APPROVAL gate (approved_estimate_high in the sentinel). This adds estimate-vs-ACTUAL reconciliation so a run's real cost can be compared to what was approved/estimated. Embedded into a run-ledger row's budget_variance field (schemas/run-ledger.schema.json) or written to <project>/.harness/budget/reconciliation.jsonl. Single-operator scope — NOT a FinOps platform.",
+  "type": "object",
+  "required": ["estimate_high", "actual_tokens"],
+  "additionalProperties": true,
+  "properties": {
+    "run_id": { "type": "string" },
+    "estimate_low": { "type": ["number", "null"] },
+    "estimate_high": { "type": "number" },
+    "approved_estimate_high": { "type": ["number", "null"], "description": "the number the human approved in the sentinel (commercial-cert)" },
+    "actual_tokens": { "type": "number" },
+    "estimate_time_s": { "type": ["number", "null"] },
+    "actual_time_s": { "type": ["number", "null"] },
+    "agent_cost": { "type": ["number", "null"] },
+    "tool_cost": { "type": ["number", "null"] },
+    "overrun": { "type": "boolean", "description": "actual_tokens > (approved_estimate_high || estimate_high)" },
+    "overrun_pct": { "type": ["number", "null"] },
+    "overrun_reason": { "type": ["string", "null"] }
+  }
+}

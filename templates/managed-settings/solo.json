@@ -1,0 +1,55 @@
+{
+  "_profile": "solo",
+  "_doc": "单人操作者默认配置。不启用任何 allowManaged*Only 限制标志，因此用户全局的 GSD hooks（settings.json 中约 10+ 条 PostToolUse/PreToolUse/SessionStart/Stop）保持正常工作。这是最安全的起点——先用此 profile 验证 managed-settings 基础设施，确认没有副作用后，再考虑升级到 strict.json。",
+
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_WORKFLOWS": "1"
+  },
+
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf /*)",
+      "Bash(dd if=/dev/zero of=/dev/sd*)",
+      "Bash(mkfs.* /dev/sd*)",
+      "Bash(hydra *)",
+      "Bash(medusa *)",
+      "Bash(ncrack *)",
+      "Bash(msfconsole *)",
+      "Bash(msfvenom *)",
+      "Bash(meterpreter *)",
+      "Bash(sqlmap *)",
+      "Bash(nikto *)",
+      "Bash(masscan *)",
+      "Bash(zap-full-scan.py *)",
+      "Bash(beef-xss *)",
+      "Bash(empire *)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(**/credentials.json)",
+      "Read(**/private*.pem)",
+      "Read(**/private*.key)",
+      "Read(**/server*.key)",
+      "Read(**/secret*.key)",
+      "Read(**/*.p12)",
+      "Read(**/*.pfx)",
+      "Write(~/.ssh/**)",
+      "Write(~/.aws/**)",
+      "Write(**/credentials.json)"
+    ]
+  },
+
+  "effortLevel": "high",
+
+  "disableSkillShellExecution": true,
+
+  "_notes": [
+    "allowManagedHooksOnly は設定しない — GSD user-global hooks を殺さないため (verify key name against your Claude Code version)",
+    "allowManagedMcpServersOnly は設定しない — 既存 MCP 設定を維持するため (verify key name against your Claude Code version)",
+    "allowManagedPermissionRulesOnly は設定しない — solo は user-level allow/deny を活用 (verify key name against your Claude Code version)",
+    "strictPluginOnlyCustomization は設定しない — solo では plugin 以外の customization も許可 (verify key name against your Claude Code version)",
+    "disableWorkflows: false がデフォルト — Dynamic Workflows を GOVERNED_GATE 外でのみ使用可能とする (key confirmed from native-capabilities.md)"
+  ]
+}

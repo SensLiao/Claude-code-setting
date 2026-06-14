@@ -773,6 +773,7 @@ cmd_gate_ship() {
     esac
   done
   ensure_project_root
+  _LEDGER_TAG="$tag"; _LEDGER_STAGE="gate.ship"; trap _uiux_ledger_on_exit EXIT
 
   local dec="$PROJECT_ROOT/.uiux/decisions/$tag/uiux_release_decision.yaml"
   if [[ ! -f "$dec" ]]; then
@@ -788,6 +789,7 @@ cmd_gate_ship() {
   fi
 
   local decision; decision=$(extract_scalar "$(cat "$dec")" "decision")
+  _LEDGER_DECISION="$decision"   # codex P2: record parsed decision accurately (CONDITIONAL_PASS, etc.)
   case "$decision" in
     PASS) echo "uiux-sdk gate.ship: PASS"; exit 0 ;;
     FAIL) echo "uiux-sdk gate.ship: FAIL — see $dec" >&2; exit 1 ;;
@@ -970,6 +972,46 @@ cmd_decision_write() {
   exit 0
 }
 
+# ───── T1.1 (ADDITIVE — run-ledger black box; record-only, NEVER blocks) ─────
+NODE_BIN="${NODE_BIN:-node}"
+RUN_LEDGER="${RUN_LEDGER:-$CLAUDE_HOME/orchestrator-runtime/shared/run-ledger.js}"
+_uiux_ledger() {
+  local tag="$1" decision="$2" stage="$3"
+  [[ -f "$RUN_LEDGER" ]] || return 0
+  command -v "$NODE_BIN" >/dev/null 2>&1 || return 0
+  "$NODE_BIN" "$RUN_LEDGER" append --project "$PROJECT_ROOT" \
+    "--run_id=$tag" --subsystem=uiux "--stage=$stage" "--decision=$decision" \
+    "--gate_result=$PROJECT_ROOT/.uiux/decisions/$tag/uiux_release_decision.yaml" >/dev/null 2>&1 || true
+}
+_uiux_ledger_on_exit() {
+  local rc=$? decision="${_LEDGER_DECISION:-}"
+  if [[ -z "$decision" ]]; then
+    case "$rc" in 0) decision=PASS;; 1) decision=FAIL;; 2) decision=BLOCKED;; 3) decision=CONDITIONAL_PASS;; *) decision=RECORDED;; esac
+  fi
+  _uiux_ledger "${_LEDGER_TAG:-unknown}" "$decision" "${_LEDGER_STAGE:-gate.ship}"
+  return 0
+}
+cmd_ledger_append() {
+  ensure_project_root
+  if [[ ! -f "$RUN_LEDGER" ]] || ! command -v "$NODE_BIN" >/dev/null 2>&1; then
+    echo "uiux-sdk ledger.append: WARN — node/run-ledger unavailable; skipped (record-only, never blocks)" >&2; return 0
+  fi
+  local fwd=( append --project "$PROJECT_ROOT" --subsystem=uiux )
+  if [[ -n "${1:-}" && "$1" != --* ]]; then fwd+=( "--run_id=$1" ); shift; fi
+  while (( "$#" )); do
+    case "$1" in
+      --decision) fwd+=( "--decision=$2" ); shift 2;;
+      --stage) fwd+=( "--stage=$2" ); shift 2;;
+      --task) fwd+=( "--task=$2" ); shift 2;;
+      --gate-result) fwd+=( "--gate_result=$2" ); shift 2;;
+      --stdin) fwd+=( --stdin ); shift;;
+      --*=*) fwd+=( "$1" ); shift;;
+      *) shift;;
+    esac
+  done
+  "$NODE_BIN" "$RUN_LEDGER" "${fwd[@]}"
+}
+
 # ───── Dispatch ─────
 case "${1:-}" in
   init) shift; cmd_init "$@" ;;
@@ -982,6 +1024,7 @@ case "${1:-}" in
   gate.ship) shift; cmd_gate_ship "$@" ;;
   decision.write) shift; cmd_decision_write "$@" ;;
   drift.check) shift; cmd_drift_check "$@" ;;
+  ledger.append) shift; cmd_ledger_append "$@" ;;
   -h|--help|help|"") usage; exit 0 ;;
   *) echo "uiux-sdk: unknown command '$1'" >&2; usage; exit 2 ;;
 esac

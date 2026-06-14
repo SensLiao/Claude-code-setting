@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://claude.local/schemas/run-ledger.schema.json",
+  "title": "Run Ledger Row",
+  "description": "One append-only row in <project>/.harness/runs.jsonl (the harness black box). When no project root is detected the row is appended to ~/.claude/state/run-ledger.jsonl instead. Joins what the harness already computed but threw away: execution_fingerprint (run-fingerprint.js, previously stdout-only), spec_hash + sentinel (approval proof), gate decision, git context, and which skills/agents/hooks/mcp-tools ran. Written by *-sdk ledger.append / gate.check tail. Cross-run auditable + portable with the repo + handoff-ready. Required fields are minimal so a Bash SDK can write a row; additionalProperties:true so subsystems can extend.",
+  "type": "object",
+  "required": ["run_id", "ts", "decision"],
+  "additionalProperties": true,
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1, "description": "Stable id for this run (release tag, phase id, or generated)" },
+    "ts": { "type": "string", "format": "date-time", "description": "ISO8601 UTC append time" },
+    "subsystem": { "type": "string", "enum": ["appsec", "qa", "uiux", "discoverability", "gsd", "harness"] },
+    "orchestrator": { "type": "string" },
+    "stage": { "type": "string", "description": "e.g. gate.check / release-readiness / commercial-cert" },
+    "task": { "type": "string" },
+    "repo": { "type": ["string", "null"] },
+    "branch": { "type": ["string", "null"] },
+    "commit_before": { "type": ["string", "null"] },
+    "commit_after": { "type": ["string", "null"] },
+    "git_dirty": { "type": ["boolean", "null"], "description": "true if working tree had uncommitted changes" },
+    "claude_code_version": { "type": ["string", "null"] },
+    "policy_version": { "type": ["string", "null"], "description": "sha256 of model-policy.md (from run-fingerprint components)" },
+    "skills_used": { "type": "array", "items": { "type": "string" } },
+    "agents_used": { "type": "array", "items": { "type": "string" } },
+    "hooks_triggered": { "type": "array", "items": { "type": "string" } },
+    "mcp_tools_used": { "type": "array", "items": { "type": "string" } },
+    "spec_hash": { "type": ["string", "null"], "description": "sha256:<64hex> or null when prompt-only (no workflow-spec)" },
+    "execution_fingerprint": { "type": ["string", "null"], "description": "sha256:<64hex> from run-fingerprint.js" },
+    "evidence_refs": { "type": "array", "items": { "type": "string" }, "description": "Pointers back to .appsec/.qa/.uiux detailed evidence (this ledger does not duplicate it)" },
+    "human_approvals": { "type": "array", "items": { "type": ["string", "object"] }, "description": "Approval text / sentinel refs / spec_hash sign-offs" },
+    "gate_result": { "type": ["string", "null"], "description": "Path to the gate-result/decision file consumed" },
+    "decision": {
+      "type": "string",
+      "enum": ["PASS", "WARN", "CONDITIONAL_PASS", "FAIL", "BLOCKED", "STALE", "STRATEGY_READY", "RECORDED"],
+      "description": "Mirrors gate-decision vocabulary; RECORDED = a non-gate run row (no release verdict)"
+    },
+    "budget_variance": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "description": "Populated by budget reconciliation (Wave 2): estimate vs actual tokens/time/cost"
+    },
+    "rollback_ref": { "type": ["string", "null"], "description": "Backup dir / commit to roll back to" },
+    "ledger_schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" }
+  }
+}

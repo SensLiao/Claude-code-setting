@@ -208,7 +208,8 @@
         "report",
         "mark-stale",
         "explain",
-        "status"
+        "status",
+        "ledger.append"
       ],
       "evidence_root": "evidence/discoverability/<tag>/",
       "evidence_layout": {
@@ -424,7 +425,13 @@
         "pentest.recommend",
         "control.coverage",
         "audit.package",
-        "migrate-evidence"
+        "migrate-evidence",
+        "ledger.append",
+        "control.matrix.verify",
+        "tool.registry",
+        "tool.gate",
+        "lifecycle.transition",
+        "exception.sweep"
       ],
       "evidence_root": ".appsec/evidence/<tag>/",
       "legacy_alias": ".planning/security/"
@@ -452,7 +459,8 @@
         "report",
         "mark-stale",
         "explain",
-        "status"
+        "status",
+        "ledger.append"
       ],
       "evidence_root": "evidence/discoverability/<tag>/"
     }

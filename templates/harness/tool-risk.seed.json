@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0.0",
+  "generated_by": "harness-upgrade-2026-06-14 (T1.4 — covers the harness's own tool/MCP surface)",
+  "scope": "harness self-surface — built-in tools + session-connected MCP servers seen on this machine (Gmail / Notion / Google Drive / Vercel / exa). Copy + prune into <project>/.harness/tool-risk.json and classify the project's real surface.",
+  "tools": [
+    { "tool_id": "Read",   "provider": "builtin", "risk_tier": "T0", "side_effect": "read-only",  "capabilities": { "network": false, "write": false, "secret": false, "exec": false }, "default_policy": "allow", "prompt_injection_surface": true, "blast_radius": "none (read-only)", "notes": "file content can carry injected instructions — treat read content as data" },
+    { "tool_id": "Grep",   "provider": "builtin", "risk_tier": "T0", "side_effect": "read-only",  "capabilities": { "network": false, "write": false, "secret": false, "exec": false }, "default_policy": "allow" },
+    { "tool_id": "Glob",   "provider": "builtin", "risk_tier": "T0", "side_effect": "read-only",  "capabilities": { "network": false, "write": false, "secret": false, "exec": false }, "default_policy": "allow" },
+    { "tool_id": "Edit",   "provider": "builtin", "risk_tier": "T1", "side_effect": "local-write", "capabilities": { "network": false, "write": true,  "secret": false, "exec": false }, "default_policy": "allow-with-route", "blast_radius": "local working tree" },
+    { "tool_id": "Write",  "provider": "builtin", "risk_tier": "T1", "side_effect": "local-write", "capabilities": { "network": false, "write": true,  "secret": false, "exec": false }, "default_policy": "allow-with-route", "blast_radius": "local working tree" },
+    { "tool_id": "NotebookEdit", "provider": "builtin", "risk_tier": "T1", "side_effect": "local-write", "capabilities": { "network": false, "write": true, "secret": false, "exec": false }, "default_policy": "allow-with-route" },
+    { "tool_id": "Bash",   "provider": "builtin", "risk_tier": "T2", "side_effect": "command-exec", "capabilities": { "network": true, "write": true, "secret": true, "exec": true }, "default_policy": "hook-guard", "blast_radius": "anything the shell can reach", "notes": "guarded by appsec-active-scan-guard + secret-access-guard when project hooks installed" },
+    { "tool_id": "WebFetch", "provider": "builtin", "risk_tier": "T3", "side_effect": "network-read", "capabilities": { "network": true, "write": false, "secret": false, "exec": false }, "default_policy": "log", "prompt_injection_surface": true, "notes": "fetched page content can carry indirect prompt injection" },
+    { "tool_id": "WebSearch", "provider": "builtin", "risk_tier": "T3", "side_effect": "network-read", "capabilities": { "network": true, "write": false, "secret": false, "exec": false }, "default_policy": "log", "prompt_injection_surface": true },
+    { "tool_id": "mcp__exa__web_search_exa", "provider": "mcp.exa", "risk_tier": "T3", "side_effect": "network-read", "capabilities": { "network": true, "write": false, "secret": false, "exec": false }, "default_policy": "log", "prompt_injection_surface": true },
+    { "tool_id": "mcp__exa__web_fetch_exa", "provider": "mcp.exa", "risk_tier": "T3", "side_effect": "network-read", "capabilities": { "network": true, "write": false, "secret": false, "exec": false }, "default_policy": "log", "prompt_injection_surface": true },
+
+    { "tool_id": "mcp__claude_ai_Gmail__search_threads", "provider": "mcp.gmail", "risk_tier": "T3", "side_effect": "network-read", "capabilities": { "network": true, "write": false, "secret": true, "exec": false }, "default_policy": "log", "prompt_injection_surface": true, "notes": "email bodies are attacker-influenceable" },
+    { "tool_id": "mcp__claude_ai_Gmail__create_draft", "provider": "mcp.gmail", "risk_tier": "T4", "side_effect": "external-write", "capabilities": { "network": true, "write": true, "secret": false, "exec": false }, "default_policy": "approval", "requires_approval": ["external_write"], "blast_radius": "user's mailbox", "notes": "writes a draft to the user's Gmail" },
+    { "tool_id": "mcp__claude_ai_Gmail__label_thread", "provider": "mcp.gmail", "risk_tier": "T4", "side_effect": "external-write", "capabilities": { "network": true, "write": true, "secret": false, "exec": false }, "default_policy": "approval", "requires_approval": ["external_write"] },
+
+    { "tool_id": "mcp__notion__API-post-search", "provider": "mcp.notion", "risk_tier": "T3", "side_effect": "network-read", "capabilities": { "network": true, "write": false, "secret": false, "exec": false }, "default_policy": "log", "prompt_injection_surface": true },
+    { "tool_id": "mcp__notion__API-post-page", "provider": "mcp.notion", "risk_tier": "T4", "side_effect": "external-write", "capabilities": { "network": true, "write": true, "secret": false, "exec": false }, "default_policy": "approval", "requires_approval": ["external_write"], "blast_radius": "user's Notion workspace" },
+    { "tool_id": "mcp__notion__API-patch-page", "provider": "mcp.notion", "risk_tier": "T4", "side_effect": "external-write", "capabilities": { "network": true, "write": true, "secret": false, "exec": false }, "default_policy": "approval", "requires_approval": ["external_write"] },
+
+    { "tool_id": "mcp__claude_ai_Google_Drive__authenticate", "provider": "mcp.google_drive", "risk_tier": "T5", "side_effect": "credential-data", "capabilities": { "network": true, "write": false, "secret": true, "exec": false }, "default_policy": "strict-gate", "requires_approval": ["oauth_grant"], "evidence_required": ["approval_ref"], "blast_radius": "OAuth grant scope to user's Drive" },
+
+    { "tool_id": "mcp__plugin_vercel_vercel__authenticate", "provider": "mcp.vercel", "risk_tier": "T5", "side_effect": "credential-data", "capabilities": { "network": true, "write": true, "secret": true, "exec": false }, "default_policy": "strict-gate", "requires_approval": ["oauth_grant"], "evidence_required": ["approval_ref"], "blast_radius": "Vercel project deploy/env access" }
+  ]
+}

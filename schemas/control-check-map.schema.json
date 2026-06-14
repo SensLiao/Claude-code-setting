@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://claude.local/schemas/control-check-map.schema.json",
+  "title": "Control -> Executable Check Map",
+  "description": "Turns a control matrix from a document nobody reads into a gate input. Each binding maps a standards control (ASVS 5.0 / SSDF / API Top 10 / LLM Top 10 / CSF / CIS) to a concrete executable check and the evidence that proves it. `appsec-sdk control.matrix.verify` reads this: any binding with status:covered that lacks a resolvable evidence_ref FAILs; a high-tier control left not_assessed in a regulated gate BLOCKs. This is the wiring the audit flagged missing — control-matrix.template.yaml + 24KB crosswalk existed but fed 0 gate.",
+  "type": "object",
+  "required": ["schema_version", "bindings"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "generated_by": { "type": "string" },
+    "gate_level": { "type": "string", "enum": ["baseline", "elevated", "regulated"], "description": "Higher levels require more controls covered with evidence" },
+    "bindings": {
+      "type": "array",
+      "minItems": 0,
+      "items": { "$ref": "#/$defs/Binding" }
+    }
+  },
+  "$defs": {
+    "Binding": {
+      "type": "object",
+      "required": ["control_id", "check", "status"],
+      "additionalProperties": true,
+      "properties": {
+        "control_id": { "type": "string", "minLength": 1, "description": "e.g. v5.0.0-1.2.3 (ASVS) / PW.4 (SSDF) / API1:2023 / LLM01" },
+        "framework": { "type": "string", "enum": ["ASVS", "SSDF", "API_TOP10", "LLM_TOP10", "CSF", "CIS", "OTHER"] },
+        "title": { "type": "string" },
+        "check": { "type": "string", "minLength": 1, "description": "Executable check id/command, e.g. authz-matrix-test / secret-scan / api-bola-negative-test / agent-prompt-injection-eval" },
+        "check_kind": { "type": "string", "enum": ["test", "scan", "negative-test", "manual-attest", "review", "eval"] },
+        "status": { "type": "string", "enum": ["covered", "not_assessed", "gap", "not_applicable"] },
+        "evidence_ref": { "type": "string", "description": "Path/anchor to evidence proving the check ran and passed (required when status=covered)" },
+        "owner": { "type": "string" },
+        "severity_if_gap": { "type": "string", "enum": ["critical", "high", "medium", "low"] }
+      }
+    }
+  },
+  "x-canonical-bindings": {
+    "note": "Reference bindings the audit named explicitly (control -> executable check):",
+    "examples": [
+      { "control_id": "v5.0.0-1.2.x", "framework": "ASVS", "title": "Authorization", "check": "authz-matrix-test", "check_kind": "test" },
+      { "control_id": "PW.4", "framework": "SSDF", "title": "Reuse / secret hygiene", "check": "secret-scan", "check_kind": "scan" },
+      { "control_id": "API1:2023", "framework": "API_TOP10", "title": "BOLA", "check": "api-bola-negative-test", "check_kind": "negative-test" },
+      { "control_id": "LLM01", "framework": "LLM_TOP10", "title": "Prompt injection", "check": "agent-prompt-injection-eval", "check_kind": "eval" }
+    ]
+  }
+}

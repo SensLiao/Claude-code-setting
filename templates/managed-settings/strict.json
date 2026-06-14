@@ -1,0 +1,96 @@
+{
+  "_profile": "strict",
+  "_doc": "团队/企业锁定配置。启用所有 allowManaged*Only 锁定标志后，ONLY managed-scope 的 hooks / MCP servers / permission rules / plugins 才会生效——这意味着 ~/.claude/settings.json 中的用户全局 GSD hooks（约 10+ 条，涵盖 SessionStart/PostToolUse/PreToolUse/Stop）将被完全屏蔽。使用前必须先阅读 README.md 的迁移检查清单，将关键 hooks 迁移到 managed scope，否则整个 GSD orchestrator 主线将失去 hook 保障。需要 Claude Code >= v2.1.82（strictPluginOnlyCustomization 版本要求，见 README）。",
+
+  "_WARNING": "此 profile 会杀掉用户全局 GSD hooks！迁移前不要使用。详见 README.md 迁移检查清单。",
+
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_WORKFLOWS": "1"
+  },
+
+  "permissions": {
+    "allow": [
+      "Bash(npm audit)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run lint)",
+      "Bash(npm run test)",
+      "Bash(npm run test:unit)",
+      "Bash(npm run test:integration)",
+      "Bash(npx vitest run *)",
+      "Bash(npx playwright test *)",
+      "Bash(semgrep scan --config p/ci .)",
+      "Bash(gitleaks detect *)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf /*)",
+      "Bash(dd if=/dev/zero of=/dev/sd*)",
+      "Bash(mkfs.* /dev/sd*)",
+      "Bash(hydra *)",
+      "Bash(medusa *)",
+      "Bash(ncrack *)",
+      "Bash(msfconsole *)",
+      "Bash(msfvenom *)",
+      "Bash(meterpreter *)",
+      "Bash(sqlmap *)",
+      "Bash(nikto *)",
+      "Bash(masscan *)",
+      "Bash(zap-full-scan.py *)",
+      "Bash(beef-xss *)",
+      "Bash(empire *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git reset --hard *)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.gcp/**)",
+      "Read(~/.azure/**)",
+      "Read(**/credentials)",
+      "Read(**/credentials.json)",
+      "Read(**/private*.pem)",
+      "Read(**/private*.key)",
+      "Read(**/server*.key)",
+      "Read(**/secret*.key)",
+      "Read(**/*.p12)",
+      "Read(**/*.pfx)",
+      "Read(**/*.env)",
+      "Write(~/.ssh/**)",
+      "Write(~/.aws/**)",
+      "Write(**/credentials)",
+      "Write(**/credentials.json)",
+      "Edit(~/.ssh/**)",
+      "Edit(~/.aws/**)",
+      "Bash(cat /etc/shadow*)",
+      "Bash(cat ~/.aws/*)",
+      "Bash(cat ~/.ssh/*)",
+      "Bash(ssh *)",
+      "Bash(nc *)",
+      "Bash(ncat *)",
+      "Bash(socat *)"
+    ]
+  },
+
+  "disableSkillShellExecution": true,
+
+  "disableWorkflows": false,
+
+  "_managed_only_flags": {
+    "allowManagedHooksOnly": true,
+    "_allowManagedHooksOnly_note": "(verify key name against your Claude Code version — kills all user-global hooks including GSD hooks; migrate first)",
+    "allowManagedMcpServersOnly": true,
+    "_allowManagedMcpServersOnly_note": "(verify key name against your Claude Code version — only managed MCP servers will load)",
+    "allowManagedPermissionRulesOnly": true,
+    "_allowManagedPermissionRulesOnly_note": "(verify key name against your Claude Code version — user-level allow/deny rules are ignored)",
+    "strictPluginOnlyCustomization": true,
+    "_strictPluginOnlyCustomization_note": "(verify key name against your Claude Code version — requires CC >= v2.1.82 per task brief)"
+  },
+
+  "_notes": [
+    "所有 _managed_only_flags 下的 key 需要在目标 Claude Code 版本中验证实际 key 名",
+    "strictPluginOnlyCustomization 要求 Claude Code >= v2.1.82",
+    "启用前必须把 ~/.claude/settings.json 中的 GSD hooks 迁移到 managed scope",
+    "disableWorkflows key 来自 native-capabilities.md (doc-cited)"
+  ]
+}

@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://claude.local/schemas/harness-registry.schema.json",
-  "title": "Harness Registry",
-  "description": "JSON Schema for manifests/harness.registry.json. Single source of truth for the Claude Code harness: primary orchestrators, downstream gates, manual-first skills, subsystem agents, hooks, SDKs, evidence roots, schemas, handoff schemas, gate decision vocabulary, and the name-freeze list. Tests under tests/harness/ consume this registry to assert structural invariants. Authoritative reference: docs/CANONICALS.md.",
+  "title": "Harness Registry (realigned to live 2.0.0 shape)",
+  "description": "JSON Schema for manifests/harness.registry.json. REALIGNED 2026-06-14 (audit C3): the prior schema described a never-realized idealized shape and validated nothing; the live registry drifted from it on agents/hooks/sdks/evidence_roots/schemas/handoff_schemas/decision_semantics/name_freeze. This version matches the live 2.0.0 registry and is enforced by tests/harness/registry-schema.test.js via schemas/validate-registry.js (dependency-free). additionalProperties:true is used where the registry carries legitimately rich/heterogeneous content; required + enum + pattern pin the structural invariants that actually matter so real drift is still caught.",
   "type": "object",
   "required": [
     "schema_version",
@@ -18,355 +18,128 @@
     "decision_semantics",
     "name_freeze"
   ],
-  "additionalProperties": false,
+  "additionalProperties": true,
   "properties": {
-    "schema_version": {
-      "type": "string",
-      "pattern": "^\\d+\\.\\d+\\.\\d+$",
-      "description": "Semver of the harness registry schema this document conforms to"
-    },
-    "generated_date": {
-      "type": "string",
-      "format": "date"
-    },
-    "generated_by": {
-      "type": "string"
-    },
-    "description": {
-      "type": "string"
-    },
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "generated_date": { "type": "string" },
+    "generated_by": { "type": "string" },
+    "description": { "type": "string" },
 
     "primary_orchestrators": {
       "type": "array",
       "minItems": 1,
-      "description": "Tier-1 orchestrators (claude-env-bootstrap + 4 commercial mainline)",
-      "items": { "$ref": "#/$defs/PrimaryOrchestrator" }
+      "items": { "$ref": "#/$defs/Orchestrator" }
     },
-
     "downstream_gates": {
       "type": "array",
-      "description": "Release-time gates downstream of primary orchestrators (e.g. discoverability-orchestrator under UIUX)",
       "items": { "$ref": "#/$defs/DownstreamGate" }
     },
-
     "manual_first_skills": {
       "type": "array",
-      "description": "Skills with disable_model_invocation: true (auto-invocation forbidden; user must explicit /command)",
       "items": { "$ref": "#/$defs/ManualFirstSkill" }
     },
-
     "agents": {
       "type": "object",
-      "description": "Named subagents keyed by subsystem",
-      "additionalProperties": false,
-      "patternProperties": {
-        "^[a-z][a-z0-9_]*$": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/Agent" }
-        }
-      }
+      "patternProperties": { "^[a-z][a-z0-9_]*$": { "$ref": "#/$defs/AgentGroup" } },
+      "additionalProperties": false
     },
-
     "hooks": {
       "type": "object",
-      "description": "Pointer to manifests/hook-registry.json + denormalized indexes for harness tests",
-      "required": ["registry_path"],
-      "additionalProperties": false,
+      "required": ["global_live", "project_installed"],
+      "additionalProperties": true,
       "properties": {
-        "registry_path": {
-          "type": "string",
-          "description": "Relative path from .claude/ to hook-registry.json"
-        },
-        "global_live_count": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Number of hooks globally registered in settings.json"
-        },
-        "project_installed_subsystems": {
-          "type": "array",
-          "description": "Subsystem names that ship hooks via project-install templates only",
-          "items": {
-            "type": "string",
-            "enum": ["appsec", "qa", "uiux", "discoverability"]
-          }
-        },
-        "library_modules": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Shared helper modules (e.g. _appsec-common.js) — not directly registered"
-        }
+        "global_live": { "type": "object" },
+        "project_installed": { "type": "object" }
       }
     },
-
     "sdks": {
       "type": "object",
-      "description": "Subsystem SDK entrypoints + declared commands",
-      "additionalProperties": false,
-      "patternProperties": {
-        "^[a-z][a-z0-9_-]*$": { "$ref": "#/$defs/SdkEntry" }
-      }
+      "patternProperties": { "^[a-z][a-z0-9_-]*$": { "$ref": "#/$defs/SdkEntry" } },
+      "additionalProperties": false
     },
-
-    "evidence_roots": {
-      "type": "object",
-      "description": "Canonical evidence path per subsystem (see CANONICALS §1 D2)",
-      "additionalProperties": false,
-      "patternProperties": {
-        "^[a-z][a-z0-9_-]*$": { "$ref": "#/$defs/EvidenceRoot" }
-      }
-    },
-
+    "evidence_roots": { "type": "object", "additionalProperties": true },
     "schemas": {
       "type": "object",
-      "description": "Pointers to schema files this harness depends on",
-      "additionalProperties": false,
-      "properties": {
-        "gate_decision": { "type": "string" },
-        "handoff":       { "type": "string" },
-        "pentest_roe":   { "type": "string" },
-        "harness_registry": { "type": "string" },
-        "hook_registry":    { "type": "string" }
-      },
-      "required": ["gate_decision", "handoff", "pentest_roe", "harness_registry", "hook_registry"]
+      "required": ["harness_registry", "hook_registry"],
+      "additionalProperties": true
     },
-
     "handoff_schemas": {
       "type": "object",
-      "description": "Named handoff payload contracts defined in handoff.schema.yaml",
-      "additionalProperties": false,
-      "properties": {
-        "gsd_to_uiux":              { "$ref": "#/$defs/HandoffPointer" },
-        "uiux_to_l12":              { "$ref": "#/$defs/HandoffPointer" },
-        "gsd_to_qa":                { "$ref": "#/$defs/HandoffPointer" },
-        "gsd_to_appsec":            { "$ref": "#/$defs/HandoffPointer" },
-        "l12_to_appsec_escalation": { "$ref": "#/$defs/HandoffPointer" },
-        "qa_to_appsec":             { "$ref": "#/$defs/HandoffPointer" }
-      },
-      "required": [
-        "gsd_to_uiux",
-        "uiux_to_l12",
-        "gsd_to_qa",
-        "gsd_to_appsec",
-        "l12_to_appsec_escalation",
-        "qa_to_appsec"
-      ]
+      "required": ["default"],
+      "additionalProperties": true
     },
-
     "decision_semantics": {
       "type": "object",
-      "description": "Canonical 7-value gate decision vocabulary (mirror of gate-decision.schema.yaml)",
-      "required": ["enum", "blocks_release", "allows_release", "not_release_decision"],
-      "additionalProperties": false,
-      "properties": {
-        "enum": {
-          "type": "array",
-          "minItems": 7,
-          "maxItems": 7,
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "enum": [
-              "PASS",
-              "WARN",
-              "CONDITIONAL_PASS",
-              "FAIL",
-              "BLOCKED",
-              "STALE",
-              "STRATEGY_READY"
-            ]
-          }
-        },
-        "blocks_release": {
-          "type": "array",
-          "items": { "type": "string", "enum": ["FAIL", "BLOCKED", "STALE"] },
-          "minItems": 3,
-          "maxItems": 3,
-          "uniqueItems": true
-        },
-        "allows_release": {
-          "type": "array",
-          "items": { "type": "string", "enum": ["PASS", "WARN", "CONDITIONAL_PASS"] },
-          "minItems": 3,
-          "maxItems": 3,
-          "uniqueItems": true
-        },
-        "not_release_decision": {
-          "type": "array",
-          "items": { "type": "string", "enum": ["STRATEGY_READY"] },
-          "minItems": 1,
-          "maxItems": 1,
-          "uniqueItems": true
-        },
-        "conditional_pass_requires": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Fields required for CONDITIONAL_PASS to allow release (e.g. explicit_risk_acceptance_ref)"
-        },
-        "must_be_bundled": {
-          "type": "array",
-          "items": { "type": "string", "enum": ["WARN"] },
-          "uniqueItems": true,
-          "description": "Decisions that allow release but MUST be carried in the release evidence bundle"
-        }
-      }
+      "required": ["gate_vocabulary"],
+      "additionalProperties": true,
+      "properties": { "gate_vocabulary": { "type": "object" } }
     },
-
     "name_freeze": {
       "type": "array",
-      "description": "Names that are part of the control surface — renaming = breaking safety. Tests assert these all exist verbatim.",
       "minItems": 1,
       "items": { "$ref": "#/$defs/NameFreezeEntry" }
     },
-
-    "metadata": {
-      "type": "object",
-      "additionalProperties": true
-    }
+    "see_also": { "type": "array", "items": { "type": "string" } }
   },
 
   "$defs": {
-    "PrimaryOrchestrator": {
+    "Orchestrator": {
       "type": "object",
       "required": ["name", "tier", "trigger_mode"],
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
-        "name":                   { "type": "string", "minLength": 1 },
-        "canonical_id":           { "type": "string" },
-        "aliases":                { "type": "array", "items": { "type": "string" } },
-        "version":                { "type": "string" },
-        "tier":                   { "type": "string", "enum": ["primary"] },
-        "role":                   { "type": "string" },
-        "subsystem":              { "type": "string" },
-        "trigger_mode":           { "type": "string", "enum": ["auto", "manual-first", "manual-only", "auto when triggers present"] },
-        "disable_model_invocation": { "type": "boolean" },
-        "downstream_gates":       { "type": "array", "items": { "type": "string" } },
-        "purpose":                { "type": "string" }
+        "name": { "type": "string", "minLength": 1 },
+        "tier": { "type": "string", "const": "primary" },
+        "trigger_mode": { "type": "string", "minLength": 1 },
+        "disable_model_invocation": { "type": "boolean" }
       }
     },
-
     "DownstreamGate": {
       "type": "object",
-      "required": ["name", "parent_orchestrator", "stage"],
-      "additionalProperties": false,
+      "required": ["name", "parent_orchestrator"],
+      "additionalProperties": true,
       "properties": {
-        "name":               { "type": "string", "minLength": 1 },
-        "parent_orchestrator":{ "type": "string", "minLength": 1 },
-        "stage":              { "type": "string", "enum": ["pre-release", "release", "post-release"] },
-        "decision_enum_ref":  { "type": "string", "description": "Pointer to decision_semantics" },
-        "evidence_root_ref":  { "type": "string", "description": "Key into evidence_roots" }
+        "name": { "type": "string", "minLength": 1 },
+        "parent_orchestrator": { "type": "string", "minLength": 1 }
       }
     },
-
     "ManualFirstSkill": {
       "type": "object",
       "required": ["name", "reason"],
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
-        "name":   { "type": "string", "minLength": 1 },
-        "reason": { "type": "string", "minLength": 1 },
-        "disable_model_invocation": { "type": "boolean", "const": true }
+        "name": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
       }
     },
-
-    "Agent": {
+    "AgentGroup": {
       "type": "object",
-      "required": ["name"],
-      "additionalProperties": false,
+      "required": ["members", "owner"],
+      "additionalProperties": true,
       "properties": {
-        "name":     { "type": "string", "minLength": 1 },
-        "role":     { "type": "string" },
-        "model":    { "type": "string", "enum": ["opus", "sonnet", "haiku"] },
-        "tools":    { "type": "array", "items": { "type": "string" } },
-        "writes":   { "type": "array", "items": { "type": "string" }, "description": "Files / paths this agent is canonical owner of" },
-        "consumes_schema": { "type": "array", "items": { "type": "string" } },
-        "produces_schema": { "type": "array", "items": { "type": "string" } },
-        "subsystem":{ "type": "string" }
+        "members": { "type": "array", "items": { "type": "string" } },
+        "owner": { "type": "string", "minLength": 1 },
+        "location": { "type": "string" }
       }
     },
-
     "SdkEntry": {
       "type": "object",
-      "required": ["entrypoint", "commands"],
-      "additionalProperties": false,
+      "required": ["path"],
+      "additionalProperties": true,
       "properties": {
-        "entrypoint": {
-          "type": "string",
-          "description": "Relative path to the SDK script"
-        },
-        "language": {
-          "type": "string",
-          "enum": ["bash", "node", "python", "powershell"]
-        },
-        "commands": {
-          "type": "array",
-          "minItems": 1,
-          "items": { "type": "string", "minLength": 1 },
-          "description": "Declared subcommands the SDK exposes"
-        },
-        "evidence_root_ref": { "type": "string" },
-        "legacy_path": {
-          "type": "string",
-          "description": "Deprecated alias path the SDK migrates from (e.g. .planning/security/ for AppSec)"
-        }
+        "path": { "type": "string", "minLength": 1 },
+        "lang": { "type": "string", "enum": ["bash", "node", "python", "powershell"] },
+        "commands": { "type": "array", "items": { "type": "string" } }
       }
     },
-
-    "EvidenceRoot": {
-      "type": "object",
-      "required": ["canonical"],
-      "additionalProperties": false,
-      "properties": {
-        "canonical": {
-          "type": "string",
-          "description": "Canonical evidence root (e.g. .appsec/evidence/<tag>/)"
-        },
-        "deprecated_aliases": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Paths that are read-only-back-compat; new evidence must be written to canonical"
-        },
-        "tag_scoped": {
-          "type": "boolean",
-          "description": "Whether evidence is partitioned by <tag>"
-        },
-        "gate_result_filename": {
-          "type": "string",
-          "description": "Canonical gate-result filename (e.g. gate-result.yaml)"
-        }
-      }
-    },
-
-    "HandoffPointer": {
-      "type": "object",
-      "required": ["schema_ref", "producer", "consumer"],
-      "additionalProperties": false,
-      "properties": {
-        "schema_ref": { "type": "string", "description": "Pointer to $def in handoff.schema.yaml" },
-        "producer":   { "type": "string", "description": "Orchestrator/agent that produces the payload" },
-        "consumer":   { "type": "string", "description": "Orchestrator that accepts the payload" }
-      }
-    },
-
     "NameFreezeEntry": {
       "type": "object",
-      "required": ["name", "category"],
-      "additionalProperties": false,
+      "required": ["name"],
+      "additionalProperties": true,
       "properties": {
-        "name":     { "type": "string", "minLength": 1 },
-        "category": {
-          "type": "string",
-          "enum": [
-            "skill",
-            "agent",
-            "hook",
-            "sdk_command",
-            "evidence_path_segment",
-            "schema",
-            "orchestrator"
-          ]
-        },
-        "subsystem": { "type": "string" },
-        "reason":    { "type": "string" }
+        "name": { "type": "string", "minLength": 1 },
+        "type": { "type": "string" },
+        "category": { "type": "string" }
       }
     }
   }

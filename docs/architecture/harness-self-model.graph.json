@@ -1,0 +1,506 @@
+{
+  "generated_by": "tools/self-model/graph-gen.js",
+  "generated_at_note": "timestamp intentionally omitted — deterministic artifact (no Date.now / new Date)",
+  "disclaimer": "CANONICALS D8: read-only visualization artifact. Never read by any gate/hook. Never blocks any operation.",
+  "node_count": 45,
+  "edge_count": 45,
+  "nodes": [
+    {
+      "id": "claude-env-bootstrap",
+      "type": "orchestrator",
+      "subsystem": "primary",
+      "label": "Project Bootstrap Orchestrator"
+    },
+    {
+      "id": "gsd-pipeline-orchestrator",
+      "type": "orchestrator",
+      "subsystem": "primary",
+      "label": "GSD Delivery Orchestrator"
+    },
+    {
+      "id": "uiux-product-orchestrator",
+      "type": "orchestrator",
+      "subsystem": "primary",
+      "label": "UIUX Product Orchestrator"
+    },
+    {
+      "id": "sdk-uiux-product-orchestrator",
+      "type": "sdk",
+      "subsystem": "uiux-product-orchestrator",
+      "label": "scripts/uiux-sdk.sh"
+    },
+    {
+      "id": "enterprise-qa-testing",
+      "type": "orchestrator",
+      "subsystem": "primary",
+      "label": "Enterprise QA / SDET Orchestrator"
+    },
+    {
+      "id": "sdk-enterprise-qa-testing",
+      "type": "sdk",
+      "subsystem": "enterprise-qa-testing",
+      "label": "scripts/qa-sdk.sh"
+    },
+    {
+      "id": "appsec-security-orchestrator",
+      "type": "orchestrator",
+      "subsystem": "primary",
+      "label": "AppSec Orchestrator (v3.0 GSD-lite execution engine + NIST CSF 2.0 + ASVS 5.0)"
+    },
+    {
+      "id": "sdk-appsec-security-orchestrator",
+      "type": "sdk",
+      "subsystem": "appsec-security-orchestrator",
+      "label": "scripts/appsec-sdk.sh"
+    },
+    {
+      "id": "discoverability-orchestrator",
+      "type": "downstream_gate",
+      "subsystem": "l12",
+      "label": "L12 Discoverability Release Gate (SEO/AEO/Local-SEO/ASO)"
+    },
+    {
+      "id": "sdk-discoverability-orchestrator",
+      "type": "sdk",
+      "subsystem": "discoverability-orchestrator",
+      "label": "skills/discoverability-orchestrator/scripts/discoverability-sdk.py"
+    },
+    {
+      "id": "sdk-appsec",
+      "type": "sdk",
+      "subsystem": "appsec",
+      "label": "scripts/appsec-sdk.sh"
+    },
+    {
+      "id": "sdk-qa",
+      "type": "sdk",
+      "subsystem": "qa",
+      "label": "scripts/qa-sdk.sh"
+    },
+    {
+      "id": "sdk-uiux",
+      "type": "sdk",
+      "subsystem": "uiux",
+      "label": "scripts/uiux-sdk.sh"
+    },
+    {
+      "id": "sdk-discoverability",
+      "type": "sdk",
+      "subsystem": "discoverability",
+      "label": "skills/discoverability-orchestrator/scripts/discoverability-sdk.py"
+    },
+    {
+      "id": "hooks-l12",
+      "type": "hook-group",
+      "subsystem": "l12",
+      "label": "l12 hooks"
+    },
+    {
+      "id": "disc-scope-classifier",
+      "type": "agent",
+      "subsystem": "l12",
+      "label": "disc-scope-classifier"
+    },
+    {
+      "id": "disc-evidence-validator",
+      "type": "agent",
+      "subsystem": "l12",
+      "label": "disc-evidence-validator"
+    },
+    {
+      "id": "disc-remediation-planner",
+      "type": "agent",
+      "subsystem": "l12",
+      "label": "disc-remediation-planner"
+    },
+    {
+      "id": "hooks-qa",
+      "type": "hook-group",
+      "subsystem": "qa",
+      "label": "qa hooks"
+    },
+    {
+      "id": "qa-risk-classifier",
+      "type": "agent",
+      "subsystem": "qa",
+      "label": "qa-risk-classifier"
+    },
+    {
+      "id": "qa-evidence-validator",
+      "type": "agent",
+      "subsystem": "qa",
+      "label": "qa-evidence-validator"
+    },
+    {
+      "id": "qa-flaky-triager",
+      "type": "agent",
+      "subsystem": "qa",
+      "label": "qa-flaky-triager"
+    },
+    {
+      "id": "hooks-uiux",
+      "type": "hook-group",
+      "subsystem": "uiux",
+      "label": "uiux hooks"
+    },
+    {
+      "id": "uiux-gsd-contract-validator",
+      "type": "agent",
+      "subsystem": "uiux",
+      "label": "uiux-gsd-contract-validator"
+    },
+    {
+      "id": "hooks-appsec",
+      "type": "hook-group",
+      "subsystem": "appsec",
+      "label": "appsec hooks"
+    },
+    {
+      "id": "appsec-reviewer",
+      "type": "agent",
+      "subsystem": "appsec",
+      "label": "appsec-reviewer"
+    },
+    {
+      "id": "appsec-risk-classifier",
+      "type": "agent",
+      "subsystem": "appsec",
+      "label": "appsec-risk-classifier"
+    },
+    {
+      "id": "appsec-finding-triager",
+      "type": "agent",
+      "subsystem": "appsec",
+      "label": "appsec-finding-triager"
+    },
+    {
+      "id": "appsec-evidence-validator",
+      "type": "agent",
+      "subsystem": "appsec",
+      "label": "appsec-evidence-validator"
+    },
+    {
+      "id": "security-remediation-engineer",
+      "type": "agent",
+      "subsystem": "appsec",
+      "label": "security-remediation-engineer"
+    },
+    {
+      "id": "dast-baseline-engineer",
+      "type": "agent",
+      "subsystem": "appsec",
+      "label": "dast-baseline-engineer"
+    },
+    {
+      "id": "pentest-scope-planner",
+      "type": "agent",
+      "subsystem": "appsec",
+      "label": "pentest-scope-planner"
+    },
+    {
+      "id": "authorized-pentest-validator",
+      "type": "agent",
+      "subsystem": "appsec",
+      "label": "authorized-pentest-validator"
+    },
+    {
+      "id": "hooks-gsd",
+      "type": "hook-group",
+      "subsystem": "gsd",
+      "label": "gsd hooks"
+    },
+    {
+      "id": "gsd-planner",
+      "type": "agent",
+      "subsystem": "gsd",
+      "label": "gsd-planner"
+    },
+    {
+      "id": "gsd-executor",
+      "type": "agent",
+      "subsystem": "gsd",
+      "label": "gsd-executor"
+    },
+    {
+      "id": "gsd-verifier",
+      "type": "agent",
+      "subsystem": "gsd",
+      "label": "gsd-verifier"
+    },
+    {
+      "id": "gsd-code-reviewer",
+      "type": "agent",
+      "subsystem": "gsd",
+      "label": "gsd-code-reviewer"
+    },
+    {
+      "id": "gsd-ui-auditor",
+      "type": "agent",
+      "subsystem": "gsd",
+      "label": "gsd-ui-auditor"
+    },
+    {
+      "id": "gsd-security-auditor",
+      "type": "agent",
+      "subsystem": "gsd",
+      "label": "gsd-security-auditor"
+    },
+    {
+      "id": "gsd-nyquist-auditor",
+      "type": "agent",
+      "subsystem": "gsd",
+      "label": "gsd-nyquist-auditor"
+    },
+    {
+      "id": "gsd-eval-auditor",
+      "type": "agent",
+      "subsystem": "gsd",
+      "label": "gsd-eval-auditor"
+    },
+    {
+      "id": "hooks-global-claude-env-bootstrap",
+      "type": "hook-group",
+      "subsystem": "claude-env-bootstrap",
+      "label": "claude-env-bootstrap global hooks"
+    },
+    {
+      "id": "hooks-global-gsd-pipeline-orchestrator",
+      "type": "hook-group",
+      "subsystem": "gsd-pipeline-orchestrator",
+      "label": "gsd-pipeline-orchestrator global hooks"
+    },
+    {
+      "id": "routing-policy",
+      "type": "routing-policy",
+      "subsystem": "global",
+      "label": "Skill Routing Policy"
+    }
+  ],
+  "edges": [
+    {
+      "from": "uiux-product-orchestrator",
+      "to": "sdk-uiux-product-orchestrator",
+      "kind": "sdk"
+    },
+    {
+      "from": "uiux-product-orchestrator",
+      "to": "discoverability-orchestrator",
+      "kind": "downstream_gate"
+    },
+    {
+      "from": "enterprise-qa-testing",
+      "to": "sdk-enterprise-qa-testing",
+      "kind": "sdk"
+    },
+    {
+      "from": "appsec-security-orchestrator",
+      "to": "sdk-appsec-security-orchestrator",
+      "kind": "sdk"
+    },
+    {
+      "from": "discoverability-orchestrator",
+      "to": "sdk-discoverability-orchestrator",
+      "kind": "sdk"
+    },
+    {
+      "from": "appsec-security-orchestrator",
+      "to": "sdk-appsec",
+      "kind": "sdk"
+    },
+    {
+      "from": "enterprise-qa-testing",
+      "to": "sdk-qa",
+      "kind": "sdk"
+    },
+    {
+      "from": "uiux-product-orchestrator",
+      "to": "sdk-uiux",
+      "kind": "sdk"
+    },
+    {
+      "from": "discoverability-orchestrator",
+      "to": "sdk-discoverability",
+      "kind": "sdk"
+    },
+    {
+      "from": "discoverability-orchestrator",
+      "to": "hooks-l12",
+      "kind": "owns"
+    },
+    {
+      "from": "discoverability-orchestrator",
+      "to": "disc-scope-classifier",
+      "kind": "owns"
+    },
+    {
+      "from": "discoverability-orchestrator",
+      "to": "disc-evidence-validator",
+      "kind": "owns"
+    },
+    {
+      "from": "discoverability-orchestrator",
+      "to": "disc-remediation-planner",
+      "kind": "owns"
+    },
+    {
+      "from": "enterprise-qa-testing",
+      "to": "hooks-qa",
+      "kind": "owns"
+    },
+    {
+      "from": "enterprise-qa-testing",
+      "to": "qa-risk-classifier",
+      "kind": "owns"
+    },
+    {
+      "from": "enterprise-qa-testing",
+      "to": "qa-evidence-validator",
+      "kind": "owns"
+    },
+    {
+      "from": "enterprise-qa-testing",
+      "to": "qa-flaky-triager",
+      "kind": "owns"
+    },
+    {
+      "from": "uiux-product-orchestrator",
+      "to": "hooks-uiux",
+      "kind": "owns"
+    },
+    {
+      "from": "uiux-product-orchestrator",
+      "to": "uiux-gsd-contract-validator",
+      "kind": "owns"
+    },
+    {
+      "from": "appsec-security-orchestrator",
+      "to": "hooks-appsec",
+      "kind": "owns"
+    },
+    {
+      "from": "appsec-security-orchestrator",
+      "to": "appsec-reviewer",
+      "kind": "owns"
+    },
+    {
+      "from": "appsec-security-orchestrator",
+      "to": "appsec-risk-classifier",
+      "kind": "owns"
+    },
+    {
+      "from": "appsec-security-orchestrator",
+      "to": "appsec-finding-triager",
+      "kind": "owns"
+    },
+    {
+      "from": "appsec-security-orchestrator",
+      "to": "appsec-evidence-validator",
+      "kind": "owns"
+    },
+    {
+      "from": "appsec-security-orchestrator",
+      "to": "security-remediation-engineer",
+      "kind": "owns"
+    },
+    {
+      "from": "appsec-security-orchestrator",
+      "to": "dast-baseline-engineer",
+      "kind": "owns"
+    },
+    {
+      "from": "appsec-security-orchestrator",
+      "to": "pentest-scope-planner",
+      "kind": "owns"
+    },
+    {
+      "from": "appsec-security-orchestrator",
+      "to": "authorized-pentest-validator",
+      "kind": "owns"
+    },
+    {
+      "from": "gsd-pipeline-orchestrator",
+      "to": "hooks-gsd",
+      "kind": "owns"
+    },
+    {
+      "from": "gsd-pipeline-orchestrator",
+      "to": "gsd-planner",
+      "kind": "owns"
+    },
+    {
+      "from": "gsd-pipeline-orchestrator",
+      "to": "gsd-executor",
+      "kind": "owns"
+    },
+    {
+      "from": "gsd-pipeline-orchestrator",
+      "to": "gsd-verifier",
+      "kind": "owns"
+    },
+    {
+      "from": "gsd-pipeline-orchestrator",
+      "to": "gsd-code-reviewer",
+      "kind": "owns"
+    },
+    {
+      "from": "gsd-pipeline-orchestrator",
+      "to": "gsd-ui-auditor",
+      "kind": "owns"
+    },
+    {
+      "from": "gsd-pipeline-orchestrator",
+      "to": "gsd-security-auditor",
+      "kind": "owns"
+    },
+    {
+      "from": "gsd-pipeline-orchestrator",
+      "to": "gsd-nyquist-auditor",
+      "kind": "owns"
+    },
+    {
+      "from": "gsd-pipeline-orchestrator",
+      "to": "gsd-eval-auditor",
+      "kind": "owns"
+    },
+    {
+      "from": "claude-env-bootstrap",
+      "to": "hooks-global-claude-env-bootstrap",
+      "kind": "owns"
+    },
+    {
+      "from": "gsd-pipeline-orchestrator",
+      "to": "hooks-global-gsd-pipeline-orchestrator",
+      "kind": "owns"
+    },
+    {
+      "from": "routing-policy",
+      "to": "claude-env-bootstrap",
+      "kind": "routes"
+    },
+    {
+      "from": "routing-policy",
+      "to": "gsd-pipeline-orchestrator",
+      "kind": "routes"
+    },
+    {
+      "from": "routing-policy",
+      "to": "uiux-product-orchestrator",
+      "kind": "routes"
+    },
+    {
+      "from": "routing-policy",
+      "to": "enterprise-qa-testing",
+      "kind": "routes"
+    },
+    {
+      "from": "routing-policy",
+      "to": "appsec-security-orchestrator",
+      "kind": "routes"
+    },
+    {
+      "from": "routing-policy",
+      "to": "discoverability-orchestrator",
+      "kind": "routes"
+    }
+  ]
+}

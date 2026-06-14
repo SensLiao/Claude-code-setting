@@ -149,6 +149,14 @@ Commands:
   migrate-evidence [--from <path>] [--to <path>] [--dry-run]
                                       (D2 legacy adapter; default --from .planning/security/
                                        --to .appsec/evidence/<active-tag>/)
+  ledger.append <tag> [--decision <d>] [--stage <s>] [--gate-result <p>] [--k=v...]
+                                      # T1.1 — append run-ledger row to <project>/.harness/runs.jsonl (record-only, NEVER blocks)
+  control.matrix.verify [--map <f>] [--level baseline|elevated|regulated]
+                                      # T1.2 — fail-closed: status:covered control without resolvable evidence_ref → FAIL
+  tool.registry [<file>]              # T1.4 — validate a tool/MCP risk registry (T0-T6 ladder)
+  tool.gate [--registry <f>] [--require]  # T1.4 — unclassified/unbound high-risk tool (T4+/T5/T6) → BLOCK
+  lifecycle.transition <from> <to>    # T2.1 — 9-state vuln lifecycle; illegal jump → exit 1
+  exception.sweep <tag>               # T2.1 — ACCEPTED_RISK past exception_expiry → exit 1 (must reopen)
 
 Exit codes: 0=PASS  1=FAIL  2=BLOCKED  3=CONDITIONAL_PASS
 With --allow-conditional, 3 collapses to 0.
@@ -706,6 +714,7 @@ gate_check_d2_freshness() {
       return 0
     fi
     echo "appsec-sdk gate.check: STALE — decision is ${age_h}h old (> ${hours}h freshness window); re-run release decision before shipping" >&2
+    _LEDGER_DECISION="STALE"   # codex P2: ledger records true STALE, not exit-code-mapped BLOCKED
     exit 2
   fi
   return 0
@@ -730,8 +739,9 @@ gate_check_d3_sla() {
     [[ -z "$due" ]] && continue
     st=$(extract_scalar "$content" "status")
     case "$st" in
-      ""|open|in_progress|reopened|new) :;;   # open-ish → subject to SLA
-      *) continue;;                            # mitigated/resolved/accepted/false_positive/etc → exempt
+      ""|open|in_progress|reopened|new) :;;   # legacy open-ish → subject to SLA
+      OPEN|TRIAGED|FIXING|RETEST_REQUIRED|RETEST_FAILED|EXPIRED_EXCEPTION) :;;  # codex P1: 9-state lifecycle open-ish → subject to SLA (EXPIRED_EXCEPTION is an active vuln again)
+      *) continue;;                            # FIXED/CLOSED/ACCEPTED_RISK/mitigated/resolved/false_positive → exempt
     esac
     due_epoch=$(epoch_of_iso "$due") || due_epoch=""
     [[ -z "$due_epoch" ]] && continue
@@ -773,6 +783,10 @@ cmd_gate_check() {
     esac
   done
   ensure_project_root
+  # ★ T1.1 (ADDITIVE) — install EXIT trap so EVERY gate.check exit path records its final
+  # outcome in the run ledger (the black box). Record-only; never alters the gate's exit code.
+  _LEDGER_TAG="$tag"; _LEDGER_STAGE="gate.check"
+  trap _gate_ledger_on_exit EXIT
   # ★ D2 SDK adapter: WARN (but do not block) when legacy evidence content is observed
   if [[ -n "$legacy_path" ]]; then
     local legacy_dir="$PROJECT_ROOT/$legacy_path"
@@ -828,6 +842,59 @@ cmd_gate_check() {
     exit 2
   fi
 
+  # ★ T1.2 (ADDITIVE) — control-matrix verify. Fires ONLY if a control map exists, so projects
+  # without .harness/control-matrix.json are unaffected. strict: FAIL/BLOCK propagates; lax: WARN.
+  # codex P1: fail-closed once the artifact exists — a present control map with a missing/
+  # mis-resolved verifier must BLOCK (strict) / WARN (lax), NOT silently skip (fail-open).
+  local _cm_map="$PROJECT_ROOT/.harness/control-matrix.json"
+  if [[ -f "$_cm_map" ]]; then
+    if [[ ! -f "$CONTROL_VERIFY" ]] || ! command -v "$NODE_BIN" >/dev/null 2>&1; then
+      if [[ "$mode" == "lax" ]]; then
+        echo "appsec-sdk gate.check: WARN (lax) — control-matrix present but verifier/node unavailable; cannot verify" >&2
+      else
+        echo "appsec-sdk gate.check: BLOCKED — control-matrix present but verifier/node unavailable (fail-closed)" >&2
+        exit 2
+      fi
+    else
+      local _cmv_out _cmv_rc
+      _cmv_out=$("$NODE_BIN" "$CONTROL_VERIFY" "$_cm_map" "$PROJECT_ROOT" 2>&1); _cmv_rc=$?
+      if (( _cmv_rc != 0 )); then
+        if [[ "$mode" == "lax" ]]; then
+          echo "appsec-sdk gate.check: WARN (lax) — control-matrix verify non-clean:" >&2; printf '%s\n' "$_cmv_out" >&2
+        else
+          printf '%s\n' "$_cmv_out" >&2
+          echo "appsec-sdk gate.check: control-matrix verify failed (rc=$_cmv_rc)" >&2
+          exit "$_cmv_rc"
+        fi
+      fi
+    fi
+  fi
+  # ★ T1.4 (ADDITIVE) — tool-risk gate. Fires ONLY if a tool-risk registry exists; fail-closed once present.
+  local _tr_reg="$PROJECT_ROOT/.harness/tool-risk.json"
+  if [[ -f "$_tr_reg" ]]; then
+    if [[ ! -f "$TOOL_VERIFY" ]] || ! command -v "$NODE_BIN" >/dev/null 2>&1; then
+      if [[ "$mode" == "lax" ]]; then
+        echo "appsec-sdk gate.check: WARN (lax) — tool-risk registry present but verifier/node unavailable; cannot verify" >&2
+      else
+        echo "appsec-sdk gate.check: BLOCKED — tool-risk registry present but verifier/node unavailable (fail-closed)" >&2
+        exit 2
+      fi
+    else
+      local _trv_out _trv_rc
+      _trv_out=$("$NODE_BIN" "$TOOL_VERIFY" "$_tr_reg" 2>&1); _trv_rc=$?
+      if (( _trv_rc != 0 )); then
+        if [[ "$mode" == "lax" ]]; then
+          echo "appsec-sdk gate.check: WARN (lax) — tool-risk verify non-clean:" >&2; printf '%s\n' "$_trv_out" >&2
+        else
+          printf '%s\n' "$_trv_out" >&2
+          echo "appsec-sdk gate.check: tool-risk verify failed (rc=$_trv_rc)" >&2
+          exit "$_trv_rc"
+        fi
+      fi
+    fi
+  fi
+
+  _LEDGER_DECISION="$decision"   # codex P2: record the parsed decision (PASS/FAIL/BLOCKED/CONDITIONAL_PASS) accurately
   case "$decision" in
     PASS)
       gate_check_d3_sla "$tag" "$mode"   # a PASS must not coexist with an overdue OPEN finding
@@ -1368,6 +1435,166 @@ cmd_migrate_evidence() {
   exit 0
 }
 
+# ───── T1.1 / T1.2 / T1.4 (ADDITIVE — run-ledger black box + control-matrix gate + tool-risk gate) ─────
+# Design: the ledger is RECORD-ONLY (never blocks — governed verdicts stay with gate.check + spec_hash,
+# CLAUDE.md §3.7). control.matrix.verify + tool.gate are fail-closed verifiers; gate.check reuses them
+# ONLY when their artifact exists under .harness/, so projects without those files are unaffected (additive).
+RUN_LEDGER="${RUN_LEDGER:-$CLAUDE_HOME/orchestrator-runtime/shared/run-ledger.js}"
+CONTROL_VERIFY="${CONTROL_VERIFY:-$CLAUDE_HOME/schemas/control-matrix-verify.js}"
+TOOL_VERIFY="${TOOL_VERIFY:-$CLAUDE_HOME/schemas/tool-risk-verify.js}"
+LIFECYCLE_VERIFY="${LIFECYCLE_VERIFY:-$CLAUDE_HOME/schemas/lifecycle-transition-verify.js}"
+
+# _gate_ledger <tag> <decision> <stage> — best-effort append to the run ledger. NEVER fails the caller.
+_gate_ledger() {
+  local tag="$1" decision="$2" stage="$3"
+  [[ -f "$RUN_LEDGER" ]] || return 0
+  command -v "$NODE_BIN" >/dev/null 2>&1 || return 0
+  "$NODE_BIN" "$RUN_LEDGER" append --project "$PROJECT_ROOT" \
+    "--run_id=$tag" --subsystem=appsec "--stage=$stage" "--decision=$decision" \
+    "--gate_result=$PROJECT_ROOT/.appsec/decisions/$tag/appsec_release_decision.yaml" >/dev/null 2>&1 || true
+}
+
+# _gate_ledger_on_exit — EXIT trap installed inside cmd_gate_check: records the FINAL gate outcome
+# (mapped from the real exit code) so the ledger row matches what the gate actually returned.
+_gate_ledger_on_exit() {
+  local rc=$?
+  # codex P2: prefer the PARSED decision (set right before the case + by d2 STALE) so the ledger
+  # records the true gate decision; exit-code mapping is only a fallback for early/uninstrumented exits.
+  local decision="${_LEDGER_DECISION:-}"
+  if [[ -z "$decision" ]]; then
+    case "$rc" in
+      0) decision=PASS;;
+      1) decision=FAIL;;
+      2) decision=BLOCKED;;
+      3) decision=CONDITIONAL_PASS;;
+      *) decision=RECORDED;;
+    esac
+  fi
+  _gate_ledger "${_LEDGER_TAG:-unknown}" "$decision" "${_LEDGER_STAGE:-gate.check}"
+  return 0
+}
+
+cmd_ledger_append() {
+  ensure_project_root
+  if [[ ! -f "$RUN_LEDGER" ]] || ! command -v "$NODE_BIN" >/dev/null 2>&1; then
+    echo "appsec-sdk ledger.append: WARN — node/run-ledger unavailable; skipped (ledger is record-only, never blocks)" >&2
+    return 0
+  fi
+  local fwd=( append --project "$PROJECT_ROOT" --subsystem=appsec )
+  if [[ -n "${1:-}" && "$1" != --* ]]; then fwd+=( "--run_id=$1" ); shift; fi
+  while (( "$#" )); do
+    case "$1" in
+      --decision)    fwd+=( "--decision=$2" ); shift 2;;
+      --stage)       fwd+=( "--stage=$2" ); shift 2;;
+      --task)        fwd+=( "--task=$2" ); shift 2;;
+      --gate-result) fwd+=( "--gate_result=$2" ); shift 2;;
+      --stdin)       fwd+=( --stdin ); shift;;
+      --*=*)         fwd+=( "$1" ); shift;;
+      *)             shift;;
+    esac
+  done
+  "$NODE_BIN" "$RUN_LEDGER" "${fwd[@]}"
+}
+
+cmd_control_matrix_verify() {
+  ensure_project_root
+  local map="$PROJECT_ROOT/.harness/control-matrix.json" level="elevated"
+  while (( "$#" )); do
+    case "$1" in
+      --map)   map="$2"; shift 2;;
+      --level) level="$2"; shift 2;;
+      *) echo "appsec-sdk control.matrix.verify: unknown arg $1" >&2; exit 2;;
+    esac
+  done
+  if [[ ! -f "$map" ]]; then
+    echo "appsec-sdk control.matrix.verify: BLOCKED — control map not found: $map" >&2
+    echo "  author one per $CLAUDE_HOME/schemas/control-check-map.schema.json" >&2
+    exit 2
+  fi
+  if [[ ! -f "$CONTROL_VERIFY" ]] || ! command -v "$NODE_BIN" >/dev/null 2>&1; then
+    echo "appsec-sdk control.matrix.verify: BLOCKED — verifier/node unavailable (fail-closed)" >&2; exit 2
+  fi
+  "$NODE_BIN" "$CONTROL_VERIFY" "$map" "$PROJECT_ROOT" --level "$level"
+}
+
+cmd_tool_registry() {
+  ensure_project_root
+  local reg="$PROJECT_ROOT/.harness/tool-risk.json"
+  [[ -n "${1:-}" && "$1" != --* ]] && { reg="$1"; shift; }
+  if [[ ! -f "$reg" ]]; then
+    echo "appsec-sdk tool.registry: no registry at $reg" >&2
+    echo "  seed: cp $CLAUDE_HOME/templates/harness/tool-risk.seed.json $reg  (then classify your project's surface)" >&2
+    exit 2
+  fi
+  if [[ ! -f "$TOOL_VERIFY" ]] || ! command -v "$NODE_BIN" >/dev/null 2>&1; then
+    echo "appsec-sdk tool.registry: BLOCKED — verifier/node unavailable" >&2; exit 2
+  fi
+  "$NODE_BIN" "$TOOL_VERIFY" "$reg"
+}
+
+cmd_tool_gate() {
+  ensure_project_root
+  local reg="$PROJECT_ROOT/.harness/tool-risk.json" require=""
+  while (( "$#" )); do
+    case "$1" in
+      --registry) reg="$2"; shift 2;;
+      --require)  require="--require-registry"; shift;;
+      *) echo "appsec-sdk tool.gate: unknown arg $1" >&2; exit 2;;
+    esac
+  done
+  if [[ ! -f "$TOOL_VERIFY" ]] || ! command -v "$NODE_BIN" >/dev/null 2>&1; then
+    echo "appsec-sdk tool.gate: BLOCKED — verifier/node unavailable (fail-closed)" >&2; exit 2
+  fi
+  "$NODE_BIN" "$TOOL_VERIFY" "$reg" $require
+}
+
+# T2.1 (ADDITIVE) — vuln lifecycle 9-state machine + expired-exception sweep.
+cmd_lifecycle_transition() {
+  if [[ ! -f "$LIFECYCLE_VERIFY" ]] || ! command -v "$NODE_BIN" >/dev/null 2>&1; then
+    echo "appsec-sdk lifecycle.transition: BLOCKED — verifier/node unavailable (fail-closed)" >&2; exit 2
+  fi
+  "$NODE_BIN" "$LIFECYCLE_VERIFY" "${1:-}" "${2:-}"
+}
+
+cmd_exception_sweep() {
+  ensure_project_root
+  need_arg "release-tag" "${1:-}"; validate_safe_name "release-tag" "$1"
+  local tag="$1"
+  local fnd_dir="$PROJECT_ROOT/.appsec/findings/$tag"
+  local now_epoch; now_epoch=$(date +%s)
+  local expired=0 unbounded=0 total_ar=0 f content status expiry exp_epoch
+  if [[ -d "$fnd_dir" ]]; then
+    while IFS= read -r f; do
+      [[ -z "$f" ]] && continue
+      content=$(cat "$f" 2>/dev/null)
+      status=$(printf '%s\n' "$content" | grep -E '^[[:space:]]*status[[:space:]]*:' | head -n1 | sed -E 's/^[[:space:]]*status[[:space:]]*:[[:space:]]*"?([A-Za-z_]+)"?.*/\1/')
+      [[ "$status" != "ACCEPTED_RISK" ]] && continue
+      total_ar=$(( total_ar + 1 ))
+      expiry=$(printf '%s\n' "$content" | grep -E '^[[:space:]]*exception_expiry[[:space:]]*:' | head -n1 | sed -E 's/^[[:space:]]*exception_expiry[[:space:]]*:[[:space:]]*"?([^"#[:space:]]+)"?.*/\1/')
+      # codex P1: an ACCEPTED_RISK with NO (or unparseable) expiry is an UNBOUNDED acceptance that
+      # never gets reviewed — that is a violation, not a pass. Treat missing/unparseable as review-due.
+      if [[ -z "$expiry" ]]; then
+        echo "  REVIEW-DUE: $(basename "$f") is ACCEPTED_RISK with no exception_expiry (unbounded acceptance — set a review date)"
+        unbounded=$(( unbounded + 1 ))
+        continue
+      fi
+      exp_epoch=$(epoch_of_iso "$expiry")
+      if [[ -z "$exp_epoch" ]]; then
+        echo "  REVIEW-DUE: $(basename "$f") has unparseable exception_expiry='$expiry' (cannot verify — treat as review-due)"
+        unbounded=$(( unbounded + 1 ))
+        continue
+      fi
+      if (( exp_epoch < now_epoch )); then
+        echo "  EXPIRED: $(basename "$f") (expiry $expiry) -> must reopen to EXPIRED_EXCEPTION"
+        expired=$(( expired + 1 ))
+      fi
+    done < <(find "$fnd_dir" -type f -name '*.yaml' 2>/dev/null)
+  fi
+  echo "appsec-sdk exception.sweep: tag=$tag accepted_risk=$total_ar expired=$expired unbounded=$unbounded"
+  (( expired > 0 || unbounded > 0 )) && exit 1
+  exit 0
+}
+
 main() {
   if (( $# < 1 )); then usage; exit 2; fi
   local cmd="$1"; shift
@@ -1391,6 +1618,12 @@ main() {
     control.coverage)             cmd_control_coverage "$@";;
     audit.package)                cmd_audit_package "$@";;
     migrate-evidence)             cmd_migrate_evidence "$@";;
+    ledger.append)                cmd_ledger_append "$@";;
+    control.matrix.verify)        cmd_control_matrix_verify "$@";;
+    tool.registry)                cmd_tool_registry "$@";;
+    tool.gate)                    cmd_tool_gate "$@";;
+    lifecycle.transition)         cmd_lifecycle_transition "$@";;
+    exception.sweep)              cmd_exception_sweep "$@";;
     -h|--help|help)               usage; exit 0;;
     *) echo "appsec-sdk: unknown command $cmd" >&2; usage; exit 2;;
   esac
