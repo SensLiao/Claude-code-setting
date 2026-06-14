@@ -221,4 +221,53 @@ if (!H.existsSync(SDK)) {
   }
 }
 
+// ---------- 6. Regression: grep/head-vs-YAML parsing-seam fail-opens must BLOCK ----------
+// Codex + 5-agent adversarial sweep (2026-06-14) found 10 fail-opens where shell field extraction
+// lacked YAML structural awareness. Fixed via col-0 anchoring + _block_noncanonical_yaml guard.
+// These representative cases guard both mechanisms so the fail-closed behavior cannot regress.
+h.section('regression: YAML parsing-seam fail-opens -> BLOCKED');
+if (!H.existsSync(SDK)) {
+  h.warn('SMOKE_SKIPPED: appsec-sdk.sh missing');
+} else {
+  const fs = require('fs');
+  const probe = child_process.spawnSync('bash', ['-c', 'true'], { timeout: 5000 });
+  if (probe.error && probe.error.code === 'ENOENT') {
+    h.assertSoft(false, 'SMOKE_SKIPPED: parsing-seam regression (bash unavailable)');
+  } else {
+    // each: [name, decisionYaml, findingYaml|null, expectExit]
+    const cases = [
+      ['nested decision (no top-level verdict) -> col-0 block',
+        'decided_at: 2026-06-14T04:00:00Z\nredaction:\n  attested: true\naudit:\n  decision: PASS\n', null, 2],
+      ['redaction block-scalar fake attestation -> guard block',
+        'decision: PASS\ndecided_at: 2026-06-14T04:00:00Z\nredaction: |\n  attested: true\n', null, 2],
+      ['YAML-tagged status defeats SLA backstop -> guard block',
+        'decision: PASS\ndecided_at: 2026-06-14T04:00:00Z\nredaction:\n  attested: true\n',
+        'id: R6\nseverity: high\nstatus: !!str OPEN\nsla_due: 2020-01-01T00:00:00Z\n', 2],
+    ];
+    let held = 0;
+    for (let i = 0; i < cases.length; i += 1) {
+      const [name, dec, finding, want] = cases[i];
+      const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'seam-'));
+      try {
+        const tag = `seam${i}`;
+        fs.mkdirSync(path.join(tmp, '.appsec', 'decisions', tag), { recursive: true });
+        fs.writeFileSync(path.join(tmp, '.appsec', 'config.json'), '{"evidence_freshness_hours":99999999}');
+        fs.writeFileSync(path.join(tmp, '.appsec', 'decisions', tag, 'appsec_release_decision.yaml'), dec);
+        if (finding) {
+          fs.mkdirSync(path.join(tmp, '.appsec', 'findings', tag), { recursive: true });
+          fs.writeFileSync(path.join(tmp, '.appsec', 'findings', tag, 'f.yaml'), finding);
+        }
+        const out = child_process.spawnSync('bash', [SDK, 'gate.check', tag, '--strict'], {
+          cwd: tmp, encoding: 'utf8', timeout: 20000,
+          env: Object.assign({}, process.env, { CLAUDE_HOME: H.claudeRoot }),
+        });
+        if (h.assert(out.status === want, name, `got exit ${out.status}, want ${want}`)) held += 1;
+      } finally {
+        try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (_e) { /* ignore */ }
+      }
+    }
+    h.assertSoft(held === cases.length, `all ${cases.length} parsing-seam regressions held fail-closed`);
+  }
+}
+
 process.exit(h.exit());
