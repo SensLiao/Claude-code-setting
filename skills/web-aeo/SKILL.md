@@ -34,7 +34,10 @@ description: >
   Bing Copilot / OAI-SearchBot / GPTBot / ChatGPT-User / ClaudeBot /
   Claude-SearchBot / Claude-User / Anthropic crawler / llms.txt /
   llms-full.txt / citability / AI citation / answer block / answer engine /
-  brand entity / structured docs / AI-readable docs / machine-readable docs".
+  brand entity / structured docs / AI-readable docs / machine-readable docs /
+  AI citation tracking / citation tracking / share of voice / am I cited by
+  ChatGPT / does Perplexity cite me / AI 引用追踪 / AI 引用监测 / 上线后 AI 有没有引用我 /
+  Perplexity 引用 / AI 引用率 / citation monitoring / answer engine tracking".
 ---
 
 # SKILL: web-aeo
@@ -1039,4 +1042,127 @@ L12 harness v1.0 模式下，web-aeo 作为 **`ai-search` channel**（canonical 
 
 ---
 
-> 维护节奏：vendor commit 升级走 ADR；评分公式调整需要 release notes；新 AI bot 出现（如新厂商）需要在 §5.1 表格补行并更新业务决策建议；新 platform tactic（§7.7）随主流 AI 引擎产品变化季度复盘。
+## 20. Post-launch AI citation tracking（上线后 AI 引用追踪 — measurement-only）
+
+> **加入 2026-06-15（CAPABILITY-UPGRADE L3）。** 这是 web-aeo 的 **post-launch measurement** 能力，与本 skill §5-§13 的 **pre-launch citability optimization** 严格区分（区别表见 §20.1）。citation 追踪回答的是"上线后 AI 答案引擎**实际上**有没有引用我"，不是"我的内容**形状**是否便于被引用"。
+
+### 20.0 一句话定位
+
+- **§5-§13（已有）= pre-launch**：审站点形状（crawler policy / 自包含 passage / llms.txt / schema），产 `ai-search.json` channel evidence，进 audit gate（§19 blocker/warn）。
+- **§20（本节）= post-launch**：实查 AI 引擎，统计真实"品牌提及率 / 域名引用率 / 被谁挤掉"，产 `measurement.json`（measurement-only），**绝不进 gate**。
+
+两条流并行、互不污染。**citability score（§7.3）≠ 实际 citation rate（§20）**：前者是站点写法的内部启发式，后者是真实查询 AI 引擎得到的观测值。绝不把两者混为一谈或互相代入。
+
+### 20.1 pre-launch citability vs post-launch citation tracking（关键区别表）
+
+| 维度 | §5-§13 pre-launch citability | §20 post-launch citation tracking |
+|---|---|---|
+| 问题 | 我的内容**形状**便于被 AI 引用吗？ | AI **实际上**引用我了吗？ |
+| 输入 | 站点 HTML / robots / llms.txt / schema | 客户会问的真实 query + BYO AI provider key |
+| 工具 | `geo-seo-claude` vendor 脚本（§9） | `geo citations` / `geo track`（geo-optimizer-skill，§20.3） |
+| 数据来源 | 抓本站，deterministic parse | 查 AI 答案引擎，统计返回 source URLs |
+| 产物 | `ai-search.json`（channel evidence） | `measurement.json`（measurement-only artifact） |
+| 进 gate？ | ✅ 是（§19 blocker/warn，但 `*_score` 永不 blocker） | ❌ 否（与 L1 measurement 同流，`gate.check` 完全忽略） |
+| 何时跑 | release 前（audit 阶段） | 上线后（持续监测 / 优化前后对比） |
+| confidence | Level 1-4（脚本 deterministic） | 真实观测，但**依赖 BYO key + UI/API 稳定性**，且只有 Perplexity Sonar 回真实 source URL |
+
+> **铁律**：本节产物是 **measurement-only**，与 L1 post-launch measurement（`measure.pull` / `measure.compare`，harness-contract §2.4）同属上线后只读数据流。它**不**触发 `state.json.gate_status`、**不**进 `gate-result.yaml`、**不**作为 release verdict。AI search 官方 ranking factor 从未公开 —— citation rate 是观测值，不是"AEO 官方分数"。
+
+### 20.2 Script-first 红线（AI 永不编造引用数）
+
+继承 L12 执行宪法（§4）+ harness §8.2：
+
+1. **每个 citation 数字必须来自一次真实的 AI provider API 调用**，由 `geo citations` / `geo track` 发起。AI（本模型）**绝不**凭印象写"你大概被引用了 X%"。
+2. **无 API key → `status: skipped`**，绝不编造。这与 L1 puller 的 `disc-measurement-puller` 行为一致（无凭证记 skipped，详 agent 定义）。
+3. **provider 能力分级必须标注**（§20.4）：只有 **Perplexity Sonar** 把答案 ground 在 live web search 并返回**真实 source URL** → 能判定"域名被引用"。OpenAI / Anthropic / Groq 是 **parametric**，只反映"模型是否知道这个品牌"（参数化知识），**不能**证明 citation。evidence 里两类必须分开，不可混算成单一"AI 引用率"。
+4. **BYO key 从环境变量取**（`PERPLEXITY_API_KEY` / `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GROQ_API_KEY`），**绝不**写进仓库 / `.env` 提交 / chat / report。
+5. AI 的角色只在**最后一步**：解读 `measurement.json` 里的真实 verdict（strong/cited/mentioned_only/invisible），关联到 §7 哪些 pre-launch 改动可能起效，给修复优先级 —— 不产生任何 citation 数字本身。
+
+### 20.3 工具：geo-optimizer-skill（`geo citations` / `geo track`，BYO key）
+
+> **参考 / 可吸收**：`Auriti-Labs/geo-optimizer-skill`（MIT）。本节文档化其 citation 追踪能力的**接入契约**；与 §9 的 `geo-seo-claude`（pre-launch citability scorer）是**两个不同 vendor、不同用途**，不要混淆。
+> Staged：`CAPABILITY-UPGRADE-2026-06/staging/cloned-repos/geo-optimizer-skill/`。实施时按 §9.1 同样的 commit-pin + ADR 流程 vendor 进 `tools/vendor/`。
+
+| 命令 | 用途 | 关键行为 |
+|---|---|---|
+| `geo citations --brand <B> --domain <D> [--topic <T>] [--query <Q>]...` | **one-shot** 引用检查：问 AI 引擎客户会问的问题，统计品牌是否被提及 + 域名是否在 source 里 | `--provider perplexity`（默认，若 `PERPLEXITY_API_KEY` 已设）→ 真实 source URL；parametric provider 只验品牌知识 |
+| `geo track --url <U> [--history] [--report]` | **持续监测**：对 URL 跑完整 audit 并存本地时序快照，出 trend 报告 | 本地 history store（趋势对比）；`--history` 看历史，`--report` 出 HTML 趋势报告 |
+
+**deterministic verdict**（`geo citations` 输出，4 档，基于真实 `domain_citation_rate` / `brand_mention_rate`，非 AI 主观）：
+
+| Verdict | 触发条件 | 含义 |
+|---|---|---|
+| `strong` | `domain_citation_rate >= 0.5` | AI 在多数答案里把你的域名当 source 引用 |
+| `cited` | `domain_citation_rate > 0`（但 < 0.5） | 出现在 source 里，但不稳定 |
+| `mentioned_only` | `brand_mention_rate > 0` 且 `domain_citation_rate == 0` | AI 知道品牌（多半从第三方学的），但从不引用你的页面当 source |
+| `invisible` | 两者皆 0 | 既不提品牌也不引用域名 |
+
+> `mentioned_only` 的 actionable 解读：AI 是从第三方了解你的 —— 对应 §7 把**你自己的页面**做成可引用 source（statistics / quotable passage / llms.txt 深度）。`invisible` → 回 §5 crawler policy + §7.1 答案块基础先补齐。
+
+### 20.4 provider 能力分级（evidence 必须标注，不可混算）
+
+| Provider | env key | 能判定 citation（真实 source URL）？ | evidence 里的角色 |
+|---|---|---|---|
+| **Perplexity Sonar** | `PERPLEXITY_API_KEY` | ✅ 是（grounded in live web search） | **首选** — `domain_citation_rate` 来源 |
+| OpenAI | `OPENAI_API_KEY` | ❌ 否（parametric） | 仅 `brand_mention_rate`（品牌知识）|
+| Anthropic | `ANTHROPIC_API_KEY` | ❌ 否（parametric） | 仅 `brand_mention_rate` |
+| Groq | `GROQ_API_KEY` | ❌ 否（parametric） | 仅 `brand_mention_rate` |
+
+**铁律**：在 `measurement.json` 里，Perplexity 的 `domain_citation_rate` 与 parametric provider 的 `brand_mention_rate` **分字段存**，**不合并**成单一"AI 引用率"。报告里也分开陈述（"Perplexity 真实引用率 X%；OpenAI/Anthropic 品牌知晓 Y%（非 citation 证据）"）。
+
+### 20.5 CLI 流程（写进 measurement 流，不进 channel evidence）
+
+```bash
+# 1. one-shot 真实 citation 检查（Perplexity = 真实 source URL；JSON 出到 raw/）
+#    BYO key 从环境变量取，绝不写进仓库
+geo citations --brand "Example Inc" --domain example.com \
+  --topic "AEO audit tools" \
+  --provider perplexity \
+  --format json --output "evidence/discoverability/$TAG/raw/ai-citations.json"
+
+# 2. （可选）持续监测 + 趋势（本地 history store）
+geo track --url https://example.com --report \
+  --output "evidence/discoverability/$TAG/raw/ai-citation-trend.html"
+
+# 3. 归并进 measurement.json —— measurement-only，绝不进 gate
+#    复用 L1 的 measure.pull（provider=aeo 路由到 ai-search channel 的 ai_citations 指标）
+#    （注：measure.pull 当前 provider enum 见 §20.6 RETURN —— 若 aeo 未在 enum 中，
+#     主线程需按 §20.6 补 provider，本 skill 不改 SDK）
+python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py \
+  --project-root . measure.pull "$TAG" --provider aeo \
+  "evidence/discoverability/$TAG/raw/ai-citations.json"
+
+# 4. 优化前后对比（真实引用率 delta，纯算术，无 AI 解读）
+python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py \
+  --project-root . measure.compare "$TAG" --baseline-tag "$BASELINE_TAG"
+```
+
+> **路径**：raw 产物落 `evidence/discoverability/<tag>/raw/`，归并进同 tag 的 `measurement.json`（harness-contract §2.4），**不**写 `ai-search.json`（那是 pre-launch channel evidence）。两个文件同住一个 `<tag>/` 目录但语义完全分开。
+
+### 20.6 SDK 依赖说明（RETURN 给主线程 —— 本 skill 不改 SDK）
+
+L1 已落地 `measure.pull` / `measure.compare`（harness-contract §2.4），且 schema 已含 `ai_citations` / `ai_referral_sessions` 指标键（见 SDK `MEASURE_METRICS`）。但当前 `measure.pull` 的 `--provider` enum 是 `{gsc, ga4, bing, aso}`（`MEASUREMENT_PROVIDERS`），**`PROVIDER_CHANNEL` 未含 AEO→ai-search 映射**。
+
+**L3 需要主线程在 `discoverability-sdk.py` 补一个 measurement provider**（L1 owns SDK，本 skill 按约束**不改** SDK，仅 RETURN）：
+- 在 `MEASUREMENT_PROVIDERS` 增 `"aeo"`（或复用现有命名习惯）
+- 在 `PROVIDER_CHANNEL` 增 `"aeo": "ai-search"`
+- 归一化逻辑：把 `geo citations` 的 JSON（`domain_citation_rate` / `brand_mention_rate` / `verdict` / `top_cited_domains`）映射到 measurement schema 的 `ai_citations`（+ 标 provider 能力分级 §20.4，parametric provider 的 mention rate 不计入 citation）
+
+**若主线程暂不补 SDK**：L3 仍可独立运行 —— `geo citations --format json` 直接产出 `raw/ai-citations.json` 供 AI 解读，只是不进 `measurement.json` 归一化时序流。citation 追踪的**核心价值（真实 verdict + 真实 source URL）不依赖 SDK**，SDK 仅负责时序归并 + before/after delta。
+
+### 20.7 measurement-only 边界（与 §19 audit gate 不重叠）
+
+| 流 | 产物 | 进 gate？ | owner |
+|---|---|---|---|
+| pre-launch citability audit（§5-§13） | `ai-search.json` channel evidence | ✅ §19 blocker/warn（`*_score` 永不 blocker） | web-aeo（本 skill）|
+| post-launch citation tracking（§20） | `measurement.json`（`measurement_only: true`） | ❌ 完全忽略 | web-aeo（本 skill）+ L1 measure.pull |
+
+**反模式**：
+- ❌ 把 `domain_citation_rate < N` 写进 release gate（citation 是观测值，AI ranking 未公开，永不 blocker —— 与 §19 / harness §4.2 `*_score` 红线同理）
+- ❌ 用 parametric provider（OpenAI/Anthropic）的"品牌知晓"冒充"被引用证据"
+- ❌ 无 key 时让 AI 编一个 citation rate（必须 `status: skipped`）
+- ❌ 把 citation tracking 产物写进 `ai-search.json` 污染 pre-launch channel evidence
+
+---
+
+> 维护节奏：vendor commit 升级走 ADR；评分公式调整需要 release notes；新 AI bot 出现（如新厂商）需要在 §5.1 表格补行并更新业务决策建议；新 platform tactic（§7.7）随主流 AI 引擎产品变化季度复盘；citation provider 能力（§20.4）随 AI 引擎是否暴露 source URL 变化复盘（目前仅 Perplexity Sonar 回真实 URL）。

@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/LOAD_TEST_SCHEMA.v1",
+  "title": "Load / Stress / Soak / Spike Runner Output",
+  "description": "Output of qa-load-stress-runner agent (CAPABILITY-UPGRADE Wave A, Q1). Runs k6 open-model (ramping-arrival-rate) load/stress/soak/spike profiles + breakpoint/capacity-ceiling discovery against an AUTHORIZED NON-PRODUCTION target only. Asserts reliability SLOs via k6 thresholds. Consumed by enterprise-qa-testing Load/Reliability layer (§4). decision_hint is a draft — the parent skill / deterministic gate makes the final call.",
+  "type": "object",
+  "required": ["command_evidence", "environment", "results", "decision_hint"],
+  "properties": {
+    "command_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["cmd", "exit_code"],
+        "properties": {
+          "cmd": { "type": "string" },
+          "stdout": { "type": "string" },
+          "stderr": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "duration_ms": { "type": "integer" }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "required": ["target", "is_production"],
+      "properties": {
+        "target": { "type": "string", "description": "staging/lab/preview base URL — production is BLOCKED per parent Hard Rule §2.6" },
+        "is_production": { "type": "boolean", "description": "MUST be false; a passing run against a production/unproven-production target is INVALID" },
+        "environment_confirmed_by": { "type": "string", "description": "handle/source that positively proved the target is non-production" }
+      }
+    },
+    "profiles_run": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["profile"],
+        "properties": {
+          "profile": { "type": "string", "enum": ["load", "stress", "soak", "spike", "breakpoint"] },
+          "executor": { "type": "string", "description": "e.g. ramping-arrival-rate / constant-arrival-rate (open model)" },
+          "duration": { "type": "string" },
+          "target_rate_rps": { "type": "number" },
+          "pre_allocated_vus": { "type": "integer" },
+          "max_vus": { "type": "integer" }
+        }
+      }
+    },
+    "results": {
+      "type": "object",
+      "properties": {
+        "achieved_rps": { "type": "number", "description": "MUST come from real k6 summary, never invented" },
+        "p50_ms": { "type": "number" },
+        "p95_ms": { "type": "number" },
+        "p99_ms": { "type": "number" },
+        "error_rate": { "type": "number" },
+        "checks_pass_rate": { "type": "number" },
+        "thresholds_breached": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "breakpoint": {
+      "type": "object",
+      "properties": {
+        "found": { "type": "boolean" },
+        "breakpoint_rps": { "type": "number" },
+        "expected_peak_rps": { "type": "number" },
+        "capacity_margin_x": { "type": "number" },
+        "margin_target_x": { "type": "number" },
+        "margin_met": { "type": "boolean" }
+      }
+    },
+    "soak_findings": {
+      "type": "object",
+      "properties": {
+        "memory_leak_suspected": { "type": "boolean" },
+        "latency_drift_pct": { "type": "number" },
+        "resource_exhaustion": { "type": "boolean" }
+      }
+    },
+    "artifacts": { "type": "array", "items": { "type": "string" } },
+    "notes": { "type": "array", "items": { "type": "string" }, "description": "THRESHOLD_WEAKENED: prefixed entries surface (do not act on) loosened thresholds / shortened soak duration / lowered expected_peak_rps" },
+    "decision_hint": { "type": "string", "enum": ["PASS", "WARN", "FAIL", "BLOCKED", "NOT_APPLICABLE"], "description": "Agent's draft assessment; parent skill / deterministic gate makes final decision. Production/unproven target => BLOCKED, never PASS." }
+  }
+}

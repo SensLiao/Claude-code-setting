@@ -1,0 +1,20 @@
+{
+  "//": "CONSUMER-SIDE snippet. Merge the `registries` block into the consuming project's existing components.json. After this, `npx shadcn add @acme/button` resolves to https://acme.com/r/button.json. Replace @acme + the URL with your registry. {name} is a literal placeholder shadcn substitutes per item.",
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "tailwind": {
+    "config": "",
+    "css": "app/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@/components",
+    "ui": "@/components/ui",
+    "hooks": "@/hooks",
+    "lib": "@/lib"
+  },
+  "registries": {
+    "@acme": "https://acme.com/r/{name}.json"
+  }
+}

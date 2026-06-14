@@ -45,6 +45,32 @@ This is a meta-orchestrator. It does NOT do work itself — it picks which GSD c
 
 </when_to_invoke>
 
+<entry_situation_router>
+
+### Tier 0 — Entry-Situation Router（G2 · 2026-06-14：接手 / 探索 / 恢复 / 审计 等**非 phase 入口**先走这里，再进 Tier 1-4）
+
+> 起因：本编排器原先默认"已在 phase 执行语境"直接跑 Tier 1-4，但上游 GSD 命令集远不止 phase 流水线。命中下列入口场景时，先 dispatch 对应命令（`Skill(...)` / `SlashCommand`），完成后再回 `<phase_classifier>` 跑 Tier 1-4。**按场景动态选，不全跑。**
+
+| 入口场景 | 命令 |
+|---|---|
+| 全新项目起步 | `/gsd-new-project`（深度 context → PROJECT.md），再进 Tier 1 |
+| 接手陌生库 / 无 `.planning` 的已有代码 | `/gsd-map-codebase`（并行 mapper → `.planning/codebase/`）+ `/gsd-ingest-docs`（已有 ADR/PRD/SPEC 合并）；需历史考古 → `/gsd-import` · `/gsd-forensics` |
+| 旧文档散落要 bootstrap `.planning/` | `/gsd-ingest-docs` |
+| 超复杂 / 高歧义规划 | `/gsd-ultraplan-phase`（替代 `/gsd-plan-phase`，更深多轮）；明确小事 → `/gsd-quick` |
+| 先验证可行性 / 探索 | `/gsd-spike`（throwaway 验证）· `/gsd-sketch` · `/gsd-explore` · `/gsd-surface` |
+| 暂停 / 跨 session 恢复 | `/gsd-pause-work`（写 handoff）· `/gsd-resume-work` · "接着上次" → 输出 Format C resume |
+| 健康 / 进度 / 统计 | `/gsd-health` · `/gsd-progress` · `/gsd-stats` |
+| 想法 / 任务 / backlog 捕获 | `/gsd-capture` · `/gsd-inbox` · `/gsd-review-backlog` · `/gsd-thread` |
+| 审计 | `/gsd-audit-uat`（跨 phase UAT）· `/gsd-audit-fix`（find→fix→test→commit）· `/gsd-audit-milestone` |
+| 依赖 / 影响图 | `/gsd-graphify`（`.planning/graphs` typed 节点/边） |
+| 多工作流并行 / 工作区 | `/gsd-workstreams` · `/gsd-workspace` |
+| 回滚 / 撤销 | `/gsd-undo` |
+| 多周期调试 | `/gsd-debug`（持久 debug state；详 `<agent_orchestration_overview>` situation 表） |
+
+完成入口命令后 →（若进入 phase 实施）回 Tier 1-4；纯维护 / 查询类（health / stats / progress / capture）跑完即止，不强进 phase 流水线。
+
+</entry_situation_router>
+
 <phase_classifier>
 
 Given the active phase number `N` (or "new milestone"), read available state first:
@@ -113,6 +139,11 @@ Insert AFTER `/gsd-code-review --fix`, BEFORE `/gsd-verify-work` (after step 7, 
 
 1. `AI_INTEGRATION` → `/gsd-eval-review N`
 2. `SECURITY_SENSITIVE` → `/gsd-secure-phase N`
+   - **G1（2026-06-14）— 高危子集额外升级到企业级编排器**：当 phase 命中高危子集（payment / 钱 / billing · auth / authz / sessions / tokens · admin controls · prod data · PII · multi-tenant · file-upload · GenAI-agent surface），除 `/gsd-secure-phase` 外**额外**（不是替代）route 到：
+     - `Skill("appsec-security-orchestrator")` — 完整 defensive（威胁建模 + R&C lens / SAST·SCA·secrets·IaC / ASVS 5.0 / 修复路由），而非仅内置薄版；
+     - `Skill("enterprise-qa-testing")` release gate — 高危 phase 上线前走 `/qa-release-readiness`；支付 / 合规走 `/qa-commercial-cert`（强制 budget approval）。
+   - 普通 `SECURITY_SENSITIVE`（低危、无上列触发）维持仅 `/gsd-secure-phase`，不强拉重编排器（动态按上下文选，绝不每次全跑）。
+   - **边界**：active scan / pentest 永远 manual + ROE 双门；AppSec / QA 的 release verdict 走各自 deterministic spec-runner + `spec_hash` 人类审批，GSD **不自签**（§3.7 governed gate）。
 3. `CORE_LOGIC_TDD_RECOMMENDED` and plan was NOT `--tdd` → `/gsd-add-tests N`
 4. Plan WAS `--tdd` and phase is high-impact → `/gsd-validate-phase N`
 5. (None apply) → skip Tier 3

@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/MUTATION_SCHEMA.v1",
+  "title": "Mutation / Test-Effectiveness Runner Output",
+  "description": "Output of qa-mutation-runner agent (CAPABILITY-UPGRADE Wave A, Q2). Measures TEST-SUITE effectiveness (mutation score = injected bugs caught by existing tests), NOT code correctness. Runs StrykerJS / cargo-mutants / mutmut / PIT scoped to HIGH/CRITICAL-risk modules' diff for cost control. Consumed by enterprise-qa-testing Mutation/Test-Effectiveness layer (§4). decision_hint is a draft — the parent skill / deterministic gate makes the final call.",
+  "type": "object",
+  "required": ["command_evidence", "tool", "scope", "mutants", "mutation_score", "decision_hint"],
+  "properties": {
+    "command_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["cmd", "exit_code"],
+        "properties": {
+          "cmd": { "type": "string" },
+          "stdout": { "type": "string" },
+          "stderr": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "duration_ms": { "type": "integer" }
+        }
+      }
+    },
+    "language": { "type": "string", "enum": ["js", "ts", "rust", "python", "java"] },
+    "tool": { "type": "string", "enum": ["StrykerJS", "cargo-mutants", "mutmut", "PIT"] },
+    "scope": {
+      "type": "object",
+      "required": ["mode", "mutated_paths"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["in-diff", "since", "changed-classes", "full"], "description": "full-repo scope is BLOCKED by the cost guard — diff-scoped is mandatory" },
+        "diff_base": { "type": "string" },
+        "mutated_paths": { "type": "array", "items": { "type": "string" }, "description": "high/critical-risk modules ONLY; empty or whole-tree => BLOCKED" },
+        "risk_level_gate": { "type": "string", "enum": ["high", "critical"], "description": "only High/Critical reach this runner" }
+      }
+    },
+    "mutants": {
+      "type": "object",
+      "required": ["total_generated", "killed", "survived"],
+      "properties": {
+        "total_generated": { "type": "integer", "minimum": 0 },
+        "killed": { "type": "integer", "minimum": 0 },
+        "survived": { "type": "integer", "minimum": 0 },
+        "timeout": { "type": "integer", "minimum": 0 },
+        "no_coverage": { "type": "integer", "minimum": 0 },
+        "equivalent_excluded": { "type": "integer", "minimum": 0, "description": "semantically identical / unkillable mutants — never counted as a test gap" }
+      }
+    },
+    "mutation_score": {
+      "type": "object",
+      "required": ["score_pct", "threshold_pct", "threshold_met"],
+      "properties": {
+        "score_pct": { "type": "number", "minimum": 0, "maximum": 100, "description": "from the tool's real report; NEVER report code coverage as mutation score" },
+        "threshold_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "threshold_met": { "type": "boolean", "description": "threshold may NOT be lowered to pass (parent Hard Rule §2.7)" }
+      }
+    },
+    "surviving_mutants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "mutation"],
+        "properties": {
+          "file": { "type": "string" },
+          "line": { "type": "integer" },
+          "mutation": { "type": "string", "description": "e.g. replace > with >=" },
+          "hint": { "type": "string" }
+        }
+      }
+    },
+    "cost": {
+      "type": "object",
+      "properties": {
+        "wall_clock_sec": { "type": "number" },
+        "incremental_used": { "type": "boolean" },
+        "over_budget": { "type": "boolean" }
+      }
+    },
+    "artifacts": { "type": "array", "items": { "type": "string" } },
+    "notes": { "type": "array", "items": { "type": "string" }, "description": "e.g. near-zero coverage => surviving mutants reflect MISSING tests, not ineffective tests" },
+    "decision_hint": { "type": "string", "enum": ["PASS", "WARN", "FAIL", "BLOCKED", "NOT_APPLICABLE"], "description": "Agent's draft assessment; parent skill / deterministic gate makes final decision. Full-repo scope / tool_missing => BLOCKED." }
+  }
+}

@@ -29,7 +29,11 @@ description: >
   store listing / product page / app metadata / screenshots / app preview /
   feature graphic / app keywords / ratings / reviews /
   store experiments / product page optimization / PPO / custom product pages /
-  store discovery / app discoverability".
+  store discovery / app discoverability /
+  ASO measurement / keyword difficulty / keyword traffic / keyword ranking /
+  impressions / conversion rate / App Store Connect Analytics / Play Console metrics /
+  install funnel / 关键词难度 / 关键词排名 / 上架后效果 / 商店转化率 / 曝光量 /
+  ASO 测量 / app store analytics / store funnel".
 ---
 
 # App Store Optimization (L12 / app-aso)
@@ -399,6 +403,23 @@ Google Play 按维度定制 listing：
   - 部分用户会修改 rating（差评 → 好评）
   - 算法层面对"active development"的 signal
 - 回复 voice/tone 必须 on-brand，避免模板化机械回复
+
+**回复模板（reply-template，按场景改写 — 不要逐字复用成机械模板）**：
+
+| 场景 | 回复骨架（on-brand 改写后用）|
+|---|---|
+| 差评 / bug 报告 | 「抱歉给你带来了 {具体问题}。我们 {version X.Y} 已修复 / 正在修，能否 {联系渠道} 给我们 {复现步骤 / 设备信息}？修好会回来更新。」——**先共情 → 给具体动作 → 留升级渠道**，绝不辩护 |
+| 功能缺失请求 | 「谢谢建议！{feature} 已记入 roadmap / 已在 {版本} 计划。这类反馈对我们排优先级很有帮助。」——承认但不承诺不存在的日期 |
+| 好评 | 「谢谢 {具体提到的点}！很高兴 {功能} 帮到你。」——提一句用户实际写的内容，证明不是模板 |
+| 误解 / 已有功能 | 「这个能力其实在 {路径} 已经有了 —— {一句怎么用}。需要的话 {渠道} 找我们。」——纠正但不居高临下 |
+
+**差评升级路径（escalation）**：
+1. **1-2★ 且涉及 data-loss / 崩溃 / 计费 / 隐私** → 标 high-priority，48h 内回复 + 路由给工程/支持工单，**不只在 store 回**。
+2. **重复同一 bug 的多条差评** → 聚合成一个 issue，回复里引同一 fix 版本；修复后回到这些 review 更新回复（部分用户会改 rating）。
+3. **疑似 data-loss / 安全 / 隐私泄漏的指控** → 不在公开 review 里讨论细节，引导私下渠道；若证实涉私密数据泄漏 → 这是 AppSec 范畴，**escalate 给 AppSec**（本 skill 不做安全处置）。
+4. 用平台原生 API 一视同仁征集评分：iOS `SKStoreReviewController` / Android Play In-App Review API（**绝不**只向满意用户选择性弹窗 —— 见 §7 `selective_review_solicitation` blocker + §12#5b/#5c 合规禁令）。
+
+> **§8 的 30% / 90 天 reply-rate SLA 是本 harness 设定的内部运营建议阈值，不是 Apple / Google 官方强制要求** —— 项目可按支持团队产能调整；它是 warn（运营提醒），不是 §7 blocker。
 
 ---
 
@@ -832,8 +853,127 @@ Config (`discoverability.config.yaml`) → `channels.aso`; evidence / SDK / harn
 
 ---
 
+## 16.6 Post-launch ASO measurement（上架后效果测量 — ◇mobile-conditional, measurement-only）
+
+> **加入 2026-06-15（CAPABILITY-UPGRADE L5）。** §4-§13 是**上架前 listing audit**（字段 / 视觉 / 本地化是否合规）；本节是**上架后测量**（真实曝光 / 转化 / 关键词排名）。
+>
+> **◇ mobile-conditional（与 Q3 / Q5-mobile 同语义）**：本节**只对 app 项目有意义**。非 app 项目（纯 web / PWA / backend）→ 本节**休眠**（dormant），不触发、不产 evidence —— 和 `app-aso` 整个 skill 在 `project_type ∈ {mobile_app, web_app_plus_mobile_app}` 才激活的逻辑一致（orchestrator §4 activation 表）。用户画像里 Mobile 是**备选战场**，本节进库即可，不主推。
+
+### 16.6.0 一句话定位
+
+- **§4-§13（已有）= pre-launch listing audit**：审 listing 形状，产 `aso.json` channel evidence，进 audit gate（§7 blocker / §8 warn）。
+- **§16.6（本节）= post-launch measurement**：拉真实商店指标（impressions / conversion / keyword ranking），产 `measurement.json`（measurement-only），**绝不进 gate**。
+
+两条流并行、互不污染。与 L1 post-launch measurement（harness-contract §2.4 `measure.pull` / `measure.compare`）同属上线后只读数据流。
+
+### 16.6.1 pre-launch listing audit vs post-launch measurement（关键区别表）
+
+| 维度 | §4-§13 pre-launch listing audit | §16.6 post-launch measurement |
+|---|---|---|
+| 问题 | listing 字段 / 视觉 / 本地化合规吗？ | 上架后**实际**曝光 / 转化 / 排名如何？ |
+| 输入 | fastlane metadata / 商店 API 读字段 | App Store Connect Analytics API / Play Console + keyword 工具 |
+| 工具 | runner 脚本（字段长度 / 尺寸校验） | `facundoolano/aso`（keyword 难度/流量）+ Apple/Google Analytics API |
+| 产物 | `aso.json`（channel evidence） | `measurement.json`（measurement-only artifact） |
+| 进 gate？ | ✅ §7 blocker / §8 warn | ❌ 否（`gate.check` 完全忽略） |
+| 何时跑 | 上架前（release gate） | 上架后（持续监测 / 优化前后对比） |
+| 非 app 项目 | skill 整体 disabled | 本节同样 dormant |
+
+> **铁律**：本节产物 **measurement-only**，**不**触发 `state.json.gate_status`、**不**进 `gate-result.yaml`、**不**作为 release verdict。Apple / Google 都不公开 store search ranking 算法 —— keyword ranking / conversion 是观测值，不是"ASO 官方分数"。这与 §3.1 反规则"把 AI 生成的 keyword 列表当 App Store 官方 ranking factor"同源。
+
+### 16.6.2 Script-first 红线（AI 永不编造商店指标）
+
+继承 §3 执行宪法 + harness §8.2：
+
+1. **每个指标必须来自一次真实 API 调用**（App Store Connect Analytics Reports API / Google Play Console / `facundoolano/aso`）。AI（本模型）**绝不**凭印象写"你的转化率大概 X%" / "这个词难度大概 Y"。
+2. **无凭证 → `status: skipped`**，绝不编造。由 L1 的 `disc-measurement-puller` agent 拉取（`measure.pull --provider aso`，provider 已在 SDK `MEASUREMENT_PROVIDERS` 中，`PROVIDER_CHANNEL["aso"]="aso"`）。无 App Store Connect API key / Play 凭证时记 skipped。
+3. **BYO creds 从环境变量取**（App Store Connect API key 用 `.p8` + key-id + issuer-id；Google Play service account JSON），**绝不**提交进仓库 / `.env` / chat / report。
+4. AI 的角色只在**最后一步**：解读 `measurement.json` 里的真实漏斗 / 排名，关联到 §4-§6 哪些 listing 改动可能起效（如 conversion 低 → §6.3 screenshots / §4.2 首屏；keyword 掉排名 → §4.1 keywords field / §6.1 关键词研究）—— 不产生任何指标本身。
+
+> **本 skill 读权限边界不变**：`app-aso` frontmatter 是 `allowed-tools: Read, Grep, Glob`（无 Bash / Write，`forbidden-tools: WebFetch`）。本节的 API 拉取**不由本 skill 自己跑**，而是 RETURN 给 L1 的 `disc-measurement-puller` agent（有 Bash）执行 `measure.pull`，本 skill 只**解读**归一化后的 `measurement.json` —— 与 §11 Workflow"无 API token → 询问用户 → 标 source: manual"的既有读权限模型一致。
+
+### 16.6.3 工具：facundoolano/aso（keyword 难度/流量，双店）
+
+> **参考 / 可吸收**：`facundoolano/aso`（MIT, npm）。双店（App Store + Google Play）keyword **难度分 + 流量分**估算，纯 CLI / Node API。
+
+| 能力 | 说明 | 命中本 skill 章节 |
+|---|---|---|
+| keyword **difficulty** score | 估算某关键词竞争难度（基于 title 命中 / rating / installs 等公开信号） | §6.1 关键词研究（优先指标 difficulty）|
+| keyword **traffic** score | 估算某关键词流量潜力 | §6.1（优先指标 search volume）|
+| **suggest** keywords | 从 seed app / competitor 反查关键词候选 | §6.1 competitor benchmark |
+| app / similar / reviews scrape | 拉 listing 公开数据 + competitor | §6.1（competitor coverage）|
+
+```bash
+# 由 disc-measurement-puller agent 跑（本 skill 不直接执行 Bash）；npm i aso
+# keyword 难度 + 流量（双店），JSON 出到 raw/，供 measure.pull 归一化
+node -e "const aso=require('aso')('itunes'); aso.scores('video editor').then(s=>console.log(JSON.stringify(s)))" \
+  > "evidence/discoverability/$TAG/raw/aso-keyword-scores-ios.json"
+node -e "const aso=require('aso')('gplay'); aso.scores('video editor').then(s=>console.log(JSON.stringify(s)))" \
+  > "evidence/discoverability/$TAG/raw/aso-keyword-scores-android.json"
+```
+
+> **难度/流量是 estimate，标 internal/third-party heuristic**：`facundoolano/aso` 的分数是基于公开信号的**估算**，不是 Apple / Google 官方数字。evidence 里标 `source: third_party_tool`（§10.1 既有 source enum），不冒充官方 ranking。与 §9.2 第三方工具（Sensor Tower 等）evidence-only 同等对待。
+
+> **live scrape 对环境/地区敏感，可能无声失败**：`facundoolano/aso`（及其底层 `app-store-scraper`）靠抓 App Store / Play 的公开响应，在**受限网络 / 部分地区 / 缺特定 header** 的环境下可能**静默抛 `undefined`**（无 message / stack）——即使包装好、`itunes.apple.com/search` 返 HTTP 200，`aso.scores()` / `store.search()` 仍可能解析失败。这是第三方库脆性，**不是 bug**。**失败即按 §16.6.2 记 `status: skipped`，绝不退化为 AI 估算的难度/流量数字**（§16.6.6 反模式）。高可靠场景**优先官方 Analytics API**（§16.6.4，真实漏斗 + 免费）而非依赖 scrape 估算。E2E 实测：包真装成功、方法齐全，但 live `scores()` 抛 undefined → measure.pull 正确落 `skipped`，护栏有效。
+
+### 16.6.4 工具：官方 Analytics API（真实漏斗，免费）
+
+| 平台 | API | 真实指标 | 凭证 |
+|---|---|---|---|
+| **Apple** | **App Store Connect Analytics Reports API**（免费） | **impression → product page view → tap (下载)** 漏斗 + 来源（search / browse / referral）+ conversion rate | App Store Connect API key（`.p8` + key-id + issuer-id，env）|
+| **Google** | **Google Play Developer Reporting API** / Play Console | store listing acquisition（impressions / store listing visitors / installers）+ conversion + keyword（部分）| service account JSON（env）|
+
+```bash
+# 由 disc-measurement-puller agent 拉取（App Store Connect Analytics Reports API）
+# 真实漏斗：impressions / product_page_views / conversion_rate（绝不编造，无 key → skipped）
+# 归一化进 measurement.json（measurement-only）
+python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py \
+  --project-root . measure.pull "$TAG" --provider aso \
+  "evidence/discoverability/$TAG/raw/asc-analytics-funnel.json"
+
+# 优化前后对比（真实曝光/转化/排名 delta，纯算术）
+python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py \
+  --project-root . measure.compare "$TAG" --baseline-tag "$BASELINE_TAG"
+```
+
+> **App Store Connect Analytics Reports API 是漏斗的真相源**：impression（在搜索/榜单被看到）→ product page view（点进 listing）→ tap/download（转化）。conversion 低在哪一段，直接指向 listing 优化重点（impression→view 低 = §4.2 icon/首屏；view→download 低 = §6.3 screenshots / §4.1 description 转化要素）。
+
+### 16.6.5 measurement 指标 → listing 优化映射（AI 解读用）
+
+| 真实指标（measurement.json） | 信号 | 回到哪个 listing 章节优化 |
+|---|---|---|
+| keyword ranking 掉 / 难度高于流量 | 关键词竞争失利 | §4.1 keywords field / §6.1 关键词研究 + competitor |
+| impressions 低 | 在搜索/榜单曝光不足 | §4.1 app name/subtitle 权重词 / §4.4 category |
+| impression → page view 转化低 | icon / 首屏没吸引点击 | §4.2 icon / §6.4 feature graphic（above-the-fold）|
+| page view → download 转化低 | listing 内容没说服下载 | §6.3 screenshots（caption）/ §4.1 description 转化要素 / §4.2 preview video |
+| 某 locale 转化显著低 | 本地化不到位 | §4.3 / §6.6 localized creatives（不只翻译）|
+
+> AI 只做这层**解读 + 路由**，指标本身 100% 来自 API。**绝不**反过来用 listing 形状去"推算"应该有多少曝光/转化。
+
+### 16.6.6 measurement-only 边界（与 §7 audit gate 不重叠）
+
+| 流 | 产物 | 进 gate？ | owner |
+|---|---|---|---|
+| pre-launch listing audit（§4-§13） | `aso.json` channel evidence | ✅ §7 blocker / §8 warn | app-aso（本 skill）|
+| post-launch measurement（§16.6） | `measurement.json`（`measurement_only: true`）| ❌ 完全忽略 | app-aso（本 skill）+ L1 measure.pull |
+
+**反模式**：
+- ❌ 把 keyword ranking / conversion rate 写进 release gate（观测值，store 算法未公开，永不 blocker）
+- ❌ 无凭证时让 AI 编一个曝光/转化数字（必须 `status: skipped`）
+- ❌ 把 `facundoolano/aso` 的 estimate 难度分冒充 Apple / Google 官方数字
+- ❌ 把 measurement 产物写进 `aso.json` 污染 pre-launch channel evidence
+- ❌ 在非 app 项目上跑本节（dormant —— 与 skill 整体 activation 一致）
+
+### 16.6.7 SDK 依赖说明（RETURN 给主线程）
+
+L1 已落地 `measure.pull` / `measure.compare`，且 `aso` provider **已在** `MEASUREMENT_PROVIDERS = ("gsc","ga4","bing","aso")` + `PROVIDER_CHANNEL["aso"]="aso"`（SDK 现状）。L5 的 Apple/Google Analytics 漏斗归一化**可直接复用**，**无需新增 SDK provider**。
+
+**唯一可能的 SDK 微调（RETURN，本 skill 按约束不改 SDK）**：`MEASURE_METRICS` 当前含 `impressions / clicks / ctr / avg_position / sessions / ai_referral_sessions / ai_citations`，但 ASO 漏斗特有的 `product_page_views` / `tap_through_rate` / `keyword_ranking` 不在其中。主线程可酌情在 `MEASURE_METRICS` 补 ASO 漏斗指标键（`product_page_views` / `conversion_rate` / `keyword_rank`），让 `measure.compare` 能 delta 这些。**若不补**：L5 仍可独立运行（`facundoolano/aso` + Analytics API 的 JSON 直接供 AI 解读），只是这几个 ASO 特有指标不进 `measure.compare` 的自动 delta。
+
+---
+
 ## 17. 版本历史
 
 | Version | Date | Change |
 |---|---|---|
 | 1.0.0 | 2026-05-25 | Initial release; L12 Discoverability narrow skill #4 of 4 |
+| 1.1.0 | 2026-06-15 | CAPABILITY-UPGRADE L5: §16.6 post-launch ASO measurement (◇mobile-conditional, measurement-only — `facundoolano/aso` keyword 难度/流量 + App Store Connect Analytics Reports API 漏斗; 复用 L1 measure.pull --provider aso; 绝不进 gate) |

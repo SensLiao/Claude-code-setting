@@ -46,5 +46,29 @@
     },
     "installLocation": "__CLAUDE_HOME_JSON__\\plugins\\marketplaces\\openai-codex",
     "lastUpdated": "2026-06-10T11:23:21.804Z"
+  },
+  "frontend-design-pro": {
+    "source": {
+      "source": "github",
+      "repo": "claudekit/frontend-design-pro-demo"
+    },
+    "installLocation": "__CLAUDE_HOME_JSON__\\plugins\\marketplaces\\frontend-design-pro",
+    "lastUpdated": "2026-06-12T02:20:35.073Z"
+  },
+  "ui-ux-pro-max-skill": {
+    "source": {
+      "source": "github",
+      "repo": "nextlevelbuilder/ui-ux-pro-max-skill"
+    },
+    "installLocation": "__CLAUDE_HOME_JSON__\\plugins\\marketplaces\\ui-ux-pro-max-skill",
+    "lastUpdated": "2026-06-12T02:20:42.707Z"
+  },
+  "wondelai-skills": {
+    "source": {
+      "source": "github",
+      "repo": "wondelai/skills"
+    },
+    "installLocation": "__CLAUDE_HOME_JSON__\\plugins\\marketplaces\\wondelai-skills",
+    "lastUpdated": "2026-06-12T02:20:58.021Z"
   }
 }

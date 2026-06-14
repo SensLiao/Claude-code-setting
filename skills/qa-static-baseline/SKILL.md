@@ -37,6 +37,8 @@ description: >
   - `npm audit --audit-level=high`（hard fail 条件）
   - git-secrets / TruffleHog（secret 扫描）
   - OpenAPI / JSON Schema lint（若有 spec）
+
+> **ESLint 9 命令漂移（务必核对）**：① **`--format compact` 已从 core 移除** —— ESLint 9 下传 `--format compact` 会直接 `exit 2` 报错。机器解析用 `--format json`（或 `stylish` 给人看）；仍要 compact 文本则 `npm i -D eslint-formatter-compact` 后 `--format compact`。② **TS 项目须前置 `typescript-eslint` parser** —— flat config（`eslint.config.js`）里 `languageOptions.parser = tseslint.parser`，否则 `.ts` 的类型注解语法直接 parse-error。本 skill 解析 ESLint 输出时默认 `--format json`（见 §6 by-rule 计数），不依赖已移除的 compact formatter。
 - **Detect**：
   - threshold 弱化（strict: false、coverage threshold 降低、rule 关闭）
   - 生成文件误报（标 `dist/` / `build/` / `*.generated.*` 应在 ignore）

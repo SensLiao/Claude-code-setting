@@ -106,6 +106,8 @@ cwd）。
 | `mark-stale --reason "<reason>" [--file <path>]` | 更新 `state.json.gate_status=STALE`；append 到 `stale_reasons[]` 和 `.discoverability/runs/<tag>/stale-reasons.json` | 0 |
 | `explain <tag> [--finding <id>]` | 输出 evidence 摘要供 AI synthesis；SDK 本身不调 LLM，只准备 input | 0 / 1 |
 | `status [--tag <tag>]` | 打印 state.json + (可选) 指定 tag 的 gate-result 概要；机器可读 JSON | 0 |
+| `measure.pull <tag> --provider {gsc\|ga4\|bing\|aso} <raw-export>` | **measurement-only, NOT gate inputs** — 把某 provider 的真实指标 raw export 归一化合并进 `evidence/discoverability/<tag>/measurement.json`（自动盖 `measurement_only: true`）；script-first，无指标即记 `status: skipped`，绝不编造 | 0 / 1 |
+| `measure.compare <tag> --baseline-tag <baseline>` | **measurement-only, NOT gate inputs** — 对 `<tag>` vs `<baseline>` 的 measurement.json 做 per-metric 算术 delta，写 `measurement-compare.json`（`avg_position` 自动 lower-is-better）；纯算术，无 AI 解读 | 0 / 1 |
 
 ### 2.2 退出码语义（gate.check 专用）
 
@@ -128,6 +130,15 @@ stderr），CI / hook 可以 `tail -1` 取结果：
 ```json
 {"command":"gate.check","tag":"v1.0.0-rc1","decision":"PASS","exit_code":0,"channels":{"seo":"PASS","ai-search":"WARN","local":"SKIPPED","aso":"SKIPPED"}}
 ```
+
+### 2.4 Post-launch measurement 产物（measurement-only，**不进 gate.check**）
+
+> 加入 2026-06-15（additive，不破坏现有 schema）。L12 的 audit 侧是 **pre-launch**（站点是否有对的 robots/metadata/llms.txt/citability 形状）；measurement 侧是 **post-launch**（上线后真实发生了什么）。两者严格分离。
+
+- `measure.pull` / `measure.compare`（§2.1）产出 `measurement.json` / `measurement-compare.json`，**与 audit evidence 同住** `evidence/discoverability/<tag>/` 下的同一 `<tag>` 目录（raw export 落 `<tag>/raw/`）。
+- 两个文件都带顶层 `measurement_only: true` 标记，**被 `gate.check` 完全忽略**——它们 **不是** gate input、**不**参与 `gate-result.yaml` 的 decision、**不**触发 `state.json.gate_status` 变更。
+- 不引入任何新的 gate-result 词表（PASS/WARN/FAIL/BLOCKED/STALE 不变），**不**引入新的 channel key（seo/ai-search/local/aso 不变）。measurement 是 audit gate 之外的并行只读数据流。
+- 真实指标 100% 来自官方免费 API/CLI（GSC / GA4 / Bing Webmaster / App Store Connect Analytics），由 `disc-measurement-puller` agent 拉取；无凭证 → `status: skipped`，绝不编造数值（详 agent 定义 + §8.2 script-first 红线）。
 
 ---
 

@@ -52,9 +52,10 @@ Step 3 — COMPOSE    读 catalog.json,对每个 skill 跑 selector 评估;resol
 Step 4 — PROPOSE    输出 dry-run 清单(skill + selector evidence + rules + templates + agents)
 Step 5 — EXECUTE    用户确认后复制 + 生成 CLAUDE.md + 写 manifest.json(含 selector evidence)
 Step 5b — VERIFY    post-EXECUTE 校验: files_written / manifest v2 / subsystem hooks registered (§7.5)
+Step 5c — PROVISION per-project 工具备齐: 按选中 skill 跑 provision-tools.js — auto 自动装 / credential 报告待设 / ROE-time 攻击工具不装 / manual 给命令 (§7.6)
 ```
 
-每步必经, Step 4 必须等用户确认才进 Step 5。Step 0 / Step 5b 是 hard gate, 不准跳, 不准 advisory。
+每步必经, Step 4 必须等用户确认才进 Step 5。Step 0 / Step 5b 是 hard gate, 不准跳, 不准 advisory。Step 5c (PROVISION) 是 report-only,绝不阻断 bootstrap(工具装不上 → 报告 + 降级,不让 bootstrap 失败)。
 
 ---
 
@@ -325,6 +326,8 @@ PROPOSE 是 dry-run 预览（**SEMI-CRIB 骨架**；完整逐字段示例 + sele
 6. **排除清单**（SCAN 检测到但未入选 + 逐条排除原因）
 7. **确认提示**：`确认执行? [Y / 调整清单 / 取消]`
 
+> **工具预览（Step 5c 的 dry-run）**：PROPOSE 还应展示**将装的工具**——跑 `node ~/.claude/scripts/bootstrap/provision-tools.js --project-root . --skills "<plan>" --dry-run`,把 auto(自动装）/ credential(待设凭证）/ ROE-time(攻击工具默认不装）/ manual(手动）分档给用户看。让用户在确认前就知道"装这些 skill 会顺带下哪些工具"。
+
 **铁律**：Step 4 PROPOSE 必须等用户确认才进 Step 5 EXECUTE（§2）。绝不静默覆盖、绝不跳过确认。
 
 ### 6.2 调整清单
@@ -512,8 +515,45 @@ EXECUTE 写完了文件, 但环境未就绪:
 
 ---
 
+## 7.6. Step 5c — PROVISION-TOOLS (per-project external-tool provisioning)
+
+> 加入 2026-06-15。补 "skills 是 markdown,但它们的牙齿是外部 CLI / 包 / 凭证" 的缺口 —— 团队成员 clone 一套 `.claude/` 后,skill 在、工具没装,能力静默降级成 skipped 而没人知道缺了什么。Step 5c 在装完 skill 后,按**本项目实际选中的 skill** 备齐它们要用的工具。**per-project / 按需**:别的项目用不到的工具不装,这个项目选中的才装(user lock 2026-06-15)。
+
+### 7.6.1 怎么跑
+
+EXECUTE + VERIFY 通过后,跑(`--skills` 传 COMPOSE 选中的 skill 列表):
+
+```bash
+node ~/.claude/scripts/bootstrap/provision-tools.js --project-root . --skills "<COMPOSE 选中的 skill,逗号分隔>"
+```
+
+引擎读 `~/.claude/manifests/tool-requirements.json`(skill → 工具的单一真相源),对选中 skill 的工具求并集,按 tier 处理:
+
+| tier | 行为 |
+|---|---|
+| `auto` | **自动装**(npm / pip / go / cargo / winget / scoop / brew / apt;project-dev 装进项目)。当前平台没有可自动化路径(需 WSL2 / 需 Docker / 需 admin / 无包管理器)→ **优雅降级成打印命令**,绝不静默 |
+| `credential` | 永不装。报告 "设置 env var X(从 Y 获取)";已设则标 ✓ |
+| `roe` | 攻击型 recon / authenticated-DAST / exploitation 工具。**bootstrap 默认不装**,报告为 "ROE 时再装"。仅当 `.claude/bootstrap.config.json.provision_offensive_tools === true`(或 `--provision-offensive`)才自动装 |
+| `reference` | planning-only skill 仅**引用**、从不执行的工具(`security-pentest-exploitation-planning` 是 Read-only)→ **永不装** |
+| `manual` | cluster-side(k8s)/ build-file 插件 / 重型 SDK / 平台锁定 → 报告命令 + 原因,不自动跑 |
+
+### 7.6.2 安全边界(铁律)
+
+- **装二进制 ≠ 放开攻击**:`settings.json` deny-list(sqlmap / hydra / msfconsole / zap-full-scan …)+ pentest ROE 双门仍管 "能不能跑",与是否装好无关。
+- offensive(`roe` tier)工具 **bootstrap 默认不装**(`provision_offensive_tools` 缺省 false)。这是用户可在 `.claude/bootstrap.config.json` 翻成 true 的**单一开关**,不是装配工替用户决定。
+- `reference`-tier(Metasploit / Sliver / Caldera / Pacu / BloodHound / ScoutSuite)**任何情况都不由 provisioning 装**。
+
+### 7.6.3 报告 + 幂等
+
+- 引擎写 `<project>/.claude/tool-status.json`(结构化)+ 打印分档摘要(已装 / 现装 / 没装成功-给命令 / 待设凭证 / ROE-时再装 / manual / reference)。
+- **REPORT-ONLY,绝不阻断 bootstrap**(永远 exit 0)。装不上的工具不让 bootstrap 失败 —— 能力会优雅降级成 skipped(QA / AppSec / L12 引擎已验证这点)。
+- **幂等**:已在的工具跳过,可安全重复跑。装完包管理器 / 设完凭证后重跑即可补齐。
+
+---
+
 ## 8. `--update` 模式  →  references/update-workflow.md
 > Relocated (SAFE-A appendix — verbatim, not weakened; not needed to execute a run). Read on demand.
+> `--update` 在合并新选中的 skill 后,**重跑 Step 5c PROVISION**(§7.6)为新增 skill 备齐工具 —— 这正是用户说的 "update 了就下载新的,需要的时候再下"。
 
 ---
 ## 9. 反模式(常见翻车)
@@ -529,6 +569,9 @@ EXECUTE 写完了文件, 但环境未就绪:
 - ❌ **混淆 enterprise-qa-testing 与 appsec-security-orchestrator**:QA ≠ AppSec,catalog 里也是两个 domain
 - ❌ **`authorized-pentest-validation` 自动入选**:必须靠 Q-pentest manual answer 才入选
 - ❌ **`pentest-scope-and-roe` 跳过**:`authorized-pentest-validation.requires` 强制要求
+- ❌ **装 skill markdown 但不装它依赖的工具**:团队成员 clone 后能力静默降级成 skipped 而不知缺了什么(Step 5c PROVISION 必须跑,§7.6)
+- ❌ **bootstrap 自动装攻击型(offensive)工具**:`roe`-tier 默认不装、`reference`-tier 永不装;只有用户显式 `provision_offensive_tools=true` 才自动装 recon / authenticated-DAST 类(§7.6.2)
+- ❌ **provision 失败就让 bootstrap 失败**:Step 5c 是 report-only,装不上 → 报告 + 命令 + 降级,绝不阻断
 
 ---
 

@@ -50,6 +50,27 @@
 - **与 spec_hash gate 组合，不替代**：workflow-spec 模式下，本卡就是 §16.13 / §18.5 Step 10 渲染的那张卡；`spec_hash` + sentinel + `<domain>-preview-gate.js` 照旧 enforce（卡是更丰富的 *render*，hook 是 *enforcement*）。prompt-only / ad-hoc 模式下没有 sentinel——卡是 instruction-layer 的坎：渲染 → 等确认 → 跑。
 - **覆盖默认路径**：本卡在 **prompt-only 默认路径**（含 Windows）也要出——这正是以前"什么都不显示"的缺口。
 - **例外**：用户已在本 session explicit 说"直接做 / 不用预览 / 自主推进到完成"时，可省去**等待**（仍建议先把卡渲染出来让用户事后可追溯），与 task-execution-protocol §例外 一致。
+- **确定性背书（2026-06-15）**：prompt-only 默认路径上本卡过去纯靠 instruction（模型可能漏渲染）。现由**全局 hook `plan-card-reminder.js`**（PreToolUse[Agent|Workflow]，注册于 `~/.claude/settings.json`）背书：≥3 个 agent fan-out 或任意 Workflow 启动而本轮未渲染计划卡时，**确定性注入提醒**（软提醒、不阻断——"卡是坎但不卡死流程"）。诚实边界：hook 只强制"提醒触发"，不强制卡的质量；格式仍按本节 prompt。登记见 `manifests/hook-registry.json` global_live。
+
+---
+
+## 0.7 执行中实时 ToDo + 持久进度账本 + 收尾坎 — Live-ToDo / Durable-Ledger / Completion-Gate
+
+> 加入 2026-06-14（user lock）。与 §0.6 配成一对：§0.6 预览卡 = **开工前**给用户看的*计划*；本节 = **执行中 / 收尾**你我都看的*进度*。起因：内置 todo（`Task` 工具）是 session 内的，`/clear` / context 压缩一来就丢，导致"跑一半忘了 / 中途不跑了"。本节补这道**执行期的坎**。
+
+**铁律**：任何**中等 / 复杂**任务（复杂度分档沿用 §0.6 / [task-execution-protocol.md](rules/common/task-execution-protocol.md)），执行期必须维护下面三层，缺一不可：
+
+1. **实时 ToDo（in-session，给你也给我）** — 一开工就用内置 Task 工具（`TaskCreate` / `TaskUpdate` / `TaskList`）把步骤拆成可勾选清单；**开始一步设 `in_progress`、做完设 `completed`**，不一次性补勾。作用：用户实时看进度 + 随时纠偏；我不跳步、不漏步。简单档任务可免。
+
+2. **持久进度账本（durable，跨 session 的命根子）** — 凡**跨 session / 多阶段 / >1 工作块**的工程（capability 大建、多 phase 交付、长链路迁移），必须**额外**落一个**仓库内 markdown 账本**（每项：待办/进行中/完成/卡住 + 证据/commit + 「当前指针」下一步），不能只靠 session 内 Task（`/clear` 会冲掉它）。**新 session 第一件事读账本** → 知断点 → 接着干。复用现有件、不另造：人看的进度走该工程的 `*-LEDGER.md` / 计划自带 §checklist；机器审计走 `orchestrator-runtime/shared/run-ledger.js` 黑匣子（append `RECORDED` 行）。
+
+3. **收尾坎（completion gate）** — 声称"完成 / done"**之前**，对账本 + ToDo 核一遍：有无未勾步骤 / 未验证产物 / 被 BLOCK 没标的。没核完不许说完成（呼应 §4 第 5 条"先验证再声称完成" + §4.5 验证纪律）。
+
+**诚实边界**：不承诺物理上永不中断（context 上限 / 报错 / 用户打断都会发生）；目标是让中断永远**可见、可续**——账本一摆，断点 + 下一步一目了然，新 session 秒接。这才是"完整走一趟"能兑现的版本。
+
+**例外 / 边界**：简单档免；用户说"直接做"也仍维护实时 ToDo（它是进度窗口、不是审批坎，不触发等待）。本节**不新增任何 gate / 治理**，是纯执行纪律（instruction-layer），与任何 governed gate 的内部严谨度无关。
+
+**确定性背书（2026-06-15，更新上一句）**：第 3 层「收尾坎 / 必须汇报」现已从纯 instruction 升级为 hook 背书——**全局 hook `report-gate.js`**（Stop，注册于 `~/.claude/settings.json`）：非平凡轮次（用了 Agent/Task/Workflow 或 ≥3 文件改动）收尾若无汇报（closing 文本 < 阈值，默认 200 字符）即 `decision:block` 硬拦，逼模型补出 §0.5 汇报。loop-safe（`stop_hook_active`）+ fail-open（productivity gate 非 safety gate，绝不因报错断 session）。**它是面向"必须汇报"的轻量 productivity gate，仍非 governed verdict gate**——强制汇报"存在"、不强制质量，格式仍按 §0.5；与 §0.6 的 `plan-card-reminder.js` 配成一对。登记见 `manifests/hook-registry.json` global_live。
 
 ---
 
@@ -135,12 +156,13 @@
 - 对齐 NIST CSF 2.0 六功能（Govern / Identify / Protect / Detect / Respond / **Recover**）
 - 路由 6-layer capability map（governance / app / platform / operations / response / compliance）
 - 标准升 ASVS 5.0（V1-V17，旧 V2-V13 标识符已 deprecated）
-- **18 个 sub-skill 已落地**（22 个 AppSec-family 含 dual pentest gates + GSD adapter；2026-06-10 新增 `security-app-api` / `security-platform-supply-chain` / `security-compliance-privacy`；2026-06-14 新增 `security-response-red-purple-team`（红/紫队 ATT&CK 覆盖, planning-only）/ `security-viz`（安全可视化生成器））：
+- **25 个 sub-skill 已落地**（28 个 AppSec-family 含 dual pentest gates + GSD adapter；计数按下方实际枚举列表重算——2026-06-15 Wave A 落 +4 后 = 23 sub-skill / 26 family；本次 Wave B +2 new sub-skill（`dast-authenticated` / `security-pentest-exploitation-planning`）= 25 sub-skill / 28 family；2026-06-10 新增 `security-app-api` / `security-platform-supply-chain` / `security-compliance-privacy`；2026-06-14 新增 `security-response-red-purple-team`（红/紫队 ATT&CK 覆盖, planning-only）/ `security-viz`（安全可视化生成器）；2026-06-15 Wave A 新增 4 个、Wave B 新增 2 个见下）：
   - governance: `security-governance-threat-modeling`
-  - app: `security-remediation`, `dast-baseline-scanning`
+  - app: `security-remediation`, `dast-baseline-scanning`, `dast-authenticated`（**RED-LINE** authenticated/登录态 DAST 双 gate，wrapper-only，passive baseline 与 exploitation 之间的中间层；HARD-REQUIRES ROE + 授权 staging/preview/lab target + 时间窗 + 人工授权，绝不 auto-scan、绝不打 production）, `security-app-fuzzing`（coverage-guided 模糊测试）, `security-app-sast-deep`（深度 taint/dataflow SAST）
   - app overlay: `security-app-mobile` / `security-app-llm` / `security-app-multitenant` / `security-app-websocket` / `security-app-file-upload` / `security-app-api`
-  - platform: `security-platform-secrets` / `security-platform-iac-cloud` / `security-platform-supply-chain`
-  - response: `security-response-incident-response` / `security-response-recovery` / `security-response-red-purple-team`（红/紫队 ATT&CK 覆盖，planning-only，永不执行攻击）/ `pentest-scope-and-roe` / `authorized-pentest-validation`
+  - platform: `security-platform-secrets` / `security-platform-iac-cloud`（**deepened** — §4.5 k8s 运行时编排 Kyverno / OPA Gatekeeper / Tetragon / Security Profiles Operator，conditional-k8s，纯 defensive）/ `security-platform-supply-chain`（**deepened** — reachability 降噪 + Prowler CSPM）
+  - response: `security-response-incident-response` / `security-response-recovery` / `security-response-red-purple-team`（红/紫队 ATT&CK 覆盖，planning-only，永不执行攻击）/ `pentest-scope-and-roe`（**deepened** — P6：`appsec-sdk retest.append` retest gate + 14 段企业 pentest-report 模板）/ `authorized-pentest-validation`
+  - pentest: `security-pentest-recon-scan`（模板化 recon+授权扫描）, `security-pentest-ai-redteam`（AI/agentic 红队）, `security-pentest-exploitation-planning`（exploitation / adversary-sim **planning-only** 参考，Metasploit / Sliver / Caldera / Pacu / BloodHound；Read-only，受双 gate 约束，**绝不**当 authorized-pentest-validation 的桥、绝不自动执行）——**三者均 planning-only，受 pentest-scope-and-roe + authorized-pentest-validation 双 gate 约束，绝不自动执行攻击**
   - compliance: `security-compliance-payment` / `security-compliance-cn-data` / `security-compliance-privacy`
   - visualization: `security-viz`（从 `.appsec/` + manifest 事实源渲染安全图：AI Agent 风险图 / 漏洞看板 / 证据 dashboard / pentest scope map；render-only，**不是** arch-viz 的代码结构图）
 - 共享模板库（`templates/`，数量见目录；含 threat-model-STRIDE / vuln-report / risk-register / security-test-plan / incident-response-initial / SECURITY.md / PENTEST-ROE.md，2026-06-14 新增 attack-coverage-template / overlay-checklist.template / security-policy.template / asset-inventory.schema / data-classification.schema / control-matrix.template / authz-matrix.schema / threat-model.schema.json / pentest-report.template）
@@ -317,6 +339,20 @@ spawn 多个 agent 或发起多个 tool call 前必须先判断依赖关系：
 | `web-local-seo` | **Local SEO**（2026-05-25 由 `web-geo` 改名） | Local SEO / Google Business Profile / Maps / NAP / near me / 附近 / 本地服务 / 实体店 |
 | `app-aso` | App Store / Google Play | ASO / app store / store listing / product page / screenshots / app keywords |
 
+### Post-launch 测量 / CI 扩展（2026-06-15 Wave B 新增 — L12 现覆盖 pre-launch audit + post-launch measurement）
+
+Wave B 给 3 个 narrow skill 加了**上线后**能力，L12 从"只做发布前体检"扩成"发布前 audit + 发布后测量"两段：
+
+- `web-aeo` §20 **AI citation tracking**（AI 引用追踪 / share of voice / 是否被 Perplexity·ChatGPT 引用）—— **measurement-only，永不进 gate**
+- `web-seo` §15 **tech-SEO CI gate**（unlighthouse / lighthouse-ci / lhci 整站 SEO 进 CI）—— feeds seo evidence channel
+- `app-aso` §16.6 **ASO measurement**（◇mobile：keyword difficulty / install funnel / App Store Connect Analytics）—— **measurement-only**
+
+启发式 / measurement 分数永远不能当 blocker（与既有 L12 铁律一致）；CI gate（web-seo §15）走 deterministic script，evidence 出来才解读。
+
+### Growth-execution skill（2026-06-15 新增 — **不是第 5 个 audit channel**）
+
+- `discoverability-growth`（auto via orchestrator）：growth / 关键词策略 / keyword strategy / content gap / 内容缺口 / 程序化 SEO / 该写什么内容。**它是 growth-execution（写什么内容 / 关键词缺口 / 程序化扩量），不引入新 evidence channel、不引入新 gate**——4 个 audit channel（seo / ai-search / local / aso）+ gate-result.yaml 不变。
+
 ### 命名陷阱
 
 - 本体系 **GEO = Generative Engine Optimization**（路由到 `web-aeo`）
@@ -343,8 +379,8 @@ L12 从 prompt-only router 升级为 **execution harness**：orchestrator self-d
 
 | 组件 | 位置 | 作用 |
 |---|---|---|
-| SDK | `~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py` | 10 commands: init / classify / audit / evidence.append / evidence.validate / gate.check / report / mark-stale / explain / status |
-| Agents | `~/.claude/agents/disc-{scope-classifier,evidence-validator,remediation-planner}.md` | 8-step workflow Step 1 / Step 5 / Step 6 |
+| SDK | `~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py` | 10 core + `measure.pull` / `measure.compare`（measurement-only）: init / classify / audit / evidence.append / evidence.validate / gate.check / report / mark-stale / explain / status（+ measure.pull / measure.compare 不进 gate.check） |
+| Agents | `~/.claude/agents/disc-{scope-classifier,evidence-validator,remediation-planner,measurement-puller}.md`（4 个，2026-06-15 加 `disc-measurement-puller` post-launch 真实指标回流） | 8-step workflow Step 1 / Step 5 / Step 6 + post-launch measurement（measurement-only，不进 gate） |
 | Hooks (项目) | `~/.claude/templates/discoverability/hooks/disc-*.js` | 复制到 `<project>/.claude/hooks/` |
 | Contract | `~/.claude/templates/discoverability/harness-contract.md` | ground truth；SDK / agents / hooks / orchestrator 必须对齐 |
 | Config | `<project>/discoverability.config.yaml` 新增 `harness:` 段 | strict_mode / required_channels / evidence_freshness_hours / deploy_commands |
