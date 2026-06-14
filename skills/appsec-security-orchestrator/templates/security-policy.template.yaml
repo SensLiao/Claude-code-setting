@@ -1,0 +1,203 @@
+# =============================================================================
+# Security Policy — STANDING ARTIFACT (Enterprise module #1)
+# =============================================================================
+# Owned by: appsec-security-orchestrator (governance layer)
+# Standards: NIST CSF 2.0 (Govern function) · OWASP ASVS 5.0 · NIST SP 800-30 Rev.1
+#
+# WHAT THIS IS
+#   The org/project-level security *policy* — the standing rules that the
+#   per-project `.appsec/config.json` then OPERATIONALIZES (config.json picks
+#   asvs_level, overlays, execution_mode; THIS file says what those choices MEAN
+#   and who is allowed to deviate). One policy can govern many projects.
+#
+# WHAT THIS IS NOT
+#   - Not a per-run evidence artifact (those live under .appsec/evidence/<tag>/).
+#   - Not a finding (findings → `appsec-sdk finding.add`, schema §9).
+#   - Not access control itself — it states the *rules*; enforcement is code.
+#
+# HOW TO USE
+#   1. Copy to a governed location (e.g. docs/security/security-policy.yaml or
+#      a central GRC repo). 2. Fill every {{...}}. 3. Reference its decisions in
+#      `.appsec/config.json`. 4. Re-review on the cadence in `review`.
+# =============================================================================
+
+schema_version: "1.0"
+artifact: security-policy
+
+metadata:
+  policy_name: "{{Org/Product Security Policy}}"
+  owner: "{{security owner name / role}}"        # accountable human (a name or a role title)
+  approved_by: "{{CISO / security lead}}"        # who signed this policy version
+  approved_at: "{{YYYY-MM-DD}}"
+  applies_to:                                    # which projects/repos this policy governs
+    - "{{repo or product name}}"
+  supersedes: "{{prior policy version or '' }}"
+
+# -----------------------------------------------------------------------------
+# 1. Security levels — the tiers a project can be assigned, and what each demands.
+#    A project's tier (declared in .appsec/config.json) selects its baseline.
+# -----------------------------------------------------------------------------
+security_levels:
+  # enum: baseline | standard | elevated | regulated
+  - level: baseline
+    description: "Internal-only / low-risk; no PII, no payment, no external exposure."
+    required_asvs_level: 1                        # ASVS 5.0 level: 1 | 2 | 3
+    required_csf_functions: [GV, ID, PR]          # subset of [GV, ID, PR, DE, RS, RC]
+    required_overlays: []                         # e.g. [file_upload, multitenant, llm, payment, cn_data, mobile, websocket]
+    pentest_required: false
+  - level: standard
+    description: "Public-facing app handling user data; default for most products."
+    required_asvs_level: 2
+    required_csf_functions: [GV, ID, PR, DE, RS]
+    required_overlays: []
+    pentest_required: false
+  - level: elevated
+    description: "Handles confidential data / admin surface / multi-tenant isolation."
+    required_asvs_level: 2
+    required_csf_functions: [GV, ID, PR, DE, RS, RC]
+    required_overlays: [multitenant]
+    pentest_required: true
+  - level: regulated
+    description: "Payments / health / regulated PII / cross-border data."
+    required_asvs_level: 3
+    required_csf_functions: [GV, ID, PR, DE, RS, RC]
+    required_overlays: [payment]                  # add cn_data where PIPL/cross-border applies
+    pentest_required: true
+
+# -----------------------------------------------------------------------------
+# 2. Risk-acceptance authority — WHO can accept a residual risk at each severity.
+#    A finding above its threshold CANNOT be accepted by a lower authority.
+#    Acceptances are recorded in risk-register.md, never lost in chat.
+# -----------------------------------------------------------------------------
+risk_acceptance:
+  authority_matrix:
+    # severity enum aligns with finding schema §9: critical | high | medium | low
+    - severity: critical
+      may_accept: "{{CISO + business owner (dual sign-off)}}"
+      max_acceptance_window_days: 30              # acceptance must be time-boxed + re-reviewed
+    - severity: high
+      may_accept: "{{security lead}}"
+      max_acceptance_window_days: 90
+    - severity: medium
+      may_accept: "{{eng lead}}"
+      max_acceptance_window_days: 180
+    - severity: low
+      may_accept: "{{eng lead}}"
+      max_acceptance_window_days: 365
+  rules:
+    - "Every acceptance MUST have: accepting authority, justification, compensating control, expiry date."
+    - "Expired acceptances auto-reopen as the original severity."
+    - "Critical findings on auth/payment/data-export paths are NON-acceptable while exploitable."
+
+# -----------------------------------------------------------------------------
+# 3. Gate policy — which release gates BLOCK vs WARN. Mirrors the deterministic
+#    `appsec-sdk gate.check` verdict semantics. `block` = release stops here.
+# -----------------------------------------------------------------------------
+gate_policy:
+  # action enum: block | warn | off
+  gates:
+    - gate: open_critical_findings
+      description: "Any unresolved/unaccepted critical finding."
+      action: block
+    - gate: open_high_findings
+      description: "Any unresolved/unaccepted high finding."
+      action: block                               # downgrade to warn ONLY for level=baseline
+    - gate: required_evidence_layers_present
+      description: "threat-model, sca, secret-scan, sast, code-review, headers-cookies present."
+      action: block
+    - gate: secret_scan_clean
+      description: "No unredacted secret in scan output."
+      action: block
+    - gate: redaction_attestation_present
+      description: "All persisted evidence passed `appsec-sdk redact`."
+      action: block
+    - gate: asvs_coverage_assessed
+      description: "control.coverage shows required ASVS chapters ASSESSED, not NOT_ASSESSED."
+      action: warn                                # block at level=regulated
+    - gate: csf_function_coverage
+      description: "All required_csf_functions for the level have evidence."
+      action: warn
+    - gate: pentest_signed_off
+      description: "If level.pentest_required, an authorized-pentest-validation report exists."
+      action: block                               # only evaluated when pentest_required: true
+  notes:
+    - "Gate verdicts come from deterministic `appsec-sdk gate.check` — NOT from a model."
+    - "A model (incl. Dynamic Workflows/ultracode) may scout candidates but never emits a gate verdict (CLAUDE.md §3.7)."
+
+# -----------------------------------------------------------------------------
+# 4. Severity → remediation SLA. Mirrors orchestrator §10. `computed_risk`
+#    (finding schema §9) drives the clock, not raw severity alone.
+# -----------------------------------------------------------------------------
+severity_sla:
+  # time-to-remediate from confirmation. Tune per org appetite.
+  - severity: critical
+    remediate_within: "24h"
+    escalation: "page on-call security + business owner"
+  - severity: high
+    remediate_within: "7d"
+    escalation: "security lead notified"
+  - severity: medium
+    remediate_within: "30d"
+    escalation: "tracked in backlog"
+  - severity: low
+    remediate_within: "90d"
+    escalation: "tracked in backlog"
+
+# -----------------------------------------------------------------------------
+# 5. Data-handling rules — per classification tier. Tiers MUST match the finding
+#    schema affected.data_classes + data-classification.schema.yaml:
+#      public | internal | confidential | restricted
+# -----------------------------------------------------------------------------
+data_handling:
+  tiers:
+    - classification: public
+      encryption_in_transit: required             # always TLS, even for public
+      encryption_at_rest: optional
+      access_logging: optional
+      retention_max: "{{e.g. indefinite}}"
+      allowed_stores: ["{{any approved store}}"]
+    - classification: internal
+      encryption_in_transit: required
+      encryption_at_rest: recommended
+      access_logging: recommended
+      retention_max: "{{e.g. 2y}}"
+      allowed_stores: ["{{approved internal stores}}"]
+    - classification: confidential
+      encryption_in_transit: required
+      encryption_at_rest: required
+      access_logging: required
+      retention_max: "{{e.g. per contract}}"
+      allowed_stores: ["{{KMS-backed stores only}}"]
+      extra_controls: [field-masking, least-privilege-access]
+    - classification: restricted
+      encryption_in_transit: required
+      encryption_at_rest: required                # + key isolation / HSM where applicable
+      access_logging: required                    # tamper-evident audit log
+      retention_max: "{{minimum necessary}}"
+      allowed_stores: ["{{isolated/regulated stores}}"]
+      extra_controls: [tokenization, field-masking, dual-control-access, dlp]
+  global_rules:
+    - "No secret (credential/token/key) is ever a data entity stored in app DB — use a secret manager."
+    - "Raw secrets NEVER appear in logs, chat, findings, or evidence (enforce `appsec-sdk redact`)."
+    - "Cross-border transfer of restricted/PII data requires an explicit transfer assessment (see cn_data overlay where applicable)."
+
+# -----------------------------------------------------------------------------
+# 6. Ownership — accountable roles. Security is part of Definition of Done.
+# -----------------------------------------------------------------------------
+ownership:
+  security_owner: "{{name/role accountable for this policy}}"
+  appsec_reviewer: "{{name/role for code/threat review}}"
+  incident_commander: "{{name/role for IR (response layer)}}"
+  data_protection_officer: "{{name/role, if regulated/PII/cross-border}}"
+
+# -----------------------------------------------------------------------------
+# 7. Review cadence + change control.
+# -----------------------------------------------------------------------------
+review:
+  cadence: "{{e.g. quarterly}}"
+  last_reviewed: "{{YYYY-MM-DD}}"
+  next_review_due: "{{YYYY-MM-DD}}"
+  triggers_for_off_cycle_review:
+    - "New external interface / auth model change / new third-party / new data class."
+    - "Security incident (post-incident review feeds back here)."
+    - "Regulatory change affecting applies_to projects."

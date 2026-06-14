@@ -1,0 +1,73 @@
+schema_version: "1.0"
+
+qa_layers:
+  - {id: static, order: 1, skill: qa-static-baseline, tools: [tsc, eslint, prettier, npm-audit, git-secrets]}
+  - {id: unit_tdd, order: 2, skill: qa-test-design-tdd-bridge, bridge_agent: tdd-guide, tools: [vitest]}
+  - {id: component, order: 3, skill: qa-component-behavior, tools: [rtl, jsdom]}
+  - {id: integration, order: 4, skill: qa-integration-service-virtualization, tools: [msw, testcontainers, compose]}
+  - {id: contract, order: 5, skill: qa-contract-api, tools: [openapi, pact, asyncapi, graphql]}
+  - {id: e2e, order: 6, skill: qa-e2e-coverage-gate, bridge_agent: e2e-runner, tools: [playwright]}
+  - {id: visual_regression, order: 7, skill: qa-visual-regression, tools: [screenshot-diff, chromatic]}
+  - {id: accessibility, order: 8, skill: qa-a11y-compliance, tools: [axe-core, playwright-axe], standard: WCAG-2.2}
+  - {id: performance_reliability, order: 9, skill: qa-performance-reliability, tools: [lighthouse, k6, web-vitals], standard: core-web-vitals}
+
+qa_cross_cutting:
+  - {id: smoke, skill: qa-smoke-release-safety}
+  - {id: test_data_environment, skill: qa-test-data-environment}
+  - {id: flaky_governance, skill: qa-flaky-governance, rule: 8-category + 8-field accountability + critical-path no-quarantine}
+  - {id: evidence_bundle, skill: qa-evidence-bundle, output: qa_evidence_bundle.yaml}
+
+appsec_domains:
+  governance:
+    csf: [GV]
+    capabilities: [threat-modeling, asset-inventory, data-classification, authz-matrix, control-coverage, audit-package]
+    standards: [STRIDE, NIST-800-154, CSF-2.0]
+  identify:
+    csf: [ID]
+    capabilities: [sast, sca, secret-scan, supply-chain, sbom, provenance]
+    standards: [CWE, SSDF-800-218, SLSA, CIS-v8.1]
+  protect:
+    csf: [PR]
+    capabilities: [auth, authz, input-validation, session, crypto, headers, api-security, file-upload, mobile, llm, multitenant, websocket, secrets, iac-cloud]
+    standards: [ASVS-5.0, API-Top10-2023, LLM-Top10, MASVS-2.x, NIST-800-190]
+  detect:
+    csf: [DE]
+    capabilities: [passive-dast, logging, monitoring]
+    standards: [OWASP-WSTG]
+  respond:
+    csf: [RS]
+    capabilities: [incident-response, pentest-path, red-purple-planning]
+    standards: [NIST-800-61r3, MITRE-ATTACK]
+  recover:
+    csf: [RC]
+    capabilities: [backup-validation, restore, rto-rpo, bcp-dr]
+    standards: [CSF-2.0-RC]
+  compliance:
+    csf: [GV]
+    capabilities: [payment, cn-data, privacy]
+    standards: [PCI-DSS-4.0.1, PIPL, GDPR, CCPA, CPRA]
+  visualization:
+    skill: security-viz
+    capabilities: [security-diagram-render]
+    note: render-only from .appsec fact-sources, not arch-viz
+
+offensive_boundaries:
+  passive_dast:
+    automation: allowed
+    skill: dast-baseline-scanning
+    requirements: [authorized-staging-or-preview, no-attack-payload]
+  active_pentest:
+    automation: manual-only
+    skills: [pentest-scope-and-roe, authorized-pentest-validation]
+    locks: [model-hidden-skill, manual-only-agent, 13-field-roe-verify, roe-time-window, verbatim-human-signoff]
+    requirements: [roe, in-scope-target, time-window, exact-human-authorization]
+  red_purple_team:
+    automation: planning-only
+    skill: security-response-red-purple-team
+    note: maps MITRE ATT&CK to control/detection coverage; never executes attacks
+  production_active_scan:
+    automation: forbidden
+    enforced_by: appsec-active-scan-guard.js
+    requirements: []
+
+prohibitions: [destructive, dos, persistence, credential-theft, data-exfiltration, stealth, out-of-scope-scanning, production-active-scanning, roe-bypass]

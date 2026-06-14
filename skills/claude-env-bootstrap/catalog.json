@@ -208,6 +208,31 @@
       "template_addon": ["planning/threat-model-STRIDE.md"],
       "priority": "high"
     },
+    "security-response-red-purple-team": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "risk_surface", "contains_any": ["auth", "admin", "financial", "pii", "public-api"]},
+          {"signal": "_derived.is_saas", "equals": true}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "medium",
+      "_note": "PLANNING/COVERAGE ONLY — never executes attacks; active validation stays behind the manual pentest gate."
+    },
+    "security-viz": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "risk_surface", "contains_any": ["auth", "payment", "multitenant", "admin", "financial", "pii", "public-api", "llm-agentic"]},
+          {"signal": "_derived.is_saas", "equals": true}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "priority": "medium"
+    },
     "security-remediation": {
       "domain": "appsec",
       "kind": "narrow",

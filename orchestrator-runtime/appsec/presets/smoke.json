@@ -17,7 +17,9 @@
       "agentType": "appsec-risk-classifier",
       "prompt_ref": "plan.v1",
       "schema_ref": "PLAN_SCHEMA.v1",
-      "post_invariants": ["ensure_csf_coverage"]
+      "post_invariants": [
+        "ensure_csf_coverage"
+      ]
     },
     {
       "name": "Find",
@@ -36,7 +38,9 @@
       "prompt_ref": "normalize.v1",
       "schema_ref": "NORMALIZE_SCHEMA.v1",
       "skip_if": "no_candidates",
-      "skip_default": { "findings": [] }
+      "skip_default": {
+        "findings": []
+      }
     },
     {
       "name": "Dedup",
@@ -60,8 +64,33 @@
   "prompts": {},
   "schemas": {},
   "ops_allowed": {
-    "deterministic": ["fingerprint_cluster", "appsec_gate_policy", "compute_recall"],
-    "predicates": ["no_candidates", "no_accepted"],
-    "invariants": ["ensure_csf_coverage", "prune_below_floor"]
+    "deterministic": [
+      "fingerprint_cluster",
+      "appsec_gate_policy",
+      "compute_recall"
+    ],
+    "predicates": [
+      "no_candidates",
+      "no_accepted"
+    ],
+    "invariants": [
+      "ensure_csf_coverage",
+      "prune_below_floor"
+    ]
+  },
+  "_estimate": {
+    "token_estimate_low": 50000,
+    "token_estimate_high": 120000,
+    "hard_budget_cap": 150000,
+    "wallclock_estimate_minutes": 2,
+    "evidence_layers": [
+      ".appsec/evidence/<tag>/threat-model/",
+      ".appsec/evidence/<tag>/sca/",
+      ".appsec/evidence/<tag>/secret-scan/",
+      ".appsec/evidence/<tag>/sast/",
+      ".appsec/evidence/<tag>/code-review/",
+      ".appsec/evidence/<tag>/headers-cookies/",
+      ".appsec/decisions/<tag>/appsec_release_decision.yaml"
+    ]
   }
 }

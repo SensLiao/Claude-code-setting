@@ -201,10 +201,11 @@ Step 10 Platform-specific compliance
           - Scoped Storage 合规
           - Sensitive permissions justification（READ_PHONE_STATE / READ_CONTACTS / etc.）
 
-Step 11 输出 + 路由
-        → Findings → security-remediation
+Step 11 输出 + 路由（权威契约见 §8 Output Contract + §8.1 Overlay Evidence Contract）
+        → Findings 全部走 `appsec-sdk finding.add`（canonical；不直写 .appsec/findings/**）→ security-remediation
         → Secret storage 高危 → security-platform-secrets
         → Privacy issues → orchestrator §5.4 privacy capability + 合规 (cn_data 如有)
+        → `appsec-sdk overlay.activate <tag> mobile` + 写 overlay-mobile/checklist.yaml（§8.1，缺则 release BLOCK）
         → 更新 SECURITY.md mobile-specific section
         → 写到 AppSec Release Evidence §12 叠加层
 ```
@@ -269,15 +270,38 @@ Step 11 输出 + 路由
 
 1. Review Depth profile（Default / Enhanced / Enhanced+Resilience）+ 决定 rationale + 对应 MAS Testing Profile
 2. **8 control group** coverage matrix（每个 group 通过 / 部分 / 未覆盖 + evidence）— STORAGE / CRYPTO / AUTH / NETWORK / PLATFORM / CODE / RESILIENCE / **PRIVACY**
-3. Findings 列表（per orchestrator §9 Standardized Finding Schema → security-remediation）
-   - ASVS refs in emitted findings must use the versioned `v5.0.0-<chapter>.<section>.<req>` form (the chapter labels in this skill are for scoping only).
-4. iOS/Android specific issues 分组
-5. Privacy compliance status（iOS Privacy Manifest / Android Data Safety）
-6. Third-party SDK inventory + audit status
-7. Resilience controls 清单（L2+R）
-8. SECURITY.md mobile section 更新
-9. AppSec Release Evidence §12 叠加层填表
-10. Cert pinning rotation plan（如适用）
+3. iOS/Android specific issues 分组
+4. Privacy compliance status（iOS Privacy Manifest / Android Data Safety）
+5. Third-party SDK inventory + audit status
+6. Resilience controls 清单（Enhanced+Resilience profile）
+7. SECURITY.md mobile section 更新
+8. AppSec Release Evidence §12 叠加层填表
+9. Cert pinning rotation plan（如适用）
+10. **Findings** —— 全部经 `appsec-sdk finding.add <file>`（canonical path，redact-first）落 `.appsec/findings/<tag>/`，符合 orchestrator §9 finding schema v1.0：
+    - `source`（`manual_review` 或扫描命中）；`severity` **小写**；`cwe`；`reproduction_steps`（**禁含 raw signing key / 真实 device 标识 / 真实 user data**——脱敏；且本 skill 永不读 `.keystore`/`.jks`/`.mobileprovision`/`.p12`）
+    - `asvs_mapping`：mobile 主体走 **MASVS 2.x**（8 control groups），ASVS 仅适用 web service 组件——有 ASVS clause 时用版本化三段 `v5.0.0-<ch>.<sec>.<req>`（正则 `^v5\.0\.0-\d+\.\d+\.\d+$`），否则在 finding/`notes` 标 MASVS group（如 `MASVS-STORAGE`），**绝不**用 4.x 旧标签也不硬塞不存在的 ASVS 号
+    - **绝不** Write 直写 `.appsec/findings/**`（orchestrator hook §18.5a 拦 Write/Edit/MultiEdit）；只走 sdk
+    - high+ finding → `security-remediation`；secret storage 高危 → `security-platform-secrets`；privacy → orchestrator §5.4 privacy + 合规（cn_data 如有）
+
+### 8.1 Overlay Evidence Contract（满足 release gate — 不可省）
+
+> 起因：appsec-evidence-validator（orchestrator §16.9 check #3）对**每个激活的 overlay** HARD-REQUIRE `.appsec/evidence/<tag>/overlay-<name>/checklist.yaml`，缺一即 release **BLOCKED**。本 overlay 的 `<name>` = `mobile`。
+
+每次 review 结束，**两步落盘**（按序）：
+
+1. **标记 overlay active**：
+   ```bash
+   appsec-sdk overlay.activate "<release-tag>" mobile
+   # → 建 .appsec/evidence/<tag>/overlay-mobile/ + 写 .activated 标记
+   ```
+2. **写 overlay checklist evidence**（validator 真正校验的文件）：
+   - 写 `.appsec/evidence/<release-tag>/overlay-mobile/checklist.yaml`
+   - 直接 Write 即可（evidence 路径不被 hook 拦；只有 `.appsec/findings/**` + `.appsec/decisions/**` 被 §18.5a 拦）
+   - 内容：把 §3 的 **8 MASVS 2.x control groups**（STORAGE / CRYPTO / AUTH / NETWORK / PLATFORM / CODE / RESILIENCE / PRIVACY）逐组转成 `items[]`。**因 mobile 走 MASVS 而非 ASVS**：`asvs_ref` 置 `null`，把 MASVS group 写进 `notes`（如 `MASVS-STORAGE`）；仅当某项确属 web service 组件且有 ASVS clause 时才填版本化 ASVS 号。每项另含 `id` / `requirement` / `status: pass|fail|na|not_tested` / `evidence_ref` + `summary{total, pass, fail, na}`。先在 checklist 顶部 `notes` 记本次 Review Depth profile（Default / Enhanced / Enhanced+Resilience）——RESILIENCE 组在非-Resilience profile 下应标 `na`
+   - 任何 `status: fail` 在 `evidence_ref`/`notes` 引用对应 `finding.add` 出的 finding id（finding 本体走 sdk，不塞 checklist）
+   - 模板：[`appsec-security-orchestrator/templates/overlay-checklist.template.yaml`](../appsec-security-orchestrator/templates/overlay-checklist.template.yaml)（含 mobile 示例 items：按 8 MASVS groups，asvs_ref null + MASVS group in notes）
+
+无此 checklist.yaml → §16.9 validator BLOCK 整个 release。
 
 ---
 
@@ -291,6 +315,7 @@ Step 11 输出 + 路由
 - [Android Jetpack Security](https://developer.android.com/topic/security/data)
 - [Android Network Security Config](https://developer.android.com/training/articles/security-config)
 - [iOS Cryptographic Services Guide](https://developer.apple.com/documentation/cryptokit)
-- [appsec-security-orchestrator](../appsec-security-orchestrator/SKILL.md)
+- [appsec-security-orchestrator](../appsec-security-orchestrator/SKILL.md) — §9 finding schema / §16.3 overlay activation / §16.9 evidence validation / §18.5a finding-path hook
+- [overlay-checklist.template.yaml](../appsec-security-orchestrator/templates/overlay-checklist.template.yaml) — overlay-mobile/checklist.yaml 模板（MASVS group in notes, asvs_ref null）
 - [Apple Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/) — iOS HIG reference (本地 apple-ios-hig skill 已移除，改用 Apple 官方文档)
 - [security-platform-secrets](../security-platform-secrets/SKILL.md) — Keychain/Keystore engineering

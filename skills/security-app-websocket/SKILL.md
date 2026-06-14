@@ -142,8 +142,9 @@ Step 13 SSE-specific
         → SSE 是单向（server → client）；client 用 HTTP POST 走另一条 channel
         → SSE auth = HTTP auth + 同 origin policy
 
-Step 14 输出 + 路由
-        → Findings → security-remediation
+Step 14 输出 + 路由（权威契约见 §7 Output Contract + §7.1 Overlay Evidence Contract）
+        → Findings 全部走 `appsec-sdk finding.add`（canonical；不直写 .appsec/findings/**）→ security-remediation
+        → `appsec-sdk overlay.activate <tag> websocket` + 写 overlay-websocket/checklist.yaml（§7.1，缺则 release BLOCK）
         → 更新 SECURITY.md WebSocket section + AppSec Release Evidence §12 叠加层
 ```
 
@@ -210,9 +211,32 @@ attacker.com → JavaScript → new WebSocket('wss://victim.com/api')
 7. CSWSH defense verification
 8. Framework-specific config audit
 9. SSE-specific config（如适用）
-10. Findings → security-remediation
-    - ASVS refs in emitted findings must use the versioned `v5.0.0-<chapter>.<section>.<req>` form (the chapter labels in this skill are for scoping only).
-11. SECURITY.md WebSocket section + AppSec Release Evidence §12 叠加层
+10. SECURITY.md WebSocket section + AppSec Release Evidence §12 叠加层
+11. **Findings** —— 全部经 `appsec-sdk finding.add <file>`（canonical path，redact-first）落 `.appsec/findings/<tag>/`，符合 orchestrator §9 finding schema v1.0：
+    - `source`（`manual_review` 或扫描命中）；`severity` **小写**；`cwe`（CSWSH 常为 `CWE-352` / 缺 origin 校验 `CWE-346`）；`reproduction_steps`（**禁含 raw session token / frame payload PII / 真实 user id**——脱敏）
+    - `asvs_mapping` 用版本化三段 `v5.0.0-<ch>.<sec>.<req>`（正则 `^v5\.0\.0-\d+\.\d+\.\d+$`；WebSocket/realtime 用 ASVS V17，授权用 V8），不用 4.x 旧标签
+    - **绝不** Write 直写 `.appsec/findings/**`（orchestrator hook §18.5a 拦 Write/Edit/MultiEdit）；只走 sdk
+    - high+ finding → `security-remediation`（fix → 回归测试）
+
+### 7.1 Overlay Evidence Contract（满足 release gate — 不可省）
+
+> 起因：appsec-evidence-validator（orchestrator §16.9 check #3）对**每个激活的 overlay** HARD-REQUIRE `.appsec/evidence/<tag>/overlay-<name>/checklist.yaml`，缺一即 release **BLOCKED**。本 overlay 的 `<name>` = `websocket`。
+
+每次 review 结束，**两步落盘**（按序）：
+
+1. **标记 overlay active**：
+   ```bash
+   appsec-sdk overlay.activate "<release-tag>" websocket
+   # → 建 .appsec/evidence/<tag>/overlay-websocket/ + 写 .activated 标记
+   ```
+2. **写 overlay checklist evidence**（validator 真正校验的文件）：
+   - 写 `.appsec/evidence/<release-tag>/overlay-websocket/checklist.yaml`
+   - 直接 Write 即可（evidence 路径不被 hook 拦；只有 `.appsec/findings/**` + `.appsec/decisions/**` 被 §18.5a 拦）
+   - 内容：把 §3 Standard Workflow 的 Step 2-13 关键控制（含 §4 CSWSH defense）逐项转成 `items[]`（每项 `id` / `requirement` / `asvs_ref`（`v5.0.0-17.x.x`）/ `status: pass|fail|na|not_tested` / `evidence_ref` / `notes`）+ `summary{total, pass, fail, na}`
+   - 任何 `status: fail` 在 `evidence_ref`/`notes` 引用对应 `finding.add` 出的 finding id（finding 本体走 sdk，不塞 checklist）
+   - 模板：[`appsec-security-orchestrator/templates/overlay-checklist.template.yaml`](../appsec-security-orchestrator/templates/overlay-checklist.template.yaml)（含 websocket 示例 items：origin check / auth on upgrade / message rate limit / message schema validation / frame size + idle timeout）
+
+无此 checklist.yaml → §16.9 validator BLOCK 整个 release。
 
 ---
 
@@ -223,4 +247,5 @@ attacker.com → JavaScript → new WebSocket('wss://victim.com/api')
 - [OWASP API Security Top 10](https://owasp.org/www-project-api-security/)
 - [Socket.IO Security](https://socket.io/docs/v4/middlewares/)
 - [SignalR Security](https://learn.microsoft.com/en-us/aspnet/core/signalr/security)
-- [appsec-security-orchestrator](../appsec-security-orchestrator/SKILL.md)
+- [appsec-security-orchestrator](../appsec-security-orchestrator/SKILL.md) — §9 finding schema / §16.3 overlay activation / §16.9 evidence validation / §18.5a finding-path hook
+- [overlay-checklist.template.yaml](../appsec-security-orchestrator/templates/overlay-checklist.template.yaml) — overlay-websocket/checklist.yaml 模板

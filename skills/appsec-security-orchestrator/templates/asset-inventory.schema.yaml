@@ -1,0 +1,90 @@
+# =============================================================================
+# Asset Inventory — SCHEMA (Enterprise module #2)
+# =============================================================================
+# Owned by: appsec-security-orchestrator (governance layer)
+# Standards: NIST CSF 2.0 ID.AM (Asset Management) · CIS Controls v8.1 (1,2)
+#
+# WHAT THIS DOCUMENTS
+#   The canonical SHAPE that `appsec-sdk asset.inventory <tag> [<file>]` writes
+#   to .appsec/evidence/<tag>/asset-inventory/asset-inventory.yaml.
+#   This file is the contract: SDK output MUST validate against it. If the SDK
+#   skeleton changes, update this schema in the same change.
+#
+# WHY IT IS A STANDING ARTIFACT
+#   Every downstream module references assets by STABLE id:
+#     - findings (§9 affected.components)        - data-classification (stores/flows_to)
+#     - authz-matrix (resource ⇄ asset)          - threat-model components.json
+#   Without a single inventory with stable ids, those references float.
+#
+# VALIDATION (informal — documents the SDK skeleton, not a strict JSON Schema):
+#   - schema_version: "1.0" (string)
+#   - artifact: "asset-inventory" (literal)
+#   - assets: non-empty list once filled; each item has the keys below.
+# =============================================================================
+
+schema_version: "1.0"          # string, fixed "1.0"
+artifact: asset-inventory       # literal discriminator
+
+# assets[] — one entry per risk-carrying or risk-exposing asset.
+assets:
+  - id: ASSET-001               # REQUIRED. Stable unique id. Convention: ASSET-NNN.
+                                #   Referenced by data-classification (stores/flows_to),
+                                #   authz-matrix, findings, threat-model components.json.
+
+    type: service               # REQUIRED. enum:
+                                #   service        — a deployed process/microservice
+                                #   api            — an externally/internally callable interface
+                                #   datastore      — DB / cache / object store / queue
+                                #   frontend       — browser/SPA/mobile client surface
+                                #   agent-tool     — a tool an LLM/agent can invoke (privilege boundary!)
+                                #   third-party    — external vendor/SaaS dependency
+                                #   cloud-resource — bucket / function / secret / IAM role / network
+
+    name: ""                    # REQUIRED. Human-readable name (e.g. "orders-api", "primary-postgres").
+
+    exposure: internal          # REQUIRED. enum: public | internal | private
+                                #   public   — reachable from the internet
+                                #   internal — reachable within the trusted network/VPC
+                                #   private  — reachable only by tightly-scoped principals
+
+    auth_required: true         # REQUIRED. boolean. Does reaching this asset require authentication?
+                                #   false on a public exposure is a flag worth a threat-model note.
+
+    data_classes: []            # REQUIRED (may be empty). list, subset of:
+                                #   [public, internal, confidential, restricted]
+                                #   MUST match data-classification tiers + finding schema
+                                #   affected.data_classes. Drives data_handling rules.
+
+    owner: ""                   # REQUIRED. Accountable team/role/person for this asset.
+
+    notes: ""                   # OPTIONAL. Free text: tech stack, trust-zone hints,
+                                #   "agent-tool can write to prod DB", deprecation status, etc.
+
+# -----------------------------------------------------------------------------
+# Filled example (illustrative — delete before use):
+# -----------------------------------------------------------------------------
+# assets:
+#   - id: ASSET-001
+#     type: api
+#     name: orders-api
+#     exposure: public
+#     auth_required: true
+#     data_classes: [confidential]      # holds order + payment-adjacent data
+#     owner: payments-team
+#     notes: "Behind WAF; calls Stripe (ASSET-007) + primary-postgres (ASSET-003)."
+#   - id: ASSET-003
+#     type: datastore
+#     name: primary-postgres
+#     exposure: private
+#     auth_required: true
+#     data_classes: [confidential, restricted]
+#     owner: platform-team
+#     notes: "KMS-backed at-rest encryption; least-priv app role."
+#   - id: ASSET-009
+#     type: agent-tool
+#     name: db-query-tool
+#     exposure: internal
+#     auth_required: true
+#     data_classes: [confidential]
+#     owner: ai-team
+#     notes: "LLM-invocable. MUST be scoped read-only + row-level filtered (see authz-matrix)."

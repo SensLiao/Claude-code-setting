@@ -1,0 +1,30 @@
+schema_version: "1.0"
+tag: release-2026-06-14
+system: qa
+risk:
+  level: high
+  formula: "Impact x Likelihood + ExposureAdjustment"
+  reason: "Public authenticated workflow with payment-adjacent state."
+required_layers:
+  - static
+  - unit_tdd
+  - integration
+  - contract
+  - e2e
+  - smoke
+  - test_data_environment
+results:
+  static:
+    status: pass
+    evidence: evidence/qa/static-report.txt
+  unit_tdd:
+    status: pass
+    evidence: evidence/qa/vitest.json
+  e2e:
+    status: pass
+    evidence: evidence/qa/playwright-report/index.html
+flaky:
+  quarantined: 0
+release_decision:
+  verdict: PASS
+  blocking_issues: 0

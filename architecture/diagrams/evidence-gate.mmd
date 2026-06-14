@@ -1,0 +1,8 @@
+flowchart LR
+  Work[Work result] --> Normalize[Normalize]
+  Normalize --> Schema[Schema validation]
+  Schema --> Store[Evidence files]
+  Store --> Validator[Evidence validator]
+  Validator --> Decision[release_decision.yaml]
+  Decision --> Gate[deterministic gate.check]
+  Gate --> Verdict[Verdict]

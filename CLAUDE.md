@@ -35,6 +35,24 @@
 
 ---
 
+## 0.6 执行前计划预览卡（坎）— Plan-Preview Card
+
+> 加入 2026-06-14（user lock）。与 §0 / §0.5 同属**沟通层**硬规则。起因：用户反馈"skill / workflow 执行前从不把计划用**表 + 点线图**给我看——我只知道它跑了，不知道它的计划长什么样、派了哪些 agent、用了哪些 tool、流程是什么"。既有的 gate / hook 只校验 `spec_hash` / sentinel（审批凭证），**不渲染人类可读的计划**。本节补这道**渲染坎**。
+
+**铁律**：任何**中等 / 复杂**任务，在 fan-out 多 agent、启动 Workflow、或拉起重 orchestrator / 重 skill **之前**，必须先渲染**计划预览卡**并**等用户确认**，然后才全面执行。
+
+- **卡片单一真相源**：`~/.claude/orchestrator-runtime/shared/preview-template.md`（"Default user-facing card"）。所有 orchestrator（GSD / UIUX / AppSec / QA）+ ad-hoc 多 agent / Workflow 派发都复用它，不各写各的。
+- **卡片必含四件**：① 业务三行（目标 / 用到的能力 / 做完得到 + 规模成本）② **Agents 调度表**（`# · 阶段/Agent · 模型 · 干什么 · 用的工具=作用`，**工具列必填**）③ **点线流程图**（dots & lines，图例编码 串行 / parallel×N / gate / loop / 纯代码）④ **确认坎**（OK/批准/跑 → 执行；改 → 调整；cancel → 停）。
+- **复杂度分档**（沿用 [task-execution-protocol.md](rules/common/task-execution-protocol.md) 的 简单/中等/复杂）：
+  - **简单**（1 文件 / 无设计决策 / 单 agent / 无 fan-out / 无 Workflow）→ **跳过本卡**，一句"我在做 X"即可。
+  - **中等**（2-3 文件 / 单功能 / 或 2 agent 派发）→ 出**精简卡**（表为主，节点 ≤3 时图可选）。
+  - **复杂**（4+ 文件 / 多步 / 架构 / 跨模块 / 或任何 Workflow 启动 / 或 ≥3 agent fan-out / 含只读 audit·review 大 fan-out）→ 出**完整卡**（表 + 图 + 成本）并等确认。
+- **与 spec_hash gate 组合，不替代**：workflow-spec 模式下，本卡就是 §16.13 / §18.5 Step 10 渲染的那张卡；`spec_hash` + sentinel + `<domain>-preview-gate.js` 照旧 enforce（卡是更丰富的 *render*，hook 是 *enforcement*）。prompt-only / ad-hoc 模式下没有 sentinel——卡是 instruction-layer 的坎：渲染 → 等确认 → 跑。
+- **覆盖默认路径**：本卡在 **prompt-only 默认路径**（含 Windows）也要出——这正是以前"什么都不显示"的缺口。
+- **例外**：用户已在本 session explicit 说"直接做 / 不用预览 / 自主推进到完成"时，可省去**等待**（仍建议先把卡渲染出来让用户事后可追溯），与 task-execution-protocol §例外 一致。
+
+---
+
 ## 1. Operating Charter
 
 这是 commercial delivery 的操作宪法。所有 routing 决策按"主线 → orchestrator → narrower skill"分层，默认不无脑堆叠同层 skill。**例外（2026-06-10）**：UIUX 主线的 create/optimize 任务走**质量组合调度引擎**——刻意跨层组合多个 skill（接地 → 探索 → 风格 → 生成 → 统一 → 评审，详 `uiux-product-orchestrator` references/combination-policy.md）。"不一次性激活多 skill"指"不让同层竞争 skill 抢活 / 不无脑堆叠"，**不**禁止跨层的刻意质量组合；其余主线（GSD / AppSec / QA）仍 narrower-skill-wins。
@@ -117,14 +135,16 @@
 - 对齐 NIST CSF 2.0 六功能（Govern / Identify / Protect / Detect / Respond / **Recover**）
 - 路由 6-layer capability map（governance / app / platform / operations / response / compliance）
 - 标准升 ASVS 5.0（V1-V17，旧 V2-V13 标识符已 deprecated）
-- **16 个 sub-skill 已落地**（20 个 AppSec-family 含 dual pentest gates + GSD adapter；2026-06-10 新增 `security-app-api` / `security-platform-supply-chain` / `security-compliance-privacy`）：
+- **18 个 sub-skill 已落地**（22 个 AppSec-family 含 dual pentest gates + GSD adapter；2026-06-10 新增 `security-app-api` / `security-platform-supply-chain` / `security-compliance-privacy`；2026-06-14 新增 `security-response-red-purple-team`（红/紫队 ATT&CK 覆盖, planning-only）/ `security-viz`（安全可视化生成器））：
   - governance: `security-governance-threat-modeling`
   - app: `security-remediation`, `dast-baseline-scanning`
   - app overlay: `security-app-mobile` / `security-app-llm` / `security-app-multitenant` / `security-app-websocket` / `security-app-file-upload` / `security-app-api`
   - platform: `security-platform-secrets` / `security-platform-iac-cloud` / `security-platform-supply-chain`
-  - response: `security-response-incident-response` / `security-response-recovery` / `pentest-scope-and-roe` / `authorized-pentest-validation`
+  - response: `security-response-incident-response` / `security-response-recovery` / `security-response-red-purple-team`（红/紫队 ATT&CK 覆盖，planning-only，永不执行攻击）/ `pentest-scope-and-roe` / `authorized-pentest-validation`
   - compliance: `security-compliance-payment` / `security-compliance-cn-data` / `security-compliance-privacy`
-- 6 个共享模板：`templates/` 含 threat-model-STRIDE / vuln-report / risk-register / security-test-plan / incident-response-initial（外加已有 SECURITY.md / PENTEST-ROE.md）
+  - visualization: `security-viz`（从 `.appsec/` + manifest 事实源渲染安全图：AI Agent 风险图 / 漏洞看板 / 证据 dashboard / pentest scope map；render-only，**不是** arch-viz 的代码结构图）
+- 共享模板库（`templates/`，数量见目录；含 threat-model-STRIDE / vuln-report / risk-register / security-test-plan / incident-response-initial / SECURITY.md / PENTEST-ROE.md，2026-06-14 新增 attack-coverage-template / overlay-checklist.template / security-policy.template / asset-inventory.schema / data-classification.schema / control-matrix.template / authz-matrix.schema / threat-model.schema.json / pentest-report.template）
+- **2026-06-14 企业级加固**：①通用**计划预览卡**（§0.6，执行前出 表+点线图 等确认）②渗透测试**主动提醒**（§16.9.5，AppSec 跑完自动弹 pentest 建议卡，调用仍 100% 手动）③7 个新 `appsec-sdk` 命令（`asset.inventory` / `data.classify` / `authz.matrix` / `attack.coverage` / `pentest.recommend` / `control.coverage` / `audit.package`）④企业 fact-source 模板（见上）⑤overlay-checklist BLOCK trap 修复（file-upload/multitenant/websocket/mobile 现可满足 §16.9 gate）⑥pentest 富化（type-matrix / box-selection / AI-Agent pentest / retest gate / 14 段企业报告模板）。参考库（OWASP/NIST/MITRE/工具官方资料）staged 于 `Desktop/harness building/ref/`，按需吸收进 `references/`。
 - Standardized finding schema（详 `appsec-security-orchestrator §9`）— 所有下游 security-remediation 必须接此 schema
 - **Routing regression test harness** at `~/.claude/tests/appsec-routing/` — 23 个 routing fixture 验证激活 / 拒绝 / 边界 / schema / handoff
 - **Hook 范围**：AppSec project hooks（枚举与触发以 `manifests/hook-registry.json` 为准——文档不写死数量，防 drift）通过 `appsec-sdk init` 注册到 `<project>/.claude/settings.json`，**不是 user-global** —— fresh project 无 `.appsec/config.json` 时 0 enforcement（只有 GSD hooks 全局 fire）

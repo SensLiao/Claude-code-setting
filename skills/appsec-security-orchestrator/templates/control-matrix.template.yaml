@@ -1,0 +1,207 @@
+# =============================================================================
+# Control Coverage Matrix — TEMPLATE (Enterprise module #5)
+# =============================================================================
+# Owned by: appsec-security-orchestrator (governance / compliance layer)
+# Standards: OWASP ASVS 5.0 (V1-V17, primary axis) · NIST CSF 2.0 functions
+#            · CIS Controls v8.1 (optional cross-ref)
+#
+# WHAT THIS IS
+#   The HUMAN-CURATED control→evidence coverage matrix. Rows = ASVS 5.0 chapters
+#   (plus optional CSF functions / CIS controls). For each control you record
+#   what evidence proves it, the status, and the owner. This is the deliberate,
+#   reviewed view of "what we actually cover".
+#
+# RELATIONSHIP TO `appsec-sdk control.coverage` (don't confuse the two):
+#   - `appsec-sdk control.coverage <tag>` COMPUTES a coverage map AUTOMATICALLY
+#     by aggregating ASVS chapter refs found across findings + code-review
+#     evidence presence. Its statuses are: ASSESSED | REVIEW_NO_FINDING | NOT_ASSESSED.
+#     It is honest-but-shallow: "did any finding/evidence touch this chapter?"
+#   - THIS template is the CURATED complement: a human asserts covered/partial/
+#     missing/na WITH a concrete evidence_ref per control. Use the SDK output as
+#     an input/cross-check; a chapter the SDK marks NOT_ASSESSED should not be
+#     `covered` here without a real evidence_ref explaining why.
+#   Keep both: computed = drift detector, curated = accountable claim.
+#
+# ASVS 5.0 CHAPTERS (V1-V17) — names mirror appsec-sdk control.coverage exactly:
+#   V1  Encoding & Sanitization              V10 OAuth & OIDC
+#   V2  Validation & Business Logic          V11 Cryptography
+#   V3  Web Frontend Security                V12 Communication
+#   V4  API & Web Service                    V13 Configuration
+#   V5  File Handling                        V14 Data Protection
+#   V6  Authentication                       V15 Secure Coding & Architecture
+#   V7  Session Management                   V16 Security Logging & Error Handling
+#   V8  Authorization                        V17 WebRTC
+#   V9  Self-contained Tokens
+# =============================================================================
+
+schema_version: "1.0"
+artifact: control-matrix
+
+metadata:
+  project: "{{project name}}"
+  release_tag: "{{release tag this matrix is asserted for}}"
+  owner: "{{security owner}}"
+  asserted_at: "{{YYYY-MM-DD}}"
+  computed_coverage_ref: "{{path to `appsec-sdk control.coverage` output, for cross-check}}"
+  asvs_target_level: 2                 # 1 | 2 | 3 — the level you are claiming against
+
+# -----------------------------------------------------------------------------
+# Primary axis: ASVS 5.0 chapters. One row per chapter (add per-requirement rows
+# under sub_controls when you need finer granularity than chapter level).
+#   status enum: covered | partial | missing | na
+#     covered — control implemented AND evidenced (evidence_ref present)
+#     partial — implemented for some surfaces / weaker than target level
+#     missing — required at asvs_target_level but not implemented (→ finding/gap)
+#     na      — not applicable to this system (justify in `note`)
+# -----------------------------------------------------------------------------
+asvs_controls:
+  - control_id: V1
+    requirement: "Encoding & Sanitization (output encoding, injection defense)"
+    evidence_ref: ""                   # finding id / test name / file:line / code-review path
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V2
+    requirement: "Validation & Business Logic (input validation, business-logic abuse)"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V3
+    requirement: "Web Frontend Security (CSP, headers, clickjacking, CSRF)"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V4
+    requirement: "API & Web Service (REST/GraphQL/RPC security, rate limiting)"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V5
+    requirement: "File Handling (upload validation, content sniffing, storage)"
+    evidence_ref: ""
+    status: na                          # set covered/partial/missing if file upload exists
+    owner: ""
+    note: "Mark `na` only if the system handles no file upload/download."
+  - control_id: V6
+    requirement: "Authentication (credential strength, MFA, anti-automation)"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V7
+    requirement: "Session Management (session lifecycle, fixation, timeout)"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V8
+    requirement: "Authorization (RBAC/ABAC, BOLA/BFLA — tie to authz-matrix)"
+    evidence_ref: ""                    # reference the authz-matrix artifact here
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V9
+    requirement: "Self-contained Tokens (JWT/PASETO validation, claims, expiry)"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V10
+    requirement: "OAuth & OIDC (flows, PKCE, token handling, redirect validation)"
+    evidence_ref: ""
+    status: na
+    owner: ""
+    note: "Mark `na` if no OAuth/OIDC."
+  - control_id: V11
+    requirement: "Cryptography (algorithms, key management, randomness)"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V12
+    requirement: "Communication (TLS config, HSTS, certificate validation)"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V13
+    requirement: "Configuration (secure defaults, secret management, hardening)"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V14
+    requirement: "Data Protection (classification, at-rest, masking — tie to data-classification)"
+    evidence_ref: ""                    # reference the data-classification artifact here
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V15
+    requirement: "Secure Coding & Architecture (SDLC, dependencies, design)"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V16
+    requirement: "Security Logging & Error Handling (audit log, no info leak)"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+    note: ""
+  - control_id: V17
+    requirement: "WebRTC (signaling, media, TURN/STUN security)"
+    evidence_ref: ""
+    status: na
+    owner: ""
+    note: "Mark `na` if no WebRTC."
+
+# -----------------------------------------------------------------------------
+# OPTIONAL secondary axis: NIST CSF 2.0 functions. Coarse-grained programmatic
+# coverage; useful for governance reporting alongside the ASVS detail above.
+#   status enum: covered | partial | missing | na
+# -----------------------------------------------------------------------------
+csf_functions:
+  - control_id: GV
+    requirement: "Govern — policy, roles, risk acceptance authority"
+    evidence_ref: ""                    # e.g. security-policy.yaml
+    status: missing
+    owner: ""
+  - control_id: ID
+    requirement: "Identify — asset inventory, data classification, threat model"
+    evidence_ref: ""                    # e.g. asset-inventory + data-classification + threat-model
+    status: missing
+    owner: ""
+  - control_id: PR
+    requirement: "Protect — access control, data security, secure config"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+  - control_id: DE
+    requirement: "Detect — logging, monitoring, anomaly detection"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+  - control_id: RS
+    requirement: "Respond — incident response plan + runbooks"
+    evidence_ref: ""                    # e.g. incident-response-initial.md
+    status: missing
+    owner: ""
+  - control_id: RC
+    requirement: "Recover — backup validation, BCP/DR"
+    evidence_ref: ""
+    status: missing
+    owner: ""
+
+# -----------------------------------------------------------------------------
+# OPTIONAL tertiary axis: CIS Controls v8.1 IG-relevant safeguards.
+# Add rows as needed; same column shape. Left empty by default.
+# -----------------------------------------------------------------------------
+cis_controls: []
+#   - control_id: "CIS-3"
+#     requirement: "Data Protection"
+#     evidence_ref: ""
+#     status: missing
+#     owner: ""

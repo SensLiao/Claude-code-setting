@@ -1,0 +1,18 @@
+flowchart TB
+  U[User prompt] --> R{L1 routing policy}
+  R -->|bootstrap/init| B[Bootstrap]
+  R -->|default non-trivial| G[GSD PM]
+  R -->|UI/UX/design| X[UIUX]
+  R -->|QA/testing| Q[QA]
+  R -->|security| A[AppSec]
+  R -->|pentest/active scan| P[ROE gate]
+  B --> H[L2 hooks]
+  G --> H
+  X --> H
+  Q --> H
+  A --> H
+  P --> H
+  H --> E[L3 evidence]
+  E --> D{gate.check}
+  D -->|PASS/WARN/CONDITIONAL| Ship[Ship or handoff]
+  D -->|FAIL/BLOCKED/STALE| Stop[Stop]

@@ -1,0 +1,23 @@
+schema_version: "1.0"
+tag: release-2026-06-14
+system: appsec
+verdict: CONDITIONAL_PASS
+summary: "No blocking findings. Two medium risks accepted with due dates."
+spec_hash: "sha256:example-appsec-spec-hash"
+inputs:
+  - evidence/appsec/findings/APPSEC-2026-0001.yaml
+  - evidence/appsec/findings/APPSEC-2026-0002.yaml
+gates:
+  required_evidence_present: true
+  stale_evidence: false
+  blocking_findings: 0
+  production_active_scan_detected: false
+conditions:
+  - id: COND-001
+    owner: appsec
+    due: 2026-06-30
+    text: "Rotate test fixture token and add regression rule."
+  - id: COND-002
+    owner: platform
+    due: 2026-07-07
+    text: "Document header baseline exception for preview environment."

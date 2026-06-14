@@ -208,10 +208,33 @@ trigger_phrases:
 5. Signed URL design audit（TTL / method / HMAC）
 6. AV / CDR / parser hardening config
 7. Common attack pattern verification
-8. Findings → security-remediation
-   - ASVS refs in emitted findings must use the versioned `v5.0.0-<chapter>.<section>.<req>` form (the chapter labels in this skill are for scoping only).
+8. EXIF / metadata stripping verification
 9. SECURITY.md File Upload section + AppSec Release Evidence §12 叠加层
-10. EXIF / metadata stripping verification
+10. **Findings** —— 全部经 `appsec-sdk finding.add <file>`（canonical path，redact-first）落 `.appsec/findings/<tag>/`，符合 orchestrator §9 finding schema v1.0：
+    - `source`（`manual_review` 或 sast 命中）；`severity` **小写**（critical/high/medium/low）；`cwe`；`reproduction_steps`（**禁含 raw secret / raw token / user-provided PII 文件名**——脱敏）
+    - `asvs_mapping` 用版本化三段格式 `v5.0.0-<ch>.<sec>.<req>`（正则 `^v5\.0\.0-\d+\.\d+\.\d+$`；File Handling 用 ASVS V5），不用 4.x `V5.x` 旧标签
+    - **绝不** Write 直写 `.appsec/findings/**`（orchestrator hook §18.5a 物理拦截 Write/Edit/MultiEdit）；只走 sdk
+    - high+ finding → `security-remediation`（fix → 回归测试）；signed URL secret 命中 → `security-platform-secrets`
+
+### 7.1 Overlay Evidence Contract（满足 release gate — 不可省）
+
+> 起因：appsec-evidence-validator（orchestrator §16.9 check #3）对**每个激活的 overlay** HARD-REQUIRE `.appsec/evidence/<tag>/overlay-<name>/checklist.yaml`，缺一即 release **BLOCKED**。本 overlay 的 `<name>` = `file_upload`。
+
+每次 review 结束，**两步落盘**（按序）：
+
+1. **标记 overlay active**：
+   ```bash
+   appsec-sdk overlay.activate "<release-tag>" file_upload
+   # → 建 .appsec/evidence/<tag>/overlay-file_upload/ + 写 .activated 标记
+   ```
+2. **写 overlay checklist evidence**（这是 validator 真正校验的文件）：
+   - 写 `.appsec/evidence/<release-tag>/overlay-file_upload/checklist.yaml`
+   - 直接 Write 即可（evidence 路径不被 hook 拦；只有 `.appsec/findings/**` + `.appsec/decisions/**` 被 §18.5a 拦）
+   - 内容：把 §3 的 12-step checklist 逐项转成 `items[]`（每项 `id` / `requirement` / `asvs_ref`（`v5.0.0-5.x.x`）/ `status: pass|fail|na|not_tested` / `evidence_ref` / `notes`）+ `summary{total, pass, fail, na}`
+   - 任何 `status: fail` 必须在 `evidence_ref`/`notes` 引用对应 `finding.add` 出的 finding id（finding 本体走 sdk，不塞进 checklist）
+   - 模板：[`appsec-security-orchestrator/templates/overlay-checklist.template.yaml`](../appsec-security-orchestrator/templates/overlay-checklist.template.yaml)（含 file_upload 示例 items：content-type 校验 / size limit / AV scan / path traversal / stored-XSS on filename / archive bomb / storage isolation / EXIF strip）
+
+无此 checklist.yaml → §16.9 validator BLOCK 整个 release。
 
 ---
 
@@ -220,6 +243,7 @@ trigger_phrases:
 - [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html)
 - [OWASP ASVS 5.0 V5 File Handling](https://owasp.org/www-project-application-security-verification-standard/)
 - [Image processor sandbox patterns](https://imagemagick.org/script/security-policy.php)
-- [appsec-security-orchestrator](../appsec-security-orchestrator/SKILL.md)
+- [appsec-security-orchestrator](../appsec-security-orchestrator/SKILL.md) — §9 finding schema / §16.3 overlay activation / §16.9 evidence validation / §18.5a finding-path hook
+- [overlay-checklist.template.yaml](../appsec-security-orchestrator/templates/overlay-checklist.template.yaml) — overlay-file_upload/checklist.yaml 模板
 - [security-platform-secrets](../security-platform-secrets/SKILL.md) — signed URL secrets
 - [security-governance-threat-modeling](../security-governance-threat-modeling/SKILL.md) — upload abuse cases

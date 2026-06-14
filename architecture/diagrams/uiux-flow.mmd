@@ -1,0 +1,12 @@
+flowchart TB
+  Start[UIUX task] --> Ground{P0 Grounding}
+  Ground -->|found| Explore[P1 Explore directions]
+  Ground -->|none| Stop[Ask human]
+  Explore --> Pick{P2 Pick direction}
+  Pick --> Lock[Write style lock]
+  Lock --> Build[P3 Build]
+  Build --> Unify{P4 Unify checks}
+  Unify -->|fail| Build
+  Unify -->|pass| Review{P5 Review loop}
+  Review -->|fail| Unify
+  Review -->|pass| Gate[uiux gate.ship]

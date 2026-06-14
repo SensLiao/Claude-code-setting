@@ -1,0 +1,89 @@
+# =============================================================================
+# Data Classification — SCHEMA (Enterprise module #3)
+# =============================================================================
+# Owned by: appsec-security-orchestrator (governance layer)
+# Standards: NIST CSF 2.0 ID.AM-5 / PR.DS (Data Security) · NIST SP 800-60
+#
+# WHAT THIS DOCUMENTS
+#   The canonical SHAPE that `appsec-sdk data.classify <tag> [<file>]` writes to
+#   .appsec/evidence/<tag>/data-classification/data-classification.yaml.
+#   SDK output MUST validate against this contract. Update both together.
+#
+# WHY IT IS A STANDING ARTIFACT
+#   Classification drives data_handling rules (security-policy §5), at-rest/in-
+#   transit requirements, and the finding schema field affected.data_classes.
+#   The four tiers here are the SINGLE source of truth for that enum across the
+#   whole AppSec subsystem.
+#
+# TIER ALIGNMENT (must stay identical everywhere):
+#   finding schema §9 affected.data_classes  ==  security-policy data_handling.tiers
+#   ==  asset-inventory assets[].data_classes ==  the `classification` enum below
+#       public | internal | confidential | restricted
+# =============================================================================
+
+schema_version: "1.0"            # string, fixed "1.0"
+artifact: data-classification     # literal discriminator
+
+# data_entities[] — one entry per distinct data entity (a logical record/field-set),
+# NOT per table. e.g. "user profile", "payment instrument", "audit log", "API key".
+data_entities:
+  - id: DATA-001                  # REQUIRED. Stable unique id. Convention: DATA-NNN.
+
+    name: ""                      # REQUIRED. Human-readable (e.g. "user_email", "payment_token").
+
+    classification: internal      # REQUIRED. enum (ascending sensitivity):
+                                  #   public        — safe to disclose publicly
+                                  #   internal      — non-public, low harm if leaked
+                                  #   confidential  — material harm if leaked (most PII, business data)
+                                  #   restricted    — severe harm / regulated (payment, health,
+                                  #                    credentials, gov-id, biometric, cross-border PII)
+
+    pii: false                    # REQUIRED. boolean. Is this personal data (directly/indirectly
+                                  #   identifying)? Independent of `classification` — internal data
+                                  #   can still be PII; drives privacy/PIPL/GDPR obligations.
+
+    stores: []                    # REQUIRED (may be empty). list of asset ids (from
+                                  #   asset-inventory) where this entity is AT REST.
+                                  #   e.g. [ASSET-003, ASSET-011]
+
+    flows_to: []                  # REQUIRED (may be empty). list of asset ids this entity
+                                  #   is transmitted/exported TO (incl. third-party/agent-tool).
+                                  #   A restricted entity flowing to a third-party is a review trigger.
+
+    protection: []                # REQUIRED (may be empty). list, controls actually in place. enum-ish:
+                                  #   [at-rest-encryption, tls, field-masking, tokenization,
+                                  #    pseudonymization, access-logging, dlp, key-isolation]
+                                  #   Compare against security-policy data_handling for that tier;
+                                  #   a confidential/restricted entity missing a required control = gap.
+
+    retention: ""                 # REQUIRED. Retention period / policy (e.g. "90d", "per-contract",
+                                  #   "delete-on-account-close"). "minimum necessary" for restricted.
+
+# -----------------------------------------------------------------------------
+# Filled example (illustrative — delete before use):
+# -----------------------------------------------------------------------------
+# data_entities:
+#   - id: DATA-001
+#     name: user_email
+#     classification: confidential
+#     pii: true
+#     stores: [ASSET-003]              # primary-postgres
+#     flows_to: [ASSET-007]            # email provider (third-party)
+#     protection: [at-rest-encryption, tls, access-logging]
+#     retention: delete-on-account-close
+#   - id: DATA-004
+#     name: payment_instrument_token
+#     classification: restricted
+#     pii: true
+#     stores: [ASSET-011]              # payment vault
+#     flows_to: [ASSET-007]            # PSP / Stripe
+#     protection: [tokenization, at-rest-encryption, tls, key-isolation, access-logging]
+#     retention: minimum-necessary     # never store raw PAN/CVV (PCI DSS scope)
+#   - id: DATA-009
+#     name: audit_log
+#     classification: confidential
+#     pii: true
+#     stores: [ASSET-012]
+#     flows_to: []
+#     protection: [at-rest-encryption, access-logging]   # tamper-evident; supports Repudiation control
+#     retention: 1y

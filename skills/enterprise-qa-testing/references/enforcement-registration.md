@@ -79,7 +79,7 @@ Hook **脚本**放在用户级目录（任何项目都能引用同一份脚本�
 - PostToolUse hook 只能 advisory（动作已发生）；不会 block
 - Edit\|Write\|MultiEdit 全部要 match（草案误漏 MultiEdit）
 
-模板：`~/.claude/templates/qa/settings.project.json`。落地时把 `~` 替换为目标机器路径——团队团队/CI 不可直接复制此机器的路径。
+模板：`~/.claude/templates/qa/settings.project.json`。落地时把 `C:/Users/user` 替换为目标机器路径——团队团队/CI 不可直接复制此机器的路径。
 
 ### 17.4 qa-sdk.sh 命令契约
 

@@ -1,0 +1,15 @@
+flowchart TB
+  Start[User prompt] --> T{Trivial?}
+  T -->|yes| Direct[Direct execution]
+  T -->|no| Match[Most-specific routing match]
+  Match --> P[pentest -> ROE gate]
+  Match --> S[narrow security -> AppSec]
+  Match --> U[UI/UX -> UIUX]
+  Match --> Q[testing -> QA]
+  Match --> B[bootstrap -> Bootstrap]
+  Match --> G[unclear -> GSD PM]
+  Q -->|auth/secret/payment/API abuse| A[AppSec]
+  U -->|visual/a11y/perf| Q
+  U -->|frontend security| A
+  G -->|ship| Q
+  G -->|security sensitive| A

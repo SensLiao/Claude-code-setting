@@ -1,0 +1,25 @@
+schema_version: "1.0"
+tag: release-2026-06-14
+system: uiux
+style_lock:
+  active: true
+  selected_lens: swiss
+  source_direction: design/directions/02-swiss.md
+surfaces:
+  - id: landing
+    build_status: reviewed-pass
+  - id: dashboard
+    build_status: reviewed-pass
+checks:
+  tokenized_colors: pass
+  spacing_grid: pass
+  typography_scale: pass
+  semantic_layers: pass
+  nested_radius: pass
+  shadow_levels: pass
+review:
+  nielsen_heuristics: pass
+  gsd_ui_review: pass
+  santa_loop: pass
+release_decision:
+  verdict: PASS
