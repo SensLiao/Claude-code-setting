@@ -24,10 +24,43 @@ const path = require('path');
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Safely coerce any value to a non-empty string, or return the fallback. */
+// ★ R3 adversarial-sweep hardening (2026-06-14): this exporter previously passed every finding
+// field straight through — raw secrets (sk-proj-…, AKIA…, PEM, JWT, credential KV) leaked into
+// SARIF/SBOM/JUnit output. Now every output string value is redacted at this single choke point.
+// Zero-width / BOM / soft-hyphen chars are stripped FIRST so a split token (sk-proj-abc<U+200B>def)
+// is rejoined and caught (mirrors the R1 BOM-anywhere fix). Patterns kept in lock-step with
+// appsec-sdk contains_raw_secret / redact_stdin.
+const ZERO_WIDTH_RE = /[​‌‍⁠﻿­]/g;
+const SECRET_RES = [
+  /AKIA[0-9A-Z]{16}/g,
+  /ASIA[0-9A-Z]{16}/g,
+  /gh[pousr]_[A-Za-z0-9]{30,}/g,
+  /github_pat_[A-Za-z0-9_]{20,}/g,                       // GitHub fine-grained PAT
+  /glpat-[A-Za-z0-9_-]{20,}/g,                           // GitLab PAT
+  /sk-ant-[A-Za-z0-9_-]{20,}/g,
+  /xox[abprs]-[A-Za-z0-9-]{10,}/g,                       // Slack
+  /-----BEGIN [A-Z ]*PRIVATE KEY-----/g,
+  /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g, // JWT
+  /sk-(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{20,}/g,    // OpenAI
+  /[sr]k_live_[A-Za-z0-9]{20,}/g,                        // Stripe live secret/restricted
+  /AIza[A-Za-z0-9_-]{30,}/g,                             // Google API key
+  /\bBearer\s+[A-Za-z0-9._~+/-]{20,}={0,2}/gi,           // bearer token
+  /\b[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^\s/:@]+:[^\s/:@]+@/g, // user:pass@ in a URL
+];
+function redactSecrets(s) {
+  if (typeof s !== 'string' || !s) return s;
+  let out = s.replace(ZERO_WIDTH_RE, '');
+  for (const re of SECRET_RES) out = out.replace(re, '<REDACTED:secret>');
+  // credential KV (PASSWORD/SECRET/TOKEN/API_KEY/PRIVATE_KEY = value{8,})
+  out = out.replace(/\b(PASSWORD|PASSWD|PWD|SECRET|SECRET_KEY|CLIENT_SECRET|TOKEN|API_KEY|APIKEY|ACCESS_KEY|ACCESSKEY|ACCOUNTKEY|PRIVATE_KEY)\b(\s*[:=]\s*)(\S{8,})/gi,
+    (_m, k, sep) => `${k}${sep}<REDACTED:credential>`);
+  return out;
+}
+
+/** Safely coerce any value to a non-empty string (REDACTED), or return the fallback. */
 function str(v, fallback = '') {
   if (v == null) return fallback;
-  const s = String(v).trim();
+  const s = redactSecrets(String(v).trim());
   return s.length ? s : fallback;
 }
 
@@ -237,16 +270,21 @@ function exportJunit(input) {
  * Throws Error on unknown format.
  */
 function convert(format, input) {
+  let out;
   switch (format) {
     case 'sarif':
-      return JSON.stringify(exportSarif(input), null, 2);
+      out = JSON.stringify(exportSarif(input), null, 2); break;
     case 'cyclonedx':
-      return JSON.stringify(exportCycloneDx(input), null, 2);
+      out = JSON.stringify(exportCycloneDx(input), null, 2); break;
     case 'junit':
-      return exportJunit(input);
+      out = exportJunit(input); break;
     default:
       throw new Error(`Unknown format '${format}'. Supported: sarif, cyclonedx, junit`);
   }
+  // ★ R3 — final-pass redaction over the FULLY-SERIALIZED output, so any field that bypassed the
+  // per-field str() choke point (CycloneDX purl, SARIF properties / rule metadata, nested objects)
+  // is still scrubbed before the secret ever reaches disk / a SIEM. <REDACTED:…> is JSON/XML-safe.
+  return redactSecrets(out);
 }
 
 module.exports = { convert, exportSarif, exportCycloneDx, exportJunit, xmlEsc };

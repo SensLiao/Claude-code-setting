@@ -255,6 +255,44 @@ cmd_evidence_validate_presence() {
   exit 0
 }
 
+# ───────────────────────────────────────────────────────────────────────────────
+# ★ R3 adversarial-sweep hardening (2026-06-14; Codex + main-agent cross-review).
+# qa-sdk read gate fields with `grep '^[[:space:]]{0,4}KEY:' | head -n1`, which has
+# NO YAML structural awareness — a decoy value placed first (nested 2-4 spaces, TAB,
+# duplicated, block-scalar/tag/anchor, multi-doc, BOM-hidden, trailing-junk) beat the
+# real later value → fail-open. These helpers enforce a strict canonical subset
+# (fail-closed) + col-0 + full-scalar + dup-key. Keep in lock-step with the identical
+# guards in appsec-sdk.sh / uiux-sdk.sh. NOTE: the guard is intentionally per-critical-
+# key (not whole-file-flat) so the rich, legitimately-nested qa_evidence_bundle still
+# passes — col-0 extraction + dup-key fail-close nested/flow/explicit-key smuggling.
+_qa_assert_canonical_gate_yaml() {
+  local content; content=$(printf '%s' "$1" | tr -d '\r'); local crit="$2"; local tab; tab=$(printf '\t')
+  if printf '%s' "$content" | grep -q "$(printf '\xef\xbb\xbf')"; then
+    echo "noncanonical: UTF-8 BOM / U+FEFF (a zero-width prefix anywhere can hide a top-level key)"; return 2; fi
+  if printf '%s' "$content" | grep -q "$tab"; then
+    echo "noncanonical: TAB character (invalid YAML whitespace; defeats space parsing)"; return 2; fi
+  if printf '%s\n' "$content" | grep -qE '^[[:space:]]*(---|\.\.\.)([[:space:]].*)?$'; then
+    echo "noncanonical: document marker (--- / ...) — single canonical document required"; return 2; fi
+  if printf '%s\n' "$content" | grep -qE '^%'; then
+    echo "noncanonical: YAML directive (%)"; return 2; fi
+  if printf '%s\n' "$content" | grep -qE "^[[:space:]]*[\"'](${crit})[\"'][[:space:]]*:"; then
+    echo "noncanonical: quoted critical key (use the unquoted canonical key)"; return 2; fi
+  if printf '%s\n' "$content" | grep -qE "^(${crit})[[:space:]]*:[[:space:]]*[|>]"; then
+    echo "noncanonical: block scalar (| or >) on a critical key"; return 2; fi
+  if printf '%s\n' "$content" | grep -qE "^(${crit})[[:space:]]*:[[:space:]]*[!&*]"; then
+    echo "noncanonical: YAML tag/anchor/alias on a critical key"; return 2; fi
+  return 0
+}
+# Count col-0 (top-level) occurrences of a key. >1 = ambiguous duplicate → caller BLOCKs.
+_qa_count_key() { printf '%s' "$1" | tr -d '\r' | grep -v '^[[:space:]]*#' | grep -cE "^$2[[:space:]]*:" || true; }
+# Extract a col-0 key's COMPLETE scalar (no nested keys; trailing junk is kept so the
+# downstream enum/format check rejects it rather than a greedy prefix capture accepting it).
+_qa_extract_scalar() {
+  printf '%s' "$1" | tr -d '\r' | grep -v '^[[:space:]]*#' | grep -E "^$2[[:space:]]*:" | head -n1 \
+    | sed -E "s/^$2[[:space:]]*:[[:space:]]*//" | sed -E 's/[[:space:]]+#.*$//' \
+    | sed -E 's/^"([^"]*)"$/\1/' | sed -E "s/^'([^']*)'\$/\1/" | sed -E 's/[[:space:]]+$//'
+}
+
 cmd_gate_check() {
   need_arg "release-tag" "${1:-}"
   validate_safe_name "release-tag" "$1"
@@ -274,9 +312,23 @@ cmd_gate_check() {
     exit 2
   fi
 
-  # Strip comments before regex match; anchor to start-of-line (H-06 alignment)
+  # ★ R3 hardening — reject non-canonical bundle (BOM/TAB/multi-doc/block-scalar/tag/anchor
+  # on release_decision) + dup-key guard, BEFORE col-0 full-scalar extraction. The bundle is
+  # legitimately nested, so we only assert per-critical-key canonicity (not whole-file flatness).
+  local _bundle_content _ncg
+  _bundle_content=$(cat "$bundle")
+  if ! _ncg=$(_qa_assert_canonical_gate_yaml "$_bundle_content" 'release_decision|generated_at'); then
+    echo "qa-sdk gate.check: BLOCKED — $_ncg in $bundle (refusing ambiguous artifact)" >&2
+    exit 2
+  fi
+  local _drc; _drc=$(_qa_count_key "$_bundle_content" 'release_decision')
+  if (( _drc > 1 )); then
+    echo "qa-sdk gate.check: BLOCKED — $_drc conflicting 'release_decision:' keys in $bundle (ambiguous/duplicate — refusing to guess; possible smuggling)" >&2
+    exit 2
+  fi
+  # col-0 ONLY + complete scalar: a nested (audit.release_decision) or trailing-junk value is not the verdict
   local decision
-  decision=$(grep -v '^[[:space:]]*#' "$bundle" | grep -E '^[[:space:]]{0,4}release_decision[[:space:]]*:' | head -n1 | sed -E 's/^[[:space:]]*release_decision[[:space:]]*:[[:space:]]*([A-Z_]+).*/\1/')
+  decision=$(_qa_extract_scalar "$_bundle_content" 'release_decision')
 
   if [[ -z "$decision" ]]; then
     echo "qa-sdk gate.check: BLOCKED — release_decision missing in bundle" >&2
@@ -410,10 +462,23 @@ cmd_gate_check() {
       fi
       # Minimal schema check: must have release_tag matching, accepted_decision, approver, expires_at, reason
       local ra="$PROJECT_ROOT/.qa/risk-acceptance.yaml"
+      # ★ R3 hardening — risk-acceptance.yaml is a flat canonical doc; reject non-canonical
+      # forms + require col-0 keys + dup-key guard so nested/TAB/block-scalar/duplicate decoys
+      # cannot satisfy presence or smuggle field values past the validity checks below.
+      local _ra_content; _ra_content=$(cat "$ra")
+      local _ra_nc
+      if ! _ra_nc=$(_qa_assert_canonical_gate_yaml "$_ra_content" 'approver|approved_at|expires_at|release_tag|accepted_decision|reason'); then
+        echo "qa-sdk gate.check: BLOCKED — risk-acceptance.yaml $_ra_nc" >&2
+        exit 2
+      fi
       local missing=()
       for k in approver approved_at expires_at release_tag accepted_decision reason; do
-        if ! grep -E "^[[:space:]]{0,4}${k}[[:space:]]*:" "$ra" >/dev/null 2>&1; then
+        local _kc; _kc=$(_qa_count_key "$_ra_content" "$k")
+        if [[ "$_kc" == "0" ]]; then
           missing+=("$k")
+        elif (( _kc > 1 )); then
+          echo "qa-sdk gate.check: BLOCKED — risk-acceptance.yaml has $_kc duplicate '$k:' keys (ambiguous — refusing to guess)" >&2
+          exit 2
         fi
       done
       if (( ${#missing[@]} > 0 )); then
@@ -421,13 +486,13 @@ cmd_gate_check() {
         exit 2
       fi
       local ra_tag
-      ra_tag=$(grep -E '^[[:space:]]{0,4}release_tag[[:space:]]*:' "$ra" | head -n1 | sed -E 's/^[[:space:]]*release_tag[[:space:]]*:[[:space:]]*"?([^"]+)"?[[:space:]]*$/\1/')
+      ra_tag=$(_qa_extract_scalar "$_ra_content" 'release_tag')
       if [[ "$ra_tag" != "$tag" ]]; then
         echo "qa-sdk gate.check: BLOCKED — risk-acceptance.release_tag='$ra_tag' != '$tag'" >&2
         exit 2
       fi
       local ra_decision
-      ra_decision=$(grep -E '^[[:space:]]{0,4}accepted_decision[[:space:]]*:' "$ra" | head -n1 | sed -E 's/^[[:space:]]*accepted_decision[[:space:]]*:[[:space:]]*"?([A-Z_]+)"?[[:space:]]*$/\1/')
+      ra_decision=$(_qa_extract_scalar "$_ra_content" 'accepted_decision')
       if [[ "$ra_decision" != "CONDITIONAL_PASS" ]]; then
         echo "qa-sdk gate.check: BLOCKED — risk-acceptance.accepted_decision='$ra_decision' does not authorize CONDITIONAL_PASS" >&2
         exit 2
@@ -439,8 +504,8 @@ cmd_gate_check() {
       # unparseable expires_at → BLOCK; past expires_at → BLOCK; approved_at in the future
       # (beyond a 5min clock-skew tolerance) → BLOCK.
       local ra_expires ra_approved
-      ra_expires=$(grep -E '^[[:space:]]{0,4}expires_at[[:space:]]*:' "$ra" | head -n1 | sed -E 's/^[[:space:]]*expires_at[[:space:]]*:[[:space:]]*"?([^"#]+)"?.*/\1/; s/[[:space:]]*$//')
-      ra_approved=$(grep -E '^[[:space:]]{0,4}approved_at[[:space:]]*:' "$ra" | head -n1 | sed -E 's/^[[:space:]]*approved_at[[:space:]]*:[[:space:]]*"?([^"#]+)"?.*/\1/; s/[[:space:]]*$//')
+      ra_expires=$(_qa_extract_scalar "$_ra_content" 'expires_at')
+      ra_approved=$(_qa_extract_scalar "$_ra_content" 'approved_at')
       local ra_time_check
       ra_time_check=$(node -e "
         const exp=process.argv[1];

@@ -208,7 +208,7 @@ const WORKFLOW_NOT_STYLE = NEVER_LOCKABLE;
 
 function skillToL3Family(skillName) {
   if (!skillName) return null;
-  const norm = String(skillName).toLowerCase().replace(/^skill:/, '').replace(/^\/+/, '');
+  const norm = String(skillName).trim().toLowerCase().replace(/^skill:/, '').replace(/^\/+/, '');
   for (const [family, ids] of Object.entries(L3_FAMILIES)) {
     if (ids.some(id => id.toLowerCase() === norm)) return family;
   }
@@ -218,7 +218,7 @@ function skillToL3Family(skillName) {
 // True if the skill can never be the L3 style itself (SDK lock.style refusal semantic).
 function isWorkflowSkill(skillName) {
   if (!skillName) return false;
-  const norm = String(skillName).toLowerCase().replace(/^skill:/, '').replace(/^\/+/, '');
+  const norm = String(skillName).trim().toLowerCase().replace(/^skill:/, '').replace(/^\/+/, '');
   return NEVER_LOCKABLE.has(norm);
 }
 
@@ -226,7 +226,7 @@ function isWorkflowSkill(skillName) {
 // (post-lock-only production workflow). Pre-lock exploration/import skills return false.
 function isBlockBeforeLock(skillName) {
   if (!skillName) return false;
-  const norm = String(skillName).toLowerCase().replace(/^skill:/, '').replace(/^\/+/, '');
+  const norm = String(skillName).trim().toLowerCase().replace(/^skill:/, '').replace(/^\/+/, '');
   return BLOCK_BEFORE_LOCK.has(norm);
 }
 
@@ -257,8 +257,14 @@ function readStyleLockFamily(projectRoot) {
   if (!fs.existsSync(lockPath)) return null;
   try {
     const txt = fs.readFileSync(lockPath, 'utf8');
-    const m = txt.match(/^[ \t]{0,4}l3_style[ \t]*:[ \t]*(.+)$/mi);
-    if (m) return m[1].trim().replace(/^["']|["']$/g, '').toLowerCase();
+    // ★ R3 hardening (2026-06-14) — col-0 ONLY + dup guard: a nested `  l3_style:` decoy or a
+    // duplicate must not corrupt the locked-family read (was `^[ \t]{0,4}` + first-match — the same
+    // fail-open class fixed in the SDK's extract_scalar; this hook-side impl had not been synced).
+    const all = txt.match(/^l3_style[ \t]*:[ \t]*(.+)$/gim) || [];
+    if (all.length === 1) {
+      const m = all[0].match(/^l3_style[ \t]*:[ \t]*(.+)$/i);
+      if (m) return m[1].trim().replace(/^["']|["']$/g, '').toLowerCase();
+    }
   } catch {}
   return null;
 }
@@ -271,7 +277,8 @@ function findReleaseDecision(projectRoot, tag) {
   if (!fs.existsSync(p)) return null;
   try {
     const txt = fs.readFileSync(p, 'utf8');
-    const m = txt.match(/^[ \t]{0,4}decision[ \t]*:[ \t]*(\w+)/mi);
+    // ★ R3 hardening — col-0 ONLY (a nested `  decision:` decoy is not the release decision).
+    const m = txt.match(/^decision[ \t]*:[ \t]*(\w+)/mi);
     return m ? { path: p, decision: m[1].toUpperCase() } : { path: p, decision: 'UNKNOWN' };
   } catch { return null; }
 }

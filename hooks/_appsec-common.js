@@ -206,6 +206,17 @@ const SECRET_PATTERNS = [
 // (defense-in-depth: assume the worst on truly massive payloads).
 const SCAN_INPUT_CAP_BYTES = 1024 * 1024;
 
+// ★ R3 hardening (2026-06-14 adversarial sweep) — defeat unicode-split / obfuscated secrets:
+// NFKC folds full-width (U+FF21→A) to ASCII, then strip zero-width (U+200B-D, U+2060, U+FEFF),
+// soft-hyphen (U+00AD), and combining grapheme joiner (U+034F) so a fragmented token
+// (sk-proj-AA<U+200B>BB, AKIA<U+034F>...) rejoins for the ASCII-class detectors. (Cyrillic/Greek
+// homoglyphs INSIDE the value survive — a homoglyph'd key is not the real working key; documented residual.)
+function normalizeForScan(text) {
+  let t = text;
+  try { t = t.normalize('NFKC'); } catch (_e) { /* normalize unavailable */ }
+  return t.replace(/[​‌‍⁠﻿­͏]/g, '');
+}
+
 // Returns array of { name, sample (redacted) } if any secret found, else [].
 // Caller MUST NOT include `sample` raw in any output; sample is already redacted.
 function detectSecrets(text) {
@@ -214,11 +225,16 @@ function detectSecrets(text) {
   if (text.length > SCAN_INPUT_CAP_BYTES) {
     return [{ name: 'oversized_input', sample: `<REDACTED:oversized_input ${text.length}B>` }];
   }
+  // Scan the raw text AND a unicode-normalized copy so invisible-char-split secrets are caught.
+  const targets = [text];
+  const norm = normalizeForScan(text);
+  if (norm !== text) targets.push(norm);
   const hits = [];
   for (const { name, re } of SECRET_PATTERNS) {
-    re.lastIndex = 0;
-    const m = re.exec(text);
-    if (m) hits.push({ name, sample: `<REDACTED:${name}>` });
+    for (const target of targets) {
+      re.lastIndex = 0;
+      if (re.exec(target)) { hits.push({ name, sample: `<REDACTED:${name}>` }); break; }
+    }
   }
   return hits;
 }
@@ -231,7 +247,8 @@ function redactText(text) {
   if (text.length > SCAN_INPUT_CAP_BYTES) {
     return `<REDACTED:oversized_input ${text.length}B>`;
   }
-  let t = text;
+  // ★ R3 hardening — normalize first so an invisible-char-split secret is rejoined before redaction.
+  let t = normalizeForScan(text);
   // PEM blocks first (multiline)
   t = t.replace(/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, '<REDACTED:pem_private_key>');
   for (const { name, re } of SECRET_PATTERNS) {

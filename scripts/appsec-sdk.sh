@@ -902,8 +902,10 @@ cmd_gate_check() {
   gate_check_d2_freshness "$decided_at_val" "$mode"
 
   local redaction_attested
+  # ★ R3 hardening — col-0 ONLY redaction block start: a nested `  redaction:` decoy with
+  # `attested: true` must NOT satisfy the attestation (old `{0,4}` accepted it → fail-open).
   redaction_attested=$(grep -v '^[[:space:]]*#' "$decision_file" \
-    | awk '/^[[:space:]]{0,4}redaction[[:space:]]*:/{in_block=1; next} in_block && /^[^[:space:]]/{in_block=0} in_block' \
+    | awk '/^redaction[[:space:]]*:/{in_block=1; next} in_block && /^[^[:space:]]/{in_block=0} in_block' \
     | grep -E '^[[:space:]]+attested[[:space:]]*:' | head -n1 \
     | sed -E 's/^[[:space:]]+attested[[:space:]]*:[[:space:]]*(true|false).*/\1/')
   if [[ "$redaction_attested" != "true" ]]; then
@@ -974,15 +976,23 @@ cmd_gate_check() {
       echo "appsec-sdk gate.check: BLOCKED" >&2; exit 2;;
     CONDITIONAL_PASS)
       # Verify risk_acceptance section is present and non-empty
+      # ★ R3 hardening (2026-06-14 adversarial sweep) — col-0 ONLY: a nested `  risk_acceptance:`
+      # (2-4 space) decoy must NOT satisfy presence (old `{0,4}` accepted it → fail-open).
       local ra_present
-      ra_present=$(grep -E '^[[:space:]]{0,4}risk_acceptance[[:space:]]*:' "$decision_file" | head -n1)
+      ra_present=$(grep -E '^risk_acceptance[[:space:]]*:' "$decision_file" | head -n1)
       if [[ -z "$ra_present" ]]; then
-        echo "appsec-sdk gate.check: BLOCKED — CONDITIONAL_PASS requires risk_acceptance: in decision YAML" >&2
+        echo "appsec-sdk gate.check: BLOCKED — CONDITIONAL_PASS requires a top-level risk_acceptance: in decision YAML" >&2
         exit 2
       fi
       # Need at least one entry with approver + approval_date + review_date
       local ra_items
-      ra_items=$(awk '/^[[:space:]]{0,4}risk_acceptance[[:space:]]*:/{in_block=1; next} in_block && /^[^[:space:]]/{in_block=0} in_block' "$decision_file")
+      ra_items=$(awk '/^risk_acceptance[[:space:]]*:/{in_block=1; next} in_block && /^[^[:space:]]/{in_block=0} in_block' "$decision_file")
+      # ★ R3 — reject block-scalar/tag/anchor on a risk_acceptance sub-field (e.g. `approver: |`
+      # smuggled a fake approver past the presence check; _block_noncanonical_yaml only guards col-0 keys).
+      if printf '%s' "$ra_items" | grep -qE '(approver|approval_date|review_date)[[:space:]]*:[[:space:]]*([|>]|!!|[!&*])'; then
+        echo "appsec-sdk gate.check: BLOCKED — risk_acceptance field carries non-canonical block-scalar/tag/anchor value (refusing ambiguous approval)" >&2
+        exit 2
+      fi
       if ! printf '%s' "$ra_items" | grep -qE 'approver[[:space:]]*:' || \
          ! printf '%s' "$ra_items" | grep -qE 'approval_date[[:space:]]*:' || \
          ! printf '%s' "$ra_items" | grep -qE 'review_date[[:space:]]*:'; then
@@ -1013,7 +1023,10 @@ cmd_roe_verify() {
     # Match EITHER a machine-readable YAML key (e.g. `target_identification:`) OR a markdown
     # section header — tolerating a numbered prefix like "## 1. Target Identification" (the
     # shipped PENTEST-ROE.md template uses numbered headers; the `[0-9.]*` allows them).
-    if ! grep -qE "^[[:space:]]{0,4}${k}[[:space:]]*:" "$roe" && \
+    # ★ R3 hardening — col-0 ONLY for the YAML-key form: a nested `  target_identification:`
+    # (2-4 space) decoy must NOT satisfy presence (old `{0,4}` accepted it → fail-open). The
+    # markdown-header alternative (numbered `## 1. Target Identification`) is unchanged.
+    if ! grep -qE "^${k}[[:space:]]*:" "$roe" && \
        ! grep -qiE "^#+[[:space:]]*[0-9.]*[[:space:]]*${k//_/ }" "$roe"; then
       missing+=("$k")
     fi
@@ -1364,7 +1377,7 @@ cmd_audit_package() {
   local dec_file="$base/decisions/$tag/appsec_release_decision.yaml"
   if [[ -f "$dec_file" ]]; then
     redaction_attested=$(grep -v '^[[:space:]]*#' "$dec_file" \
-      | awk '/^[[:space:]]{0,4}redaction[[:space:]]*:/{b=1;next} b&&/^[^[:space:]]/{b=0} b' \
+      | awk '/^redaction[[:space:]]*:/{b=1;next} b&&/^[^[:space:]]/{b=0} b' \
       | grep -E '^[[:space:]]+attested[[:space:]]*:' | head -n1 | sed -E 's/.*:[[:space:]]*(true|false).*/\1/')
     [[ -z "$redaction_attested" ]] && redaction_attested="unknown"
   fi

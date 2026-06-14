@@ -144,25 +144,44 @@ Tags / styles must match /^[a-zA-Z0-9._-]+$/.
 USAGE
 }
 
-# ───── tiny YAML/JSON helpers ─────
+# ───── tiny YAML/JSON helpers (R3-hardened 2026-06-14; lock-step with qa/appsec) ─────
+# ★ R3 adversarial-sweep: the old `grep '^{0,4}KEY' | head -n1` extractors had no YAML/JSON
+# structural awareness — nested/dup/TAB/block-scalar/tag/anchor decoys beat real values
+# (style-mutex bypass, drift bypass, decision smuggle). These are now col-0 + structure-aware.
+# Canonical-gate guard: reject BOM/TAB/multi-doc/directive + quoted/block-scalar/tag/anchor on a
+# critical key. $1=content $2=ERE alternation of critical key names. echo reason + return 2 if bad.
+_uiux_assert_canonical_gate_yaml() {
+  local content; content=$(printf '%s' "$1" | tr -d '\r'); local crit="$2"; local tab; tab=$(printf '\t')
+  if printf '%s' "$content" | grep -q "$(printf '\xef\xbb\xbf')"; then echo "noncanonical: UTF-8 BOM / U+FEFF (zero-width prefix anywhere)"; return 2; fi
+  if printf '%s' "$content" | grep -q "$tab"; then echo "noncanonical: TAB character"; return 2; fi
+  if printf '%s\n' "$content" | grep -qE '^[[:space:]]*(---|\.\.\.)([[:space:]].*)?$'; then echo "noncanonical: document marker (--- / ...)"; return 2; fi
+  if printf '%s\n' "$content" | grep -qE '^%'; then echo "noncanonical: YAML directive (%)"; return 2; fi
+  if printf '%s\n' "$content" | grep -qE "^[[:space:]]*[\"'](${crit})[\"'][[:space:]]*:"; then echo "noncanonical: quoted critical key"; return 2; fi
+  if printf '%s\n' "$content" | grep -qE "^(${crit})[[:space:]]*:[[:space:]]*[|>]"; then echo "noncanonical: block scalar on critical key"; return 2; fi
+  if printf '%s\n' "$content" | grep -qE "^(${crit})[[:space:]]*:[[:space:]]*[!&*]"; then echo "noncanonical: tag/anchor/alias on critical key"; return 2; fi
+  return 0
+}
+_uiux_count_key() { printf '%s' "$1" | tr -d '\r' | grep -v '^[[:space:]]*#' | grep -cE "^$2[[:space:]]*:" || true; }
+
 extract_scalar() {
   local content="$1" key="$2"
-  printf '%s' "$content" \
-    | grep -E "^[[:space:]]{0,4}${key}[[:space:]]*:" \
+  printf '%s' "$content" | tr -d '\r' \
+    | grep -v '^[[:space:]]*#' \
+    | grep -E "^${key}[[:space:]]*:" \
     | head -n1 \
-    | sed -E "s/^[[:space:]]*${key}[[:space:]]*:[[:space:]]*//" \
+    | sed -E "s/^${key}[[:space:]]*:[[:space:]]*//" \
     | sed -E 's/[[:space:]]+#.*$//' \
-    | sed -E 's/^"(.*)"$/\1/' \
-    | sed -E "s/^'(.*)'\$/\1/" \
+    | sed -E 's/^"([^"]*)"$/\1/' \
+    | sed -E "s/^'([^']*)'\$/\1/" \
     | sed -E 's/[[:space:]]+$//'
 }
 
+# Structure-aware JSON top-level scalar read + duplicate-top-level-key reject (kills nested
+# first-match, string-embedded fake keys, and dup-key smuggling incl. \uXXXX-escaped key names).
+_UIUX_JSON_READ_JS='const fs=require("fs");const f=process.argv[1],k=process.argv[2];let raw;try{raw=fs.readFileSync(f,"utf8");}catch(e){process.exit(2);}let doc;try{doc=JSON.parse(raw);}catch(e){process.exit(3);}if(doc===null||typeof doc!=="object"||Array.isArray(doc))process.exit(4);let depth=0,inStr=false,esc=false,ps=null,cnt=0;for(let i=0;i<raw.length;i++){const c=raw[i];if(inStr){if(esc){esc=false;ps+=c;continue;}if(c==="\\"){esc=true;ps+=c;continue;}if(c==="\""){inStr=false;continue;}ps+=c;continue;}if(c==="\""){inStr=true;ps="";continue;}if(c==="{"||c==="[")depth++;else if(c==="}"||c==="]")depth--;else if(c===":"&&depth===1&&ps!==null){let kk;try{kk=JSON.parse("\""+ps+"\"");}catch(e){kk=ps;}if(kk===k)cnt++;ps=null;}}if(cnt>1)process.exit(5);if(!Object.prototype.hasOwnProperty.call(doc,k))process.exit(0);const v=doc[k];process.stdout.write(v===null?"null":String(v));'
 extract_json_scalar() {
   local file="$1" key="$2"
-  grep -oE "\"${key}\"[[:space:]]*:[[:space:]]*(\"[^\"]*\"|true|false|null|[0-9.]+)" "$file" \
-    | head -n1 \
-    | sed -E "s/.*\"${key}\"[[:space:]]*:[[:space:]]*//" \
-    | sed -E 's/^"(.*)"$/\1/'
+  node -e "$_UIUX_JSON_READ_JS" "$file" "$key" 2>/dev/null
 }
 
 # Extract a markdown section by H2 header, until the next H2 or EOF.
@@ -643,8 +662,17 @@ cmd_lock_style() {
   mkdir -p "$PROJECT_ROOT/.uiux/lock"
 
   if [[ -f "$lock" ]]; then
-    local cur_family; cur_family=$(extract_scalar "$(cat "$lock")" "l3_style")
-    local cur_tag; cur_tag=$(extract_scalar "$(cat "$lock")" "release_tag")
+    # ★ R3 hardening — a corrupted/ambiguous style-lock must not let the mutex be bypassed
+    local _lock_content; _lock_content=$(cat "$lock")
+    local _lnc
+    if ! _lnc=$(_uiux_assert_canonical_gate_yaml "$_lock_content" 'l3_style|release_tag'); then
+      echo "uiux-sdk lock.style: BLOCKED — style-lock.yaml $_lnc (refusing ambiguous lock state)" >&2; exit 2
+    fi
+    if (( $(_uiux_count_key "$_lock_content" 'l3_style') > 1 )) || (( $(_uiux_count_key "$_lock_content" 'release_tag') > 1 )); then
+      echo "uiux-sdk lock.style: BLOCKED — duplicate l3_style/release_tag in style-lock.yaml (ambiguous lock state)" >&2; exit 2
+    fi
+    local cur_family; cur_family=$(extract_scalar "$_lock_content" "l3_style")
+    local cur_tag; cur_tag=$(extract_scalar "$_lock_content" "release_tag")
     if [[ "$cur_family" == "$family" ]]; then
       echo "uiux-sdk lock.style: already locked to '$family', no change"
       echo "$lock"
@@ -655,8 +683,10 @@ cmd_lock_style() {
         echo "uiux-sdk lock.style: BLOCKED — release '$tag' already locked to family '$cur_family' (attempted '$family'). Use --force --reason \"<text>\" to unlock." >&2
         exit 2
       fi
-      if [[ -z "$reason" || ${#reason} -lt 30 ]]; then
-        echo "uiux-sdk lock.style: BLOCKED — --force requires --reason \"<≥30 chars>\"" >&2
+      # ★ R3 hardening — reject whitespace-only reasons (30 spaces produced an empty audit entry)
+      local _reason_nows; _reason_nows=$(printf '%s' "$reason" | tr -d '[:space:]')
+      if [[ -z "$reason" || ${#reason} -lt 30 || ${#_reason_nows} -lt 15 ]]; then
+        echo "uiux-sdk lock.style: BLOCKED — --force requires --reason with >=30 chars AND >=15 non-whitespace (got ${#reason} chars / ${#_reason_nows} non-ws)" >&2
         exit 2
       fi
       # Archive old lock
@@ -788,7 +818,16 @@ cmd_gate_ship() {
     exit 2
   fi
 
-  local decision; decision=$(extract_scalar "$(cat "$dec")" "decision")
+  # ★ R3 hardening — reject non-canonical / duplicate decision before extraction
+  local _dec_content; _dec_content=$(cat "$dec")
+  local _dnc
+  if ! _dnc=$(_uiux_assert_canonical_gate_yaml "$_dec_content" 'decision|release_tag|decided_at'); then
+    echo "uiux-sdk gate.ship: BLOCKED — uiux_release_decision.yaml $_dnc (refusing ambiguous artifact)" >&2; exit 2
+  fi
+  if (( $(_uiux_count_key "$_dec_content" 'decision') > 1 )); then
+    echo "uiux-sdk gate.ship: BLOCKED — duplicate 'decision:' keys in uiux_release_decision.yaml (ambiguous — refusing to guess)" >&2; exit 2
+  fi
+  local decision; decision=$(extract_scalar "$_dec_content" "decision")
   _LEDGER_DECISION="$decision"   # codex P2: record parsed decision accurately (CONDITIONAL_PASS, etc.)
   case "$decision" in
     PASS) echo "uiux-sdk gate.ship: PASS"; exit 0 ;;
