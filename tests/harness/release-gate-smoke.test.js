@@ -180,4 +180,45 @@ if (!H.existsSync(SDK)) {
 h.section('Fixture-project gate run');
 h.warn('SMOKE_SKIPPED: no fixture project under tests/fixtures/ for end-to-end gate run');
 
+// ---------- 5. Regression: duplicate-key decision smuggling must BLOCK -----
+// Codex adversarial test (2026-06-14): a decision file with TWO top-level `decision:`
+// keys (PASS bait + BLOCKED terminal) must be REFUSED (exit 2), not silently passed by
+// the grep|head extractor picking the first PASS. Guards the fail-closed fix in cmd_gate_check.
+h.section('regression: duplicate decision: key smuggling -> BLOCKED');
+if (!H.existsSync(SDK)) {
+  h.warn('SMOKE_SKIPPED: appsec-sdk.sh missing');
+} else {
+  const fs = require('fs');
+  const probe = child_process.spawnSync('bash', ['-c', 'true'], { timeout: 5000 });
+  if (probe.error && probe.error.code === 'ENOENT') {
+    h.assertSoft(false, 'SMOKE_SKIPPED: dup-key regression (bash unavailable)', 'install bash / Git Bash / WSL');
+  } else {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'dupkey-'));
+    try {
+      const tag = 'dupkey-regression';
+      const decDir = path.join(tmp, '.appsec', 'decisions', tag);
+      fs.mkdirSync(decDir, { recursive: true });
+      fs.writeFileSync(path.join(tmp, '.appsec', 'config.json'), '{"evidence_freshness_hours":99999999}');
+      fs.writeFileSync(
+        path.join(decDir, 'appsec_release_decision.yaml'),
+        'decision: PASS\ndecided_at: "2020-01-01T00:00:00Z"\nredaction:\n  attested: true\ndecision: BLOCKED\n'
+      );
+      const out = child_process.spawnSync('bash', [SDK, 'gate.check', tag, '--strict'], {
+        cwd: tmp,
+        encoding: 'utf8',
+        timeout: 20000,
+        env: Object.assign({}, process.env, { CLAUDE_HOME: H.claudeRoot }),
+      });
+      // exit 2 = BLOCKED (correct, fail-closed). exit 0 = the smuggle worked → regression.
+      h.assert(
+        out.status === 2,
+        'gate.check refuses a decision file with duplicate conflicting decision: keys (exit 2)',
+        `got exit ${out.status}; stderr: ${(out.stderr || '').slice(0, 160)}`
+      );
+    } finally {
+      try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (_e) { /* ignore */ }
+    }
+  }
+}
+
 process.exit(h.exit());

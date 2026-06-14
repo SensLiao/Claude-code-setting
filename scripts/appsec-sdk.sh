@@ -810,6 +810,23 @@ cmd_gate_check() {
     exit 2
   fi
 
+  # ★ Codex adversarial finding (2026-06-14) — duplicate-key smuggling: a decision file with TWO
+  # top-level `decision:` keys (e.g. PASS bait + BLOCKED terminal) would let the grep|head extractor
+  # above silently pick the FIRST. YAML duplicate mapping keys are ambiguous/malformed; a fail-closed
+  # gate must REFUSE to guess. Same for decided_at (freshness integrity). Count uses the SAME pattern
+  # the extractor uses, so any ambiguity the extractor could resolve arbitrarily is caught.
+  local _dco _dao
+  _dco=$(grep -v '^[[:space:]]*#' "$decision_file" | grep -cE '^[[:space:]]{0,4}decision[[:space:]]*:' || true)
+  if (( _dco > 1 )); then
+    echo "appsec-sdk gate.check: BLOCKED — $_dco conflicting 'decision:' keys in $decision_file (ambiguous/duplicate — refusing to guess; possible smuggling)" >&2
+    exit 2
+  fi
+  _dao=$(grep -v '^[[:space:]]*#' "$decision_file" | grep -cE '^[[:space:]]{0,4}decided_at[[:space:]]*:' || true)
+  if (( _dao > 1 )); then
+    echo "appsec-sdk gate.check: BLOCKED — $_dao 'decided_at:' keys in $decision_file (ambiguous timestamp — refusing to guess)" >&2
+    exit 2
+  fi
+
   # ★ A1 + D2 (ADDITIVE) — run AFTER decision extraction, BEFORE redaction/case judgment.
   # Both honor existing --strict (default) / --lax semantics: strict blocks, lax WARNs only.
   local decided_at_val
