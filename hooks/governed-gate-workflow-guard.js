@@ -159,7 +159,11 @@ function main() {
 
   const hasName = typeof ti.name === 'string' && ti.name.length > 0
   const hasScriptPath = typeof ti.scriptPath === 'string' && ti.scriptPath.length > 0
-  const hasInlineScript = typeof ti.script === 'string' && ti.script.trim().length > 0
+  // ★ R3 hardening (Codex cross-review) — an inline `script` of ANY present non-empty value (string,
+  // object, array) is an inline Dynamic Workflow and must be inspected fail-closed; do not require it
+  // to be a non-empty string (an object/array script would otherwise slip past as "not inline").
+  const hasInlineScript = ('script' in ti) && ti.script != null &&
+    !(typeof ti.script === 'string' && ti.script.trim().length === 0)
 
   // Is a gate actually in progress right now? (unexpired preview sentinel or state.gate_active)
   let active = false
@@ -172,7 +176,11 @@ function main() {
   // whose @governance header does NOT declare `release_gate_allowed: true` must not run — it could
   // print a shadow "verdict" while a gate is in progress. Fail-open on an unreadable / ~-unresolved
   // path (the domain preview-gate is the backstop for the real runner).
-  if (hasName || hasScriptPath) {
+  if ((hasName || hasScriptPath) && !hasInlineScript) {
+    // ★ R3 hardening (2026-06-14) — only take the name/scriptPath fast-path when there is NO inline
+    // script. A payload carrying BOTH a benign `name` AND an inline `script` previously early-returned
+    // here, leaving the Dynamic Workflow script un-inspected. An inline script must DOMINATE — fall
+    // through to the inline-script governance below when one is present.
     if (active) {
       const wfFile = resolveWorkflowFile(ti)
       if (wfFile && fs.existsSync(wfFile) && !governanceReleaseAllowed(wfFile)) {

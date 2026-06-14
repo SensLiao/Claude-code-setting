@@ -270,4 +270,140 @@ if (!H.existsSync(SDK)) {
   }
 }
 
+// ---------- 7/8/9. R3 adversarial-sweep regressions (qa + uiux + appsec residual) ----------
+// Round-3 cross-model sweep (Codex + main-agent, 2026-06-14): qa-sdk + uiux-sdk were never
+// hardened against the grep/head-vs-YAML fail-open class; appsec had residual {0,4} spots
+// (risk_acceptance presence, redaction block start, ROE field check). Fixed via per-SDK
+// canonical-gate guards + col-0 + full-scalar + dup-key + structure-aware JSON. These cases
+// lock the fail-closed behavior (and the no-false-kill baselines) so they cannot regress.
+const fsR = require('fs');
+function _bashReady() { const p = child_process.spawnSync('bash', ['-c', 'true'], { timeout: 5000 }); return !(p.error && p.error.code === 'ENOENT'); }
+function _isoNow() { return new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'); }
+function _mkproj(files) {
+  const tmp = fsR.mkdtempSync(path.join(os.tmpdir(), 'r3-'));
+  for (const rel of Object.keys(files)) {
+    const fp = path.join(tmp, rel);
+    fsR.mkdirSync(path.dirname(fp), { recursive: true });
+    fsR.writeFileSync(fp, files[rel]);
+  }
+  return tmp;
+}
+function _gate(sdk, args, cwd) {
+  return child_process.spawnSync('bash', [sdk, ...args], {
+    cwd, encoding: 'utf8', timeout: 20000,
+    env: Object.assign({}, process.env, { CLAUDE_HOME: H.claudeRoot }),
+  });
+}
+
+// ----- 7. qa-sdk gate.check -----
+h.section('regression R3: qa-sdk gate.check parsing-seam fail-opens -> BLOCKED');
+const QA_SDK = path.join(H.claudeRoot, 'scripts', 'qa-sdk.sh');
+if (!H.existsSync(QA_SDK)) h.warn('SMOKE_SKIPPED: qa-sdk.sh missing');
+else if (!_bashReady()) h.assertSoft(false, 'SMOKE_SKIPPED: qa-sdk R3 regression (bash unavailable)');
+else {
+  const iso = _isoNow();
+  const cfg = '{"evidence_freshness_hours":168}';
+  const bundle = (body) => `# appended_at: ${iso}\n${body}`;
+  const cases = [
+    ['baseline clean PASS (no false-kill)', 'release_decision: PASS\n', 0],
+    ['dup release_decision', 'release_decision: PASS\nrelease_decision: BLOCKED\n', 2],
+    ['nested decoy + real FAIL (reads real)', 'pre:\n  release_decision: PASS\nrelease_decision: FAIL\n', 1],
+    ['TAB release_decision', '\trelease_decision: PASS\nrelease_decision: BLOCKED\n', 2],
+    ['block-scalar release_decision', 'release_decision: PASS |\n  x\n', 2],
+    ['trailing junk', 'release_decision: PASS garbage\n', 2],
+    ['multi-doc decoy-first', 'release_decision: PASS\n---\nrelease_decision: FAIL\n', 2],
+    ['BOM-hidden first key', '﻿release_decision: BLOCKED\nrelease_decision: PASS\n', 2],
+  ];
+  for (let i = 0; i < cases.length; i += 1) {
+    const [name, body, want] = cases[i];
+    const tag = `qaseam${i}`;
+    const tmp = _mkproj({
+      '.qa/config.json': cfg,
+      [`.qa/evidence/${tag}/qa_evidence_bundle.yaml`]: bundle(body),
+      [`.qa/evidence/${tag}/dispatch-failures.log`]: '',
+    });
+    try {
+      const out = _gate(QA_SDK, ['gate.check', tag], tmp);
+      h.assert(out.status === want, `qa: ${name}`, `got exit ${out.status}, want ${want}; ${(out.stderr || '').slice(0, 120)}`);
+    } finally { try { fsR.rmSync(tmp, { recursive: true, force: true }); } catch (_e) { /* ignore */ } }
+  }
+  // CONDITIONAL_PASS risk-acceptance: valid accepts, smuggled blocks
+  const raValid = `approver: a\napproved_at: ${iso}\nexpires_at: 2099-01-01T00:00:00Z\nrelease_tag: qaca\naccepted_decision: CONDITIONAL_PASS\nreason: r\n`;
+  const raSmuggle = `  release_tag: qaca\napprover: a\napproved_at: ${iso}\nexpires_at: 2099-01-01T00:00:00Z\nrelease_tag: WRONG\naccepted_decision: CONDITIONAL_PASS\nreason: r\n`;
+  for (const trip of [['valid risk-acceptance accepts', raValid, 0], ['nested release_tag smuggle blocks', raSmuggle, 2]]) {
+    const tmp = _mkproj({
+      '.qa/config.json': cfg,
+      ['.qa/evidence/qaca/qa_evidence_bundle.yaml']: bundle('release_decision: CONDITIONAL_PASS\n'),
+      ['.qa/evidence/qaca/dispatch-failures.log']: '',
+      '.qa/risk-acceptance.yaml': trip[1],
+    });
+    try {
+      const out = _gate(QA_SDK, ['gate.check', 'qaca'], tmp);
+      h.assert(out.status === trip[2], `qa CP: ${trip[0]}`, `got ${out.status} want ${trip[2]}; ${(out.stderr || '').slice(0, 120)}`);
+    } finally { try { fsR.rmSync(tmp, { recursive: true, force: true }); } catch (_e) { /* ignore */ } }
+  }
+}
+
+// ----- 8. uiux-sdk lock.style mutex/force + gate.ship decision guard -----
+h.section('regression R3: uiux-sdk hardening -> BLOCKED');
+const UIUX_SDK = path.join(H.claudeRoot, 'scripts', 'uiux-sdk.sh');
+if (!H.existsSync(UIUX_SDK)) h.warn('SMOKE_SKIPPED: uiux-sdk.sh missing');
+else if (!_bashReady()) h.assertSoft(false, 'SMOKE_SKIPPED: uiux-sdk R3 regression (bash unavailable)');
+else {
+  const tasteLock = 'l3_style: taste\nrelease_tag: relX\n';
+  const lcases = [
+    ['fresh lock taste -> OK', null, ['lock.style', 'relX', 'taste'], 0],
+    ['mutex diff-style same-tag no-force', tasteLock, ['lock.style', 'relX', 'luxury'], 2],
+    ['force whitespace-only reason', tasteLock, ['lock.style', 'relX', 'luxury', '--force', '--reason', '                              '], 2],
+    ['corrupt dup l3_style', 'l3_style: taste\nl3_style: brutalist\nrelease_tag: relX\n', ['lock.style', 'relX', 'luxury'], 2],
+    ['corrupt nested release_tag decoy', 'l3_style: taste\n  release_tag: relDECOY\nrelease_tag: relX\n', ['lock.style', 'relX', 'luxury'], 2],
+  ];
+  for (let i = 0; i < lcases.length; i += 1) {
+    const tuple = lcases[i];
+    const files = { '.uiux/config.json': '{}' };
+    if (tuple[1] !== null) files['.uiux/lock/style-lock.yaml'] = tuple[1];
+    const tmp = _mkproj(files);
+    try {
+      const out = _gate(UIUX_SDK, tuple[2], tmp);
+      h.assert(out.status === tuple[3], `uiux: ${tuple[0]}`, `got ${out.status} want ${tuple[3]}; ${(out.stderr || '').slice(0, 120)}`);
+    } finally { try { fsR.rmSync(tmp, { recursive: true, force: true }); } catch (_e) { /* ignore */ } }
+  }
+  for (const trip of [
+    ['gate.ship dup decision', 'decision: PASS\nrelease_tag: "relX"\ndecision: BLOCKED\n', 2],
+    ['gate.ship TAB decision', '\tdecision: PASS\ndecision: BLOCKED\nrelease_tag: "relX"\n', 2],
+  ]) {
+    const tmp = _mkproj({ '.uiux/config.json': '{}', '.uiux/decisions/relX/uiux_release_decision.yaml': trip[1] });
+    try {
+      const out = _gate(UIUX_SDK, ['gate.ship', 'relX', '--phase', '1'], tmp);
+      h.assert(out.status === trip[2], `uiux: ${trip[0]}`, `got ${out.status} want ${trip[2]}; ${(out.stderr || '').slice(0, 120)}`);
+    } finally { try { fsR.rmSync(tmp, { recursive: true, force: true }); } catch (_e) { /* ignore */ } }
+  }
+}
+
+// ----- 9. appsec-sdk residual nested/redaction smuggle -----
+h.section('regression R3: appsec residual nested/redaction smuggle -> BLOCKED');
+if (!H.existsSync(SDK)) h.warn('SMOKE_SKIPPED: appsec-sdk.sh missing');
+else if (!_bashReady()) h.assertSoft(false, 'SMOKE_SKIPPED: appsec residual (bash unavailable)');
+else {
+  const base = 'decision: CONDITIONAL_PASS\ndecided_at: "2026-06-14T00:00:00Z"\n';
+  const cases = [
+    ['nested risk_acceptance decoy', base + 'redaction:\n  attested: true\nouter:\n  risk_acceptance:\n    - approver: a\n      approval_date: 2026-06-14\n      review_date: 2026-12-01\n', 2],
+    ['approver block-scalar', base + 'redaction:\n  attested: true\nrisk_acceptance:\n  - approver: |\n      a\n    approval_date: 2026-06-14\n    review_date: 2026-12-01\n', 2],
+    ['nested redaction smuggle', base + 'outer:\n  redaction:\n    attested: true\nrisk_acceptance:\n  - approver: a\n    approval_date: 2026-06-14\n    review_date: 2026-12-01\n', 2],
+    ['valid CONDITIONAL_PASS (no false-kill)', base + 'redaction:\n  attested: true\nrisk_acceptance:\n  - approver: a\n    approval_date: 2026-06-14\n    review_date: 2026-12-01\n', 3],
+  ];
+  for (let i = 0; i < cases.length; i += 1) {
+    const [name, dec, want] = cases[i];
+    const tag = `apx${i}`;
+    const tmp = _mkproj({
+      '.appsec/config.json': '{"schema_version":"1.0","evidence_freshness_hours":99999999}',
+      [`.appsec/decisions/${tag}/appsec_release_decision.yaml`]: dec,
+    });
+    try {
+      const out = _gate(SDK, ['gate.check', tag], tmp);
+      h.assert(out.status === want, `appsec: ${name}`, `got ${out.status} want ${want}; ${(out.stderr || '').slice(0, 120)}`);
+    } finally { try { fsR.rmSync(tmp, { recursive: true, force: true }); } catch (_e) { /* ignore */ } }
+  }
+}
+
 process.exit(h.exit());

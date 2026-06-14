@@ -52,7 +52,10 @@ const ABSOLUTE_MIN_TTL    = 30    // floor
 // Adversarial-finding hardening (2026-05-29): legacy djb2 is a 32-bit non-crypto hash with
 // collision-feasible spec substitution. Its accept-during-transition path is now SUNSET — after
 // DJB2_SUNSET only canonical sha256: is accepted (mirroring qa-preview-gate, sha256-only from start).
-const DJB2_SUNSET_MS = Date.parse('2026-06-15T00:00:00Z')
+// ★ R3 (2026-06-14): sunset ACCELERATED to today. djb2 is a 32-bit non-crypto hash with
+// demonstrated collision feasibility (adversarial sweep confirmed "t1r"/"t30" collide); during a
+// hardening pass there is no reason to keep accepting it. sha256-only from now (matches qa-preview-gate).
+const DJB2_SUNSET_MS = Date.parse('2026-06-14T00:00:00Z')
 
 // ─── spec hash helpers ──────────────────────────────────────────────────
 // §1.11 correction #3 (2026-05-28): spec_hash migrated from djb2 → SHA-256.
@@ -169,13 +172,26 @@ async function main() {
   if (!spec || typeof spec !== 'object') {
     block(`Workflow launch missing args.spec (required to recompute spec_hash for verification)`)
   }
+  // ★ R3 hardening — structural spec validation, symmetric with qa-preview-gate (which checks
+  // spec.orchestrator) and with what appsec-orchestrator.js itself requires. A structurally-empty
+  // spec ({}) must NOT pass the gate even if a matching sentinel exists (the gate is the earlier,
+  // defense-in-depth backstop). orchestrator + non-empty phases are the minimum real-spec markers.
+  if (spec.orchestrator !== 'appsec') {
+    block(`spec.orchestrator must be "appsec" (got "${spec.orchestrator}") — structurally-invalid spec rejected`)
+  }
+  if (!Array.isArray(spec.phases) || spec.phases.length === 0) {
+    block(`spec.phases must be a non-empty array — an empty/structurally-invalid spec cannot drive a gate`)
+  }
 
   // Governed Gate Mode (2026-05-29): a deterministic AppSec gate launch must not enable
   // model-authored Dynamic Workflows. They may only scout; the gate verdict comes from this
   // deterministic spec-runner. allow_dynamic_workflow is part of spec → bound into spec_hash.
-  if (spec.allow_dynamic_workflow === true) {
-    block(`Governed Gate Mode: spec.allow_dynamic_workflow=true is forbidden for an AppSec gate launch. ` +
-          `Set it false or omit it. Dynamic Workflows may scout outside the gate only. See CLAUDE.md §3.7.`)
+  // ★ R3 hardening — strict-equality `=== true` was bypassed by non-boolean truthy values
+  // ("true" / 1 / {enabled:true}). A governed spec's flag must be boolean false or omitted; ANY other
+  // present value (including a "false" string) is non-canonical and rejected with a clear message.
+  if ('allow_dynamic_workflow' in spec && spec.allow_dynamic_workflow !== false) {
+    block(`Governed Gate Mode: spec.allow_dynamic_workflow must be boolean false or omitted ` +
+          `(got ${JSON.stringify(spec.allow_dynamic_workflow)}). Dynamic Workflows may scout outside the gate only. See CLAUDE.md §3.7.`)
   }
 
   // Codex C1: recompute spec_hash from args.spec.
@@ -232,7 +248,7 @@ async function main() {
   if (ttl > ABSOLUTE_MAX_TTL) ttl = ABSOLUTE_MAX_TTL
 
   const ageMs = Date.now() - approvedAt
-  if (ageMs > ttl * 1000) {
+  if (ageMs >= ttl * 1000) {  // ★ R3 — >= so the exact-TTL boundary is expired (no off-by-one extension)
     block(`preview approval expired (age=${Math.round(ageMs/1000)}s, ttl=${ttl}s). Re-approve.`)
   }
   if (ageMs < 0) {

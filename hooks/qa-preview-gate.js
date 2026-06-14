@@ -135,10 +135,12 @@ async function main() {
   // model-authored Dynamic Workflows. Dynamic Workflows / ultracode may only scout;
   // the gate verdict comes from this deterministic spec-runner. allow_dynamic_workflow
   // is part of spec → already bound into spec_hash, so this is also approval-pinned.
-  if (spec.allow_dynamic_workflow === true) {
+  // ★ R3 hardening — strict-equality `=== true` was bypassed by non-boolean truthy values
+  // ("true" / 1 / {enabled:true}). Require boolean false or omitted; any other present value rejected.
+  if ('allow_dynamic_workflow' in spec && spec.allow_dynamic_workflow !== false) {
     block(
-      'Governed Gate Mode: spec.allow_dynamic_workflow=true is forbidden for a QA gate launch. ' +
-      'Set it false or omit it. Dynamic Workflows may scout outside the gate only. See CLAUDE.md §3.7.'
+      'Governed Gate Mode: spec.allow_dynamic_workflow must be boolean false or omitted ' +
+      `(got ${JSON.stringify(spec.allow_dynamic_workflow)}). Dynamic Workflows may scout outside the gate only. See CLAUDE.md §3.7.`
     )
   }
 
@@ -193,7 +195,7 @@ async function main() {
   if (ttl > ABSOLUTE_MAX_TTL) ttl = ABSOLUTE_MAX_TTL
 
   const ageMs = Date.now() - approvedAt
-  if (ageMs > ttl * 1000) {
+  if (ageMs >= ttl * 1000) {  // ★ R3 — >= so the exact-TTL boundary is expired (no off-by-one extension)
     block(`preview approval expired (age=${Math.round(ageMs/1000)}s, ttl=${ttl}s). Re-approve.`)
   }
   if (ageMs < 0) {
