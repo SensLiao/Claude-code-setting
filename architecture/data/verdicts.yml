@@ -1,0 +1,24 @@
+schema_version: "1.0"
+verdicts:
+  PASS:
+    exit_code: 0
+    meaning: Release or handoff allowed.
+  WARN:
+    exit_code: 0
+    meaning: Allowed with recorded risk.
+  FAIL:
+    exit_code: 1
+    meaning: Required condition failed; fix and rerun.
+  BLOCKED:
+    exit_code: 2
+    meaning: Hard gate violation or missing authorization.
+  CONDITIONAL_PASS:
+    exit_code: 3
+    meaning: Allowed only with explicit conditions, owner, and due date.
+    note: Collapses to exit 0 only with a signed risk-acceptance file (--allow-conditional); each accepted finding needs approver + approval/review date + compensating controls.
+  STALE:
+    exit_code: 2
+    meaning: Evidence or approval is stale; refresh required.
+  STRATEGY_READY:
+    exit_code: 0
+    meaning: Strategy is ready; not an execution or release pass.

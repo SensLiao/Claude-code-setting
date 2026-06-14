@@ -1,0 +1,36 @@
+name: Architecture question
+description: Ask a question about the orchestrator architecture.
+title: "[architecture]: "
+labels: [architecture, question]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Overview
+        - Routing
+        - Bootstrap
+        - GSD PM
+        - UIUX
+        - QA
+        - AppSec
+        - Governance and evidence
+        - Security boundaries
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to understand or change?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Add links, diagrams, or examples if relevant.
+    validations:
+      required: false

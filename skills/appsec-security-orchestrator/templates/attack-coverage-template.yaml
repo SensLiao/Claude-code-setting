@@ -1,0 +1,222 @@
+# =============================================================================
+# attack-coverage.yaml  —  MITRE ATT&CK defensive coverage matrix
+# =============================================================================
+# Enterprise module #14 (Red/Purple-Team PLANNING — DEFENSIVE coverage only).
+#
+# *** NO adversary emulation, exploitation, stealth, or persistence is performed
+#     anywhere by the skill that fills this file (security-response-red-purple-team).
+#     This is a planning + coverage-mapping artifact. Active validation stays behind
+#     the manual `authorized-pentest-validation` gate, which is NEVER invoked here. ***
+#
+# Persist path  : appsec-sdk attack.coverage <tag>   (the ONLY sanctioned writer)
+#                 -> .appsec/evidence/<tag>/attack-coverage/attack-coverage.yaml
+# Schema source : appsec-sdk.sh cmd_attack_coverage skeleton (must stay byte-compatible)
+# Filled by     : security-response-red-purple-team  (Step 3 of its workflow)
+# Rendered by   : security-viz (matrix diagram) + MITRE ATT&CK Navigator layer export
+# Source of TTPs: MITRE ATT&CK Enterprise — https://attack.mitre.org  (verify ids there)
+#
+# ATT&CK VERSION NOTE (verified live 2026-06-14): ATT&CK Enterprise v19 (released
+#   2026-04-28) now has 15 tactics — "Defense Evasion" (TA0005) was SPLIT into
+#   "Stealth" (TA0005) + "Defense Impairment" (TA0112). Technique ids below remain
+#   valid; when filling, prefer the v19 tactic names (Stealth / Defense Impairment)
+#   or version-pin the matrix. NOTE: MITRE ATLAS still uses "Defense Evasion".
+#
+# FIELD CONTRACT (per technique):
+#   id               MITRE ATT&CK technique id, e.g. T1190 or sub-technique T1505.003
+#   tactic           the ATT&CK tactic the technique sits under
+#   relevant         true|false  — does this technique apply to THIS surface?
+#                    (keep relevant:false entries — "considered & N/A" is honest)
+#   control_status   none|partial|covered  — do we PREVENT/reduce it? (evidence-based)
+#   detection_status none|partial|covered  — do we SEE it happen? (logging/alerting)
+#   evidence_ref     concrete artifact proving the status. NO evidence_ref => status
+#                    MUST be `none` (no honest coverage claim without proof).
+#
+# Defaults below are `none` on purpose — every cell starts UNCOVERED and is only
+# raised when real evidence exists. Each entry carries a `# proof:` comment naming
+# what evidence would justify `covered`.
+# =============================================================================
+
+schema_version: "1.0"
+artifact: attack-coverage
+
+# Optional metadata (informational; SDK schema centers on attack_coverage.* below)
+meta:
+  release_tag: "<tag>"                  # filled by the run
+  generated_by: "security-response-red-purple-team"
+  basis: "Evidence-anchored coverage map; NOT a conformance claim and NOT an emulation report."
+  navigator_layer_exported: false       # flip true + path when §4 Step 5 export is produced
+  viz_diagram: ""                        # path to security-viz rendering, if produced
+
+attack_coverage:
+  framework: "MITRE ATT&CK Enterprise"
+
+  techniques:
+
+    # ===================== Initial Access (TA0001) =====================
+    - id: T1190                              # Exploit Public-Facing Application
+      tactic: Initial Access
+      relevant: true
+      control_status: none                   # proof(covered): SAST/DAST findings for the exposed app closed + WAF rule + patch SLA met (.appsec/findings/<tag>/*, code-review)
+      detection_status: none                 # proof(covered): WAF/app alert on exploit attempts + 4xx/5xx anomaly alert (ASVS V16 logging)
+      evidence_ref: ""
+
+    - id: T1078                              # Valid Accounts
+      tactic: Initial Access
+      relevant: true
+      control_status: none                   # proof(covered): MFA enforced + least-privilege + disabled default/orphan accounts (authz-matrix, code-review)
+      detection_status: none                 # proof(covered): impossible-travel / new-geo / off-hours login alerting
+      evidence_ref: ""
+
+    - id: T1566                              # Phishing
+      tactic: Initial Access
+      relevant: true
+      control_status: none                   # proof(covered): email auth (SPF/DKIM/DMARC) + user training + MFA blunting stolen creds
+      detection_status: none                 # proof(covered): mail-gateway detonation + reported-phish workflow signals
+      evidence_ref: ""
+
+    # ===================== Execution (TA0002) =====================
+    - id: T1059                              # Command and Scripting Interpreter
+      tactic: Execution
+      relevant: true
+      control_status: none                   # proof(covered): no shell-out on untrusted input + allowlist + injection findings closed (SAST/code-review)
+      detection_status: none                 # proof(covered): unexpected child-process / interpreter-spawn alerting on app hosts
+      evidence_ref: ""
+
+    - id: T1203                              # Exploitation for Client Execution
+      tactic: Execution
+      relevant: false                        # often N/A for pure server/API SaaS; flip true if a thick client / desktop app is in scope
+      control_status: none                   # proof(covered): client dependency patching + sandboxing
+      detection_status: none                 # proof(covered): endpoint EDR exploit-behavior alerts
+      evidence_ref: ""
+
+    # ===================== Persistence (TA0003) =====================
+    - id: T1505.003                          # Server Software Component: Web Shell
+      tactic: Persistence
+      relevant: true
+      control_status: none                   # proof(covered): read-only web root + upload validation + no exec in upload dir (file_upload overlay, code-review)
+      detection_status: none                 # proof(covered): FIM / write-to-web-root alert + new-file-in-served-path alert
+      evidence_ref: ""
+
+    - id: T1098                              # Account Manipulation
+      tactic: Persistence
+      relevant: true
+      control_status: none                   # proof(covered): privileged-change approval + key/cred rotation policy (secrets, authz-matrix)
+      detection_status: none                 # proof(covered): audit alert on role grant / API-key creation / MFA-device add
+      evidence_ref: ""
+
+    # ===================== Privilege Escalation (TA0004) =====================
+    - id: T1068                              # Exploitation for Privilege Escalation
+      tactic: Privilege Escalation
+      relevant: true
+      control_status: none                   # proof(covered): patched runtime/kernel/deps + least-privilege service accounts (sca, iac-cloud)
+      detection_status: none                 # proof(covered): unexpected privilege-gain / setuid / token-elevation alerting
+      evidence_ref: ""
+
+    - id: T1548                              # Abuse Elevation Control Mechanism
+      tactic: Privilege Escalation
+      relevant: true
+      control_status: none                   # proof(covered): no broad sudo/UAC bypass surface + hardened IAM (iac-cloud, authz-matrix)
+      detection_status: none                 # proof(covered): sudo/elevation anomaly + policy-bypass alerting
+      evidence_ref: ""
+
+    # ===================== Defense Evasion (TA0005) =====================
+    - id: T1562                              # Impair Defenses
+      tactic: Defense Evasion
+      relevant: true
+      control_status: none                   # proof(covered): tamper-resistant + off-host logging, immutable audit sink (ASVS V16, iac-cloud)
+      detection_status: none                 # proof(covered): alert on logging-stopped / security-tool-disabled / log-gap
+      evidence_ref: ""
+
+    # ===================== Credential Access (TA0006) =====================
+    - id: T1110                              # Brute Force
+      tactic: Credential Access
+      relevant: true
+      control_status: none                   # proof(covered): rate limiting + lockout + MFA + strong password policy (code-review, ASVS V6)
+      detection_status: none                 # proof(covered): auth-failure-rate spike alert + credential-stuffing pattern alert
+      evidence_ref: ""
+
+    - id: T1212                              # Exploitation for Credential Access
+      tactic: Credential Access
+      relevant: true
+      control_status: none                   # proof(covered): patched auth stack + no token-leak findings (sca, code-review)
+      detection_status: none                 # proof(covered): anomalous token-issuance / auth-service exploit alerting
+      evidence_ref: ""
+
+    # ===================== Discovery (TA0007) =====================
+    - id: T1087                              # Account Discovery
+      tactic: Discovery
+      relevant: true
+      control_status: none                   # proof(covered): no user-enumeration via APIs/error messages + uniform responses (api overlay, code-review)
+      detection_status: none                 # proof(covered): high-rate account/lookup enumeration alerting
+      evidence_ref: ""
+
+    - id: T1046                              # Network Service Discovery
+      tactic: Discovery
+      relevant: true
+      control_status: none                   # proof(covered): minimal exposed surface + security groups / network policy least-open (iac-cloud)
+      detection_status: none                 # proof(covered): port-scan / service-sweep detection at network edge
+      evidence_ref: ""
+
+    # ===================== Collection (TA0009) =====================
+    - id: T1530                              # Data from Cloud Storage
+      tactic: Collection
+      relevant: true                         # flip false only if no cloud object storage is used
+      control_status: none                   # proof(covered): no public buckets + bucket policy least-privilege + encryption (iac-cloud, data-classification)
+      detection_status: none                 # proof(covered): anomalous bulk object-read / cross-account access alerting (CloudTrail/audit)
+      evidence_ref: ""
+
+    # ===================== Exfiltration (TA0010) =====================
+    - id: T1567                              # Exfiltration Over Web Service
+      tactic: Exfiltration
+      relevant: true
+      control_status: none                   # proof(covered): egress allowlist + DLP on sensitive data classes (data-classification, iac-cloud)
+      detection_status: none                 # proof(covered): egress-volume anomaly + upload-to-unknown-domain alerting
+      evidence_ref: ""
+
+    # ===================== Impact (TA0040) =====================
+    - id: T1485                              # Data Destruction
+      tactic: Impact
+      relevant: true
+      control_status: none                   # proof(covered): immutable/off-account backups + delete-protection + RBAC on destructive ops (recovery evidence, authz-matrix)
+      detection_status: none                 # proof(covered): mass-delete / backup-tamper alerting
+      evidence_ref: ""
+
+    - id: T1499                              # Endpoint Denial of Service
+      tactic: Impact
+      relevant: true
+      control_status: none                   # proof(covered): rate limiting + autoscaling + upstream DDoS protection / CDN (iac-cloud)
+      detection_status: none                 # proof(covered): latency/error-rate/saturation alerting + traffic-spike anomaly
+      evidence_ref: ""
+
+  # ---------------------------------------------------------------------------
+  # AI / ML surface overlay (ONLY when an llm/agent surface is in scope).
+  # Source: MITRE ATLAS — https://atlas.mitre.org (verify ids there).
+  # Composes WITH security-app-llm; do NOT merge AI techniques into the
+  # ATT&CK Enterprise `techniques:` list above. Remove this block if no AI surface.
+  # ---------------------------------------------------------------------------
+  atlas:
+    framework: "MITRE ATLAS"
+    relevant: false                          # flip true when overlays[] includes llm/agent
+    techniques:
+      - id: AML.T0051                        # LLM Prompt Injection (verify against atlas.mitre.org)
+        tactic: ATLAS Initial Access / Execution
+        relevant: false
+        control_status: none                 # proof(covered): input/output guards + tool-permission boundaries (security-app-llm evidence)
+        detection_status: none               # proof(covered): prompt-injection / jailbreak attempt detection in logs/evals
+        evidence_ref: ""
+      - id: AML.T0057                        # LLM Data Leakage (verify against atlas.mitre.org)
+        tactic: ATLAS Exfiltration
+        relevant: false
+        control_status: none                 # proof(covered): output filtering + secret/PII redaction in model responses
+        detection_status: none               # proof(covered): sensitive-data-in-response detection
+        evidence_ref: ""
+
+# =============================================================================
+# GAP -> REMEDIATION (informational; the skill routes these to security-remediation)
+# Any relevant technique with control_status != covered OR detection_status != covered
+# is a gap. Prioritize by tactic criticality x exploit likelihood x asset impact.
+# Detection gaps are BLUE-team work (logging/alerting/monitoring/hardening) — never
+# "go attack it to prove the gap." If a gap warrants real adversary simulation, hand
+# the prioritized technique list to pentest-scope-and-roe (manual ROE path) — this
+# template/skill NEVER authorizes or runs active validation.
+# =============================================================================

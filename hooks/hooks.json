@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/auto-tmux-dev.js\""
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/auto-tmux-dev.js\""
           }
         ],
         "description": "Auto-start dev servers in tmux with directory-based session names",
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:bash:tmux-reminder\" \"scripts/hooks/pre-bash-tmux-reminder.js\" \"strict\""
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"pre:bash:tmux-reminder\" \"scripts/hooks/pre-bash-tmux-reminder.js\" \"strict\""
           }
         ],
         "description": "Reminder to use tmux for long-running commands",
@@ -40,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:bash:git-push-reminder\" \"scripts/hooks/pre-bash-git-push-reminder.js\" \"strict\""
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"pre:bash:git-push-reminder\" \"scripts/hooks/pre-bash-git-push-reminder.js\" \"strict\""
           }
         ],
         "description": "Reminder before git push to review changes",
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:bash:commit-quality\" \"scripts/hooks/pre-bash-commit-quality.js\" \"strict\""
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"pre:bash:commit-quality\" \"scripts/hooks/pre-bash-commit-quality.js\" \"strict\""
           }
         ],
         "description": "Pre-commit quality check: lint staged files, validate commit message format, detect console.log/debugger/secrets before committing",
@@ -62,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:write:doc-file-warning\" \"scripts/hooks/doc-file-warning.js\" \"standard,strict\""
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"pre:write:doc-file-warning\" \"scripts/hooks/doc-file-warning.js\" \"standard,strict\""
           }
         ],
         "description": "Doc file warning: warn about non-standard documentation files (exit code 0; warns only)",
@@ -73,7 +73,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:edit-write:suggest-compact\" \"scripts/hooks/suggest-compact.js\" \"standard,strict\""
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"pre:edit-write:suggest-compact\" \"scripts/hooks/suggest-compact.js\" \"standard,strict\""
           }
         ],
         "description": "Suggest manual compaction at logical intervals",
@@ -84,7 +84,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:insaits-security\" \"scripts/hooks/insaits-security-wrapper.js\" \"standard,strict\"",
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"pre:insaits-security\" \"scripts/hooks/insaits-security-wrapper.js\" \"standard,strict\"",
             "timeout": 15
           }
         ],
@@ -96,7 +96,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:governance-capture\" \"scripts/hooks/governance-capture.js\" \"standard,strict\"",
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"pre:governance-capture\" \"scripts/hooks/governance-capture.js\" \"standard,strict\"",
             "timeout": 10
           }
         ],
@@ -108,7 +108,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:config-protection\" \"scripts/hooks/config-protection.js\" \"standard,strict\"",
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"pre:config-protection\" \"scripts/hooks/config-protection.js\" \"standard,strict\"",
             "timeout": 5
           }
         ],
@@ -120,7 +120,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:mcp-health-check\" \"scripts/hooks/mcp-health-check.js\" \"standard,strict\""
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"pre:mcp-health-check\" \"scripts/hooks/mcp-health-check.js\" \"standard,strict\""
           }
         ],
         "description": "Check MCP server health before MCP tool execution and block unhealthy MCP calls",
@@ -133,7 +133,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:compact\" \"scripts/hooks/pre-compact.js\" \"standard,strict\""
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"pre:compact\" \"scripts/hooks/pre-compact.js\" \"standard,strict\""
           }
         ],
         "description": "Save state before context compaction",
@@ -146,7 +146,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/session-start-bootstrap.js\""
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/session-start-bootstrap.js\""
           }
         ],
         "description": "Load previous context and detect package manager on new session",
@@ -159,7 +159,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/post-bash-command-log.js\" audit"
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/post-bash-command-log.js\" audit"
           }
         ],
         "description": "Audit log all bash commands to ~/.claude/bash-commands.log",
@@ -170,7 +170,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/post-bash-command-log.js\" cost"
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/post-bash-command-log.js\" cost"
           }
         ],
         "description": "Cost tracker - log bash tool usage with timestamps",
@@ -181,7 +181,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:bash:pr-created\" \"scripts/hooks/post-bash-pr-created.js\" \"standard,strict\""
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"post:bash:pr-created\" \"scripts/hooks/post-bash-pr-created.js\" \"standard,strict\""
           }
         ],
         "description": "Log PR URL and provide review command after PR creation",
@@ -192,7 +192,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:bash:build-complete\" \"scripts/hooks/post-bash-build-complete.js\" \"standard,strict\"",
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"post:bash:build-complete\" \"scripts/hooks/post-bash-build-complete.js\" \"standard,strict\"",
             "async": true,
             "timeout": 30
           }
@@ -205,7 +205,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:quality-gate\" \"scripts/hooks/quality-gate.js\" \"standard,strict\"",
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"post:quality-gate\" \"scripts/hooks/quality-gate.js\" \"standard,strict\"",
             "async": true,
             "timeout": 30
           }
@@ -218,7 +218,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:edit:design-quality-check\" \"scripts/hooks/design-quality-check.js\" \"standard,strict\"",
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"post:edit:design-quality-check\" \"scripts/hooks/design-quality-check.js\" \"standard,strict\"",
             "timeout": 10
           }
         ],
@@ -230,7 +230,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:edit:accumulate\" \"scripts/hooks/post-edit-accumulator.js\" \"standard,strict\""
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"post:edit:accumulate\" \"scripts/hooks/post-edit-accumulator.js\" \"standard,strict\""
           }
         ],
         "description": "Record edited JS/TS file paths for batch format+typecheck at Stop time",
@@ -241,7 +241,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:edit:console-warn\" \"scripts/hooks/post-edit-console-warn.js\" \"standard,strict\""
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"post:edit:console-warn\" \"scripts/hooks/post-edit-console-warn.js\" \"standard,strict\""
           }
         ],
         "description": "Warn about console.log statements after edits",
@@ -252,7 +252,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:governance-capture\" \"scripts/hooks/governance-capture.js\" \"standard,strict\"",
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"post:governance-capture\" \"scripts/hooks/governance-capture.js\" \"standard,strict\"",
             "timeout": 10
           }
         ],
@@ -266,7 +266,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"post:mcp-health-check\" \"scripts/hooks/mcp-health-check.js\" \"standard,strict\""
+            "command": "node \"C:\\Users\\廖神\\.claude/scripts/hooks/run-with-flags.js\" \"post:mcp-health-check\" \"scripts/hooks/mcp-health-check.js\" \"standard,strict\""
           }
         ],
         "description": "Track failed MCP tool calls, mark unhealthy servers, and attempt reconnect",

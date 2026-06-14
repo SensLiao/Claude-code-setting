@@ -1,0 +1,12 @@
+flowchart TB
+  Start[AppSec trigger] --> Classify[Classifier]
+  Classify --> Init[Evidence dirs]
+  Init --> Scan[Scans and review]
+  Scan --> Findings[Normalize findings]
+  Findings --> Threat[Threat model]
+  Threat --> DAST[Passive DAST baseline]
+  DAST --> Need{Need active pentest?}
+  Need -->|yes| ROE[Recommend ROE, never auto-run]
+  Need -->|no| Validate[Evidence validator]
+  ROE --> Validate
+  Validate --> Gate[appsec gate.check]

@@ -1,0 +1,99 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AppSec Overlay Checklist — canonical template
+# ─────────────────────────────────────────────────────────────────────────────
+# Written by an activated AppSec overlay skill to:
+#   .appsec/evidence/<release-tag>/overlay-<name>/checklist.yaml
+#
+# The appsec-evidence-validator (orchestrator §16.9 check #3) HARD-REQUIRES this
+# file for EVERY activated overlay. Missing it → release BLOCKED.
+#
+# Companion marker: `appsec-sdk overlay.activate <tag> <name>` writes the sibling
+# `.activated` file. That marks the overlay active; THIS file is the evidence the
+# review actually ran. Both are required — activate first, then write this.
+#
+# Copy this file, fill `overlay` / `release_tag` / `checked_at`, replace `items[]`
+# with the overlay's real review items + verdicts, and recompute `summary`.
+#
+# HARD RULES (mirror orchestrator §9 + §12):
+#   - `asvs_ref` MUST use the versioned three-segment form:  v5.0.0-<ch>.<sec>.<req>
+#       regex: ^v5\.0\.0-\d+\.\d+\.\d+$        (NEVER 4.x labels like V2.1.1)
+#       omit / use null only when no ASVS clause applies (e.g. mobile uses MASVS —
+#       put the MASVS group in `notes` and leave asvs_ref null).
+#   - `evidence_ref` points at a real artifact (relative path under
+#     .appsec/evidence/<tag>/..., file:line in repo, or a test/scan output id).
+#       For status: not_tested it MAY be null, but `notes` must say why.
+#   - NEVER inline raw secrets / raw tokens / real production object ids here.
+#     This file is committed evidence — run `appsec-sdk redact` on anything
+#     derived from scan/test output before pasting.
+#   - Findings do NOT live here. Each finding goes through `appsec-sdk finding.add`
+#     (canonical path; direct Write to .appsec/findings/** is hook-blocked §18.5a).
+#     A `fail` item here should carry the finding id in `evidence_ref` / `notes`.
+# ─────────────────────────────────────────────────────────────────────────────
+
+schema_version: "1.0"
+overlay: "<name>"                 # one of: mobile | llm | multitenant | websocket |
+                                  #         file_upload | payment | cn_data | api | privacy
+release_tag: "<release-tag>"      # must equal .appsec/state.json.active_release_tag
+checked_at: "<ISO-8601>"          # e.g. 2026-06-14T09:30:00Z (use appsec-sdk iso_now idiom)
+
+# Each reviewed control = one item. `status` is one of:
+#   pass        — control present + verified (evidence_ref proves it)
+#   fail        — control missing/broken → MUST have a finding via finding.add
+#   na          — not applicable to this project (notes must justify)
+#   not_tested  — in scope but not yet verified (notes must say why; blocks a clean PASS)
+items:
+  - id: "OVL-001"
+    requirement: "<what was checked — one line>"
+    asvs_ref: "v5.0.0-0.0.0"      # or null when overlay uses MASVS / no ASVS clause
+    status: "pass"                # pass | fail | na | not_tested
+    evidence_ref: "<path|file:line|finding-id|scan-output-id>"
+    notes: "<verdict detail; for fail cite finding id; for na/not_tested justify>"
+
+# Recompute after filling items[]. total == pass + fail + na + not_tested.
+summary:
+  total: 1
+  pass: 1
+  fail: 0
+  na: 0
+  not_tested: 0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Per-overlay example items (illustrative — replace items[] above with the real
+# set for the activated overlay; ASVS clauses shown are starting points, verify
+# against ASVS 5.0 chapters before emitting).
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# overlay: file_upload  (OWASP File Upload Cheat Sheet + ASVS V5 File Handling)
+#   - content-type re-validated server-side via magic bytes (not client header)  → v5.0.0-5.x.x
+#   - per-file / per-request / per-user size limits enforced server-side          → v5.0.0-5.x.x
+#   - AV / CDR scan runs and fails CLOSED on scanner error                        → v5.0.0-5.x.x
+#   - filename + path sanitized; server-generated UUID path (no user filename)    → v5.0.0-5.x.x
+#   - stored-XSS on served-back filename / SVG / HTML neutralized (force download)→ v5.0.0-5.x.x
+#   - archive bomb guard (decompressed-size + file-count + ratio + sandbox)       → v5.0.0-5.x.x
+#   - storage bucket isolated + private; signed URL short TTL + method-scoped     → v5.0.0-5.x.x
+#   - EXIF / metadata stripped on image processing                                → v5.0.0-5.x.x
+#
+# overlay: multitenant  (OWASP Multi-Tenant Cheat Sheet + ASVS V8 Authorization)
+#   - tenant isolation: every query carries tenant_id WHERE / RLS enforced        → v5.0.0-8.x.x
+#   - cross-tenant IDOR/BOLA: resource.tenant_id == request.tenant_id (DB layer)  → v5.0.0-8.x.x
+#   - row-level security enabled + FORCE RLS on all tenant tables                 → v5.0.0-8.x.x
+#   - cache key carries tenant prefix; background job payload carries tenant_id   → v5.0.0-8.x.x
+#   - admin / support cross-tenant access audited + customer-notified             → v5.0.0-8.x.x
+#
+# overlay: websocket  (OWASP WebSocket Cheat Sheet + ASVS V17 / V8)
+#   - Origin header verified against allowlist on upgrade (CSWSH defense)         → v5.0.0-17.x.x
+#   - auth enforced on upgrade/connect (no token in URL query)                    → v5.0.0-17.x.x
+#   - per-connection / per-user message rate limit (frame-level, not conn-level)  → v5.0.0-17.x.x
+#   - inbound frame schema validation; client-reported user_id rejected          → v5.0.0-17.x.x
+#   - frame size cap + idle timeout + disconnect-on-logout                        → v5.0.0-17.x.x
+#
+# overlay: mobile  (OWASP MASVS 2.x — 8 control groups; asvs_ref null, MASVS in notes)
+#   - MASVS-STORAGE: no sensitive data in NSUserDefaults / plain SharedPreferences
+#   - MASVS-CRYPTO:  AES-256-GCM / ChaCha20-Poly1305; no MD5/SHA1 for signing
+#   - MASVS-AUTH:    token in Keychain/Keystore hardware-backed; biometric fresh-auth
+#   - MASVS-NETWORK: TLS 1.2+ enforced; cert pinning with backup pin (if applicable)
+#   - MASVS-PLATFORM: deep link input validated; WebView JS bridge not over-exposed
+#   - MASVS-CODE:    third-party SDK inventory + signature/resource integrity
+#   - MASVS-RESILIENCE: jailbreak/root + anti-debug (Enhanced+Resilience profile only)
+#   - MASVS-PRIVACY: iOS Privacy Manifest / Android Data Safety match actual behavior
+# ─────────────────────────────────────────────────────────────────────────────

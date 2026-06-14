@@ -250,6 +250,32 @@
       "notes": "NIST CSF 2.0 RC function. 3 modes: post-incident / scheduled drill / recovery audit. Activates after incident-response RS→RC transition criteria met."
     },
     {
+      "intent_category": "appsec_narrow_red_purple_team",
+      "intent_keywords": [
+        "red team", "purple team", "红队", "紫队",
+        "MITRE ATT&CK", "ATT&CK coverage", "attack coverage matrix",
+        "TTP coverage", "detection coverage", "检测覆盖",
+        "adversary emulation planning"
+      ],
+      "orchestrator": "security-response-red-purple-team",
+      "trigger_mode": "auto",
+      "notes": "PLANNING + COVERAGE MAPPING ONLY — strictly defensive, never executes attacks/emulation/stealth/persistence. Active validation stays behind the manual authorized-pentest-validation gate, which this skill never invokes. NIST CSF 2.0 DE+RS; MITRE ATT&CK Enterprise (v19 = 15 tactics) + ATLAS."
+    },
+    {
+      "intent_category": "appsec_narrow_security_viz",
+      "intent_keywords": [
+        "security diagram", "安全可视化", "安全架构图",
+        "AI agent risk graph", "agent 权限图", "agent risk graph",
+        "漏洞看板", "vulnerability board", "vuln board",
+        "安全证据 dashboard", "security evidence dashboard", "release decision 可视化",
+        "pentest scope map", "渗透范围图",
+        "attack surface map", "MITRE ATT&CK coverage map", "安全控制覆盖图", "DFD", "trust boundary"
+      ],
+      "orchestrator": "security-viz",
+      "trigger_mode": "auto",
+      "notes": "Render-only security diagrams from existing .appsec/ + manifest fact-sources. NOT code architecture (that is arch-viz). Adds no data collection, never scans. 4 live diagrams; 8 planned (blocked on fact-sources)."
+    },
+    {
       "intent_category": "discoverability_release_gate",
       "intent_keywords": [
         "discoverability", "可发现性", "上线后被找到",

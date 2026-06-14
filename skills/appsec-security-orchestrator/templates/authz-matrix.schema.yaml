@@ -1,0 +1,91 @@
+# =============================================================================
+# Authorization Matrix — SCHEMA (Enterprise module #7)
+# =============================================================================
+# Owned by: appsec-security-orchestrator (app layer)
+# Standards: OWASP ASVS 5.0 V8 (Authorization) · OWASP API Top 10
+#            API1:2023 BOLA (object-level) · API5:2023 BFLA (function-level)
+#
+# WHAT THIS DOCUMENTS
+#   The canonical SHAPE that `appsec-sdk authz.matrix <tag> [<file>]` writes to
+#   .appsec/evidence/<tag>/authz-matrix/authz-matrix.yaml.
+#   SDK output MUST validate against this contract. Update both together.
+#
+# WHY IT IS A STANDING ARTIFACT
+#   security-app-api / security-app-multitenant reason about IDOR/BOLA/BFLA in
+#   prose during code review. Persisting the role × resource × action matrix
+#   turns that into AUDITABLE EVIDENCE: every cell has a verdict + evidence_ref,
+#   so "is authorization actually enforced server-side?" is answerable, not vibes.
+#
+# THE TWO CHECKS THAT MATTER (this is the whole point):
+#   object_level_check  → BOLA/IDOR: does the server verify THIS principal owns
+#                         THIS specific object? (RBAC alone does NOT prevent IDOR.)
+#   function_level_check → BFLA: does the server verify THIS role may call THIS
+#                         function/endpoint at all? (client-side hiding ≠ control.)
+# =============================================================================
+
+schema_version: "1.0"            # string, fixed "1.0"
+artifact: authz-matrix            # literal discriminator
+
+roles: []                         # REQUIRED (may be empty until filled). list of role names.
+                                  #   e.g. [anonymous, user, admin, tenant_owner, support]
+
+resources: []                     # REQUIRED (may be empty until filled). list of protected
+                                  #   resources/objects. e.g. [order, invoice, admin_panel, tenant_settings]
+                                  #   Tie each resource to an asset id from asset-inventory where applicable.
+
+# matrix[] — one row per (role, resource) pair you care about. Sparse is fine;
+# absence of a row should be read as "not analyzed", not "denied".
+matrix:
+  - role: ""                      # REQUIRED. Must be one of `roles`.
+
+    resource: ""                  # REQUIRED. Must be one of `resources`.
+
+    actions_allowed: []           # REQUIRED (may be empty). list, subset of:
+                                  #   [create, read, update, delete, list]
+                                  #   The INTENDED permission. Empty = role has no access to resource.
+
+    object_level_check: false     # REQUIRED. boolean. BOLA/IDOR (ASVS V8 / API1:2023):
+                                  #   is per-object ownership/tenancy enforced SERVER-SIDE?
+                                  #   For multi-tenant, this includes tenant-scoping every query.
+
+    function_level_check: false   # REQUIRED. boolean. BFLA (ASVS V8 / API5:2023):
+                                  #   is the role/function authorization enforced SERVER-SIDE
+                                  #   (not just hidden in the UI)?
+
+    verdict: not_tested           # REQUIRED. enum: pass | fail | not_tested
+                                  #   pass       — both applicable checks verified present
+                                  #   fail       — a required check is missing/bypassable (→ finding)
+                                  #   not_tested — not yet validated (don't leave at release for
+                                  #                auth/payment/data-export resources)
+
+    evidence_ref: ""              # REQUIRED for pass/fail. Pointer to proof: test name, file:line
+                                  #   of the check, code-review evidence path, or finding id.
+                                  #   A `pass` with empty evidence_ref is not real coverage.
+
+# -----------------------------------------------------------------------------
+# Filled example (illustrative — delete before use):
+# -----------------------------------------------------------------------------
+# roles: [anonymous, user, admin, tenant_owner]
+# resources: [order, invoice, admin_panel]
+# matrix:
+#   - role: user
+#     resource: order
+#     actions_allowed: [create, read, update, list]
+#     object_level_check: true        # WHERE user_id = current_user enforced in repo layer
+#     function_level_check: true
+#     verdict: pass
+#     evidence_ref: "tests/authz/order_ownership.test.ts::denies cross-user read"
+#   - role: user
+#     resource: invoice
+#     actions_allowed: [read]
+#     object_level_check: false       # BOLA: /api/invoices/:id returns any id — IDOR!
+#     function_level_check: true
+#     verdict: fail
+#     evidence_ref: "2026-06-14-manual_review-003"   # finding id (→ appsec-sdk finding.add)
+#   - role: anonymous
+#     resource: admin_panel
+#     actions_allowed: []             # must have no access
+#     object_level_check: false       # n/a (no access intended)
+#     function_level_check: true      # route guard rejects unauthenticated
+#     verdict: pass
+#     evidence_ref: "src/middleware/requireAdmin.ts:14"

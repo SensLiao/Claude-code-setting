@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/harness-registry.schema.json",
   "schema_version": "2.0.0",
-  "generated_date": "2026-06-10",
+  "generated_date": "2026-06-14",
   "generated_by": "harness drift normalization Wave 2 Agent A2 (PR-1)",
   "description": "Comprehensive structured registry of the ~/.claude/ harness control surface: 5 primary orchestrators, 1 downstream gate (L12), subsystem agents/hooks/SDKs/evidence-roots/schemas/handoff-schemas/decision-semantics, and the safety-critical name freeze list. v2.0.0 declares AppSec v3.0 GSD-lite execution engine + L12 v1.2 tag-scoped evidence + per-project hook install pattern (D3 canonical).",
 
@@ -107,7 +107,9 @@
           "qa-detect-internal-mock.js",
           "qa-evidence-required.js",
           "qa-bundle-write-guard.js",
-          "qa-mark-stale.js"
+          "qa-mark-stale.js",
+          "qa-preview-gate.js",
+          "governed-gate-workflow-guard.js"
         ]
       },
       "hook_scope": "project-installed via `qa-sdk init` (config-gated by `<project>/.qa/config.json`)",
@@ -142,7 +144,10 @@
           "appsec-pentest-authorization.js",
           "appsec-finding-schema-postverify.js",
           "appsec-secret-redaction.js",
-          "appsec-evidence-required.js"
+          "appsec-evidence-required.js",
+          "appsec-pentest-recommended.js",
+          "appsec-preview-gate.js",
+          "governed-gate-workflow-guard.js"
         ]
       },
       "hook_scope": "project-installed via `appsec-sdk init` (config-gated by `<project>/.appsec/config.json`)",
@@ -337,7 +342,10 @@
           "appsec-pentest-authorization.js",
           "appsec-finding-schema-postverify.js",
           "appsec-secret-redaction.js",
-          "appsec-evidence-required.js"
+          "appsec-evidence-required.js",
+          "appsec-pentest-recommended.js",
+          "appsec-preview-gate.js",
+          "governed-gate-workflow-guard.js"
         ]
       },
       "qa": {
@@ -349,7 +357,11 @@
           "qa-quarantine-accountability.js",
           "qa-floor-rule-prompt.js",
           "qa-detect-internal-mock.js",
-          "qa-evidence-required.js"
+          "qa-evidence-required.js",
+          "qa-bundle-write-guard.js",
+          "qa-mark-stale.js",
+          "qa-preview-gate.js",
+          "governed-gate-workflow-guard.js"
         ]
       },
       "uiux": {
@@ -405,6 +417,13 @@
         "roe.verify",
         "csf.coverage",
         "overlay.activate",
+        "asset.inventory",
+        "data.classify",
+        "authz.matrix",
+        "attack.coverage",
+        "pentest.recommend",
+        "control.coverage",
+        "audit.package",
         "migrate-evidence"
       ],
       "evidence_root": ".appsec/evidence/<tag>/",

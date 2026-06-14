@@ -21,7 +21,7 @@ paths:
 
 > **AppSec v3.0** (2026-05-25 — GSD-lite execution engine).
 > **Evidence root canonical**: `.appsec/evidence/<tag>/`. Legacy `.planning/security/` accepted via SDK adapter (deprecation path; migrate with `appsec-sdk migrate-evidence`).
-> **Hooks scope**: 7 AppSec hooks register in `<project>/.claude/settings.json` via `appsec-sdk init`; fresh projects without `.appsec/config.json` have NO active enforcement.
+> **Hooks scope**: AppSec project hooks register in `<project>/.claude/settings.json` via `appsec-sdk init`（枚举以 `manifests/hook-registry.json` 为单一真相源，含 2026-06-14 新增 advisory-only `appsec-pentest-recommended.js`）；fresh projects without `.appsec/config.json` have NO active enforcement.
 > **ROE checklist**: 11 user-visible sections (validated as 13 internal fields by orchestrator v3 §20.7 — emergency_contact / rollback as separate fields, authorization_proof as anchor).
 > Authority: [docs/CANONICALS.md](../docs/CANONICALS.md).
 

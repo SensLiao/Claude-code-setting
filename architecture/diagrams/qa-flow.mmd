@@ -1,0 +1,11 @@
+flowchart TB
+  Trigger[QA trigger] --> Mode{Mode}
+  Mode -->|prompt-only| Nine[9-step adaptive QA]
+  Mode -->|workflow-spec| Fourteen[14-step deterministic QA]
+  Nine --> Risk[Risk score]
+  Fourteen --> Hash[spec_hash + approval]
+  Risk --> Layers[Select layers]
+  Hash --> Layers
+  Layers --> Tests[Run/collect test evidence]
+  Tests --> Bundle[QA evidence bundle]
+  Bundle --> Gate[qa gate.check]

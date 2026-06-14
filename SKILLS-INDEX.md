@@ -54,6 +54,8 @@
 | compliance | `security-compliance-payment` | `security.compliance.payment` | PCI DSS 4.0.1 + SAQ |
 | compliance | `security-compliance-cn-data` | `security.compliance.cn_data` | PIPL + DSL + CSL + CAC 出境 |
 | compliance | `security-compliance-privacy` | `security.compliance.privacy` | GDPR / CCPA / CPRA（ex-China）；与 cn-data + payment 按 jurisdiction 分工 |
+| response | `security-response-red-purple-team` | `security.response.red_purple_team` | 红/紫队 ATT&CK 覆盖映射（**planning-only**，永不执行攻击；active validation 走 pentest gate）|
+| visualization | `security-viz` | `security.viz` | 从 `.appsec/` + manifest 事实源渲染安全图（AI Agent 风险图 / 漏洞看板 / 证据 dashboard / pentest scope map）；render-only ≠ `arch-viz` 代码图 |
 | (GSD adapter) | `gsd-secure-phase` | `gsd.workflow.secure_phase` | GSD-namespace adapter，与 AppSec 严格命名空间分离 |
 
 **AppSec 6-Layer Capability Map**（详 `appsec-security-orchestrator §5`）：
@@ -136,7 +138,7 @@ Fresh project 无对应 config file 时，**只有 GSD hooks 全局 fire**，所
 ## 📊 数字总览
 
 ```
-~/.claude/skills/         ~90 dirs   = 68 GSD + ~22 non-GSD
+~/.claude/skills/         ~141 dirs  = 68 GSD + ~73 non-GSD
 ~/.claude/plugins/        9 enabled + some disabled from 8 marketplaces
 ~/.claude/tools/          gstack (CLI)
 Vercel namespace          34 sub-skills (auto-injected)

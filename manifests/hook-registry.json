@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/hook-registry.schema.json",
   "schema_version": "1.0.0",
-  "generated_date": "2026-05-25",
+  "generated_date": "2026-06-14",
   "generated_by": "harness drift normalization Wave 2 Agent A2 (PR-1)",
   "description": "5-category taxonomy of harness hooks. Distinguishes between globally-registered hooks (in ~/.claude/settings.json, fire on every session) and project-installed hooks (config-gated, only fire when SDK init has run inside a project). Implements CANONICALS.md D3: subsystem hooks are project-installed-only.",
 
@@ -40,10 +40,11 @@
             {"name": "appsec-active-scan-guard.js", "trigger": "PreToolUse(Bash)", "purpose": "Block active security scans without ROE + authorization"},
             {"name": "appsec-secret-access-guard.js", "trigger": "PreToolUse(Read|Bash)", "purpose": "Block raw secret material reads (Read .env/*.pem/*.key) and Bash cat/printenv exfil; require redaction"},
             {"name": "appsec-finding-schema-prewrite.js", "trigger": "PreToolUse(Write|Edit|MultiEdit)", "purpose": "Validate finding YAML/JSON against standardized schema before write; block direct Edit/MultiEdit of protected findings/decisions (E7 2026-06-05)"},
-            {"name": "appsec-pentest-authorization.js", "trigger": "PreToolUse(Skill|Agent)", "purpose": "Hard gate for authorized-pentest-validation Skill/Agent invocation (11-item ROE + window + sign-off)"},
+            {"name": "appsec-pentest-authorization.js", "trigger": "PreToolUse(Skill|Agent)", "purpose": "Hard gate for authorized-pentest-validation Skill/Agent invocation (13-field ROE / 11 user-visible sections + window + sign-off)"},
             {"name": "appsec-finding-schema-postverify.js", "trigger": "PostToolUse(Write|Edit|MultiEdit)", "purpose": "Post-write validation of finding artifacts (matcher includes MultiEdit for symmetry with prewrite)"},
             {"name": "appsec-secret-redaction.js", "trigger": "Stop", "purpose": "Last-line defense: scan final assistant message/transcript for raw secret patterns; never downgradable to warn-only"},
             {"name": "appsec-evidence-required.js", "trigger": "Stop", "purpose": "Block phase completion if .appsec/evidence/<tag>/ is empty"},
+            {"name": "appsec-pentest-recommended.js", "trigger": "Stop", "purpose": "ADVISORY-ONLY (emitAdvisory + exit 0, never blocks): after a release decision, if pentest_recommendation.recommended==true AND surfaced!=true AND pentest_status in {not_required, skipped_with_reason}, inject the SKILL.md §16.9.5 pentest recommendation card. NEVER invokes/routes-to/pre-stages authorized-pentest-validation (manual gate untouched)."},
             {"name": "appsec-preview-gate.js", "trigger": "PreToolUse(Workflow)", "purpose": "workflow-spec launch gate: recompute spec_hash + verify approval sentinel + TTL for deterministic appsec-orchestrator launches"},
             {"name": "governed-gate-workflow-guard.js", "trigger": "PreToolUse(Workflow)", "purpose": "Governed Gate Mode (CLAUDE.md §3.7, post-4.8): block inline model-authored Dynamic Workflows / ultracode during an active gate; cross-domain (also installed by qa-sdk init)"}
           ]

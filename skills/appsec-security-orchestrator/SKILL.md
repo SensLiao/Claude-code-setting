@@ -605,6 +605,8 @@ The picked mode then determines:
 
 ### §16.4 Automated Scans + Triage
 
+> **prompt-only 路径计划预览卡（CLAUDE.md §0.6）**：中等/复杂 AppSec run 在开始 §16.4–§16.9 派发**之前**，先渲染 **PLAN-PREVIEW CARD**（`~/.claude/orchestrator-runtime/shared/preview-template.md` 的 "Default user-facing card"）—— 表（阶段 / agent / 模型 / 用的工具=作用）+ 点线流程图（`Scope → Plan → Find×N → Normalize? → [Dedup] → … → ◇Gate → Synthesize → PersistEvidence`）+ 业务三行，等用户确认后再跑。workflow-spec 路径由 §16.13 渲染同一张卡（外加 spec_hash 硬门）。简单 run 可跳过本卡。
+
 顺序固定（**SCA → secret_scan → SAST → headers**，因为 secret 出现的最可能 surface 在依赖与代码混在一起的 audit 阶段）：
 
 1. **SCA**：`npm audit --json` / `pip-audit -f json` / `cargo audit --json` / `trivy fs --format json .` → `.appsec/evidence/<tag>/sca/raw-<tool>.json`
@@ -635,9 +637,10 @@ The picked mode then determines:
 
 ### §16.8 Pentest Decision
 
-- 含 user data L2+ / payment / admin → 建议起草 ROE → 路由 `pentest-scope-and-roe`
+- 含 user data L2+ / payment / admin / multitenant / public-api / llm-agent → 建议起草 ROE → 路由 `pentest-scope-and-roe`
 - 用户 explicit `/authorized-pentest-validation` → PreToolUse hook §18.4 验证 ROE 13-item + time window + scope
 - **本 orchestrator 永不自动调用 active validation**
+- **主动提醒（不再被动）**：criteria 命中与否由 **§16.9.5** 的 validator 计算成 `pentest_recommendation{}` 并**主动渲染成用户可见的卡** —— 不再只是埋在 dispatch prose / YAML 里的一行（旧缺陷，A2 审计确认）。orchestrator 调 `appsec-sdk pentest.recommend <tag>` 落盘建议；调用 active validation 仍 **100% 手动**。
 
 ### §16.9 Evidence Validation + Release Decision
 
@@ -685,6 +688,13 @@ redaction:                                    # ★ v3.0 P0.1.7 — nested
   method: "gitleaks --redact + appsec-sdk redact"
   proof_path: .appsec/evidence/<tag>/secret-scan/redaction-attestation.txt
 pentest_status: not_required | roe_drafted | roe_signed | executed | report_received | skipped_with_reason
+pentest_recommendation:                       # ★ NEW §16.9.5 — validator 计算 + 主动 surfacing
+  recommended: true | false                   # true iff 命中 criteria（见 §16.9.5 trigger）
+  criteria_met: []                            # subset of [user_data_L2plus, payment, admin, multitenant, external_network, llm_agent]
+  recommended_types: []                       # subset of [web-app, api, authz-logic, ai-agent, cloud, network]
+  suggested_box: white | gray | black         # dev=white / pre-release=gray / mature=black
+  surfaced: false                             # Skill 渲染卡后翻 true; 让 Stop-hook 停止 nag
+  next_action: "Draft ROE via pentest-scope-and-roe, then manually run /authorized-pentest-validation"
 dependency_audit:
   tools: [npm-audit@<v>, pip-audit@<v>, trivy@<v>, cargo-audit@<v>]
   ran_at: <ISO8601>
@@ -701,6 +711,45 @@ downstream_consumers: [gsd-ship, gsd-verify-work, enterprise-qa-testing, ci]
 ```
 
 - Validator 完成后 orchestrator 返回 `appsec-sdk gate.check <tag>` 的退出码（见 §17）
+
+### §16.9.5 Pentest Recommendation Surfacing（主动提醒 — manual invocation 不变）
+
+> 起因（A2 审计）：渗透测试建议过去只是 §16.8 里一行 dispatch prose + release-decision YAML 里一个用户从不打开的 `pentest_status` 字段 → 跑完 AppSec 后建议蒸发，用户得自己记得。本步把它变成**跑完必出、用户看得见的卡**。**只提醒，绝不自动调用 `authorized-pentest-validation`**（仍：起草 ROE → session 内签字 → 手动 `/authorized-pentest-validation`，§18.3 硬门不变）。
+
+**1. validator 计算**（在 §16.9 写 decision 时一并算）：从 classifier 的 `overlays[]` + `asvs_level` + admin/payment/multitenant/api/llm 信号（已在 `.appsec/state.json`）算出 `pentest_recommendation{recommended, criteria_met[], recommended_types[], suggested_box}`，写进 `appsec_release_decision.yaml`（schema 见 §16.9），并落 `appsec-sdk pentest.recommend <tag>`。
+
+- **Trigger（`recommended=true`）**：命中以下任一 → 含 user data ASVS L2+ / payment / admin panel / multitenant / public API / LLM-agent surface。
+- **`suggested_box`**：dev / source-assisted → white；pre-release → gray；mature external → black（详 `pentest-scope-and-roe` 的 type-matrix + box-selection 表）。
+
+**2. Skill 主动渲染卡**（本 run 结束前，当 `recommended==true AND pentest_status ∈ {not_required, skipped_with_reason}`）—— 纯大白话，无 CVE / hash / schema 名（§0.5）：
+
+```
+────────────────────────────────────────────────────────────
+🛡  建议做渗透测试  (这是提醒, 不是自动动作)
+────────────────────────────────────────────────────────────
+<release-tag> 的 AppSec 放行结论是 <PASS|CONDITIONAL_PASS>,
+但这个项目命中了"光靠防御审查不够"的情形:
+    • <criteria_met 大白话, 如: 处理支付数据 / 有后台管理 / 多租户 / 暴露公开 API / 带 AI agent>
+
+建议范围 (你定):
+    • 测试类型:  <recommended_types, 如: Web App / API / 越权逻辑 / AI-Agent>
+    • 盒子模型:  <white | gray | black> — <一句话原因, 如: 上线前 → gray-box>
+    • 当前渗透状态: <not_required | skipped_with_reason="...">
+
+它不会自动开始。准备好时:
+    1. 起草 Rules of Engagement →  跑 pentest-scope-and-roe
+    2. 本 session 内签字 →          "I authorize this pentest validation per ROE"
+    3. 手动启动 →                   /authorized-pentest-validation
+
+不想做: 在 decision YAML 里设 pentest_status: skipped_with_reason="<原因>" (提醒即停)
+────────────────────────────────────────────────────────────
+```
+
+渲染后 Skill 把 decision YAML 的 `pentest_recommendation.surfaced` 置 true。
+
+**3. 安全网 Stop-hook**：`appsec-pentest-recommended.js`（advisory-only，用 `_appsec-common.js` 的 `emitAdvisory`，exit 0，**永不 block、永不调 validation**）。当 `recommended==true AND surfaced!=true AND pentest_status ∈ {not_required, skipped_with_reason}` → 往下一轮 context 注入上面的卡；`surfaced` 翻 true 后停止。详 §18.8。
+
+**铁律**：本机制只产出*建议*。绝不 invoke / auto-route / 预置 `authorized-pentest-validation`。§18.3 硬门完全不动。调用方式对用户**没有任何变化** —— 变的只是"系统会主动提醒你"。
 
 ### §16.10 Workflow Execution Mode（spec-driven dispatch via Claude Code Workflow tool）
 
@@ -889,6 +938,57 @@ appsec-sdk migrate-evidence [--from <path>] [--to <path>] [--dry-run]
     Relocate legacy evidence into the canonical .appsec/evidence/<tag>/ layout.
     --to defaults to the active_release_tag; --dry-run previews without moving.
 
+# ───── Enterprise security modules (v3.0 P1) ─────
+# Writers default to a documented skeleton when no <file> is given; pass `-` to read stdin.
+# All writers redact at write-time and stay under .appsec/.
+
+appsec-sdk asset.inventory <tag> [<file>|-]
+    Enterprise module #2. Write/overwrite the standing asset inventory →
+    .appsec/evidence/<tag>/asset-inventory/asset-inventory.yaml. Each asset gets a
+    stable id (ASSET-NNN) so findings / authz-matrix / data-classification can ref it.
+
+appsec-sdk data.classify <tag> [<file>|-]
+    Enterprise module #3. Write the standing data-classification map →
+    .appsec/evidence/<tag>/data-classification/. Tiers align with finding
+    affected.data_classes (public/internal/confidential/restricted) + pii flag + flows.
+
+appsec-sdk authz.matrix <tag> [<file>|-]
+    Enterprise module #7. Persist the role×resource×action matrix (IDOR/BOLA/BFLA
+    verdicts) → .appsec/evidence/<tag>/authz-matrix/. Makes authz coverage auditable
+    evidence, not just a code-review note (mirrors security-app-api / -multitenant).
+
+appsec-sdk attack.coverage <tag> [<file>|-]
+    Enterprise module #14 (DEFENSIVE coverage only — no adversary emulation here).
+    Write MITRE ATT&CK technique→control/detection coverage →
+    .appsec/evidence/<tag>/attack-coverage/. Populated by security-response-red-purple-team.
+
+appsec-sdk pentest.recommend <tag> [<file>|-]
+    Feeds §16.9.5 proactive surfacing. Write the pentest recommendation →
+    .appsec/evidence/<tag>/pentest-recommend/. RECOMMENDATION ONLY — never auto-fires
+    the manual pentest gate. Validator computes the real recommendation; this is the
+    SDK fallback skeleton (recommended/criteria_met/recommended_types/suggested_box/surfaced).
+
+appsec-sdk control.coverage <tag>
+    Enterprise module #5. Emit an ASVS 5.0 V1-V17 coverage matrix (YAML) computed from
+    the chapter references across .appsec/findings/<tag>/*.yaml + code-review evidence
+    presence. Honest/evidence-based — NOT a formal conformance claim (mirrors csf.coverage).
+
+appsec-sdk audit.package <tag> [--output <path>]
+    Enterprise module #16. Bundle evidence/ + findings/ + decisions/ for <tag> into
+    .appsec/audit-package/<tag>-<stamp>/ (or --output) with a MANIFEST.yaml (file counts +
+    redaction_attested pointer) for external auditor delivery.
+```
+
+> **Enterprise fact-source templates / schemas** (document the shapes the writers above
+> produce + the standing security policy): `templates/{security-policy.template.yaml,
+> asset-inventory.schema.yaml, data-classification.schema.yaml, authz-matrix.schema.yaml,
+> control-matrix.template.yaml, threat-model.schema.json, attack-coverage-template.yaml,
+> overlay-checklist.template.yaml, pentest-report.template.md}`. The threat-modeling skill
+> also emits machine-readable `threat-model.json` / `components.json` / `dfd.json` /
+> `attack-surface.json` under the `threat-model` evidence layer (additive to the markdown).
+> These feed `security-viz` (diagram rendering) + `control.coverage` + the audit package.
+```
+
 appsec-sdk finding.add [<file>]
     Read finding YAML from file or stdin. Validate schema v1.0:
       - required fields present
@@ -966,7 +1066,7 @@ esac
 
 ---
 
-## 18. Hook Contract — 6 Project-Level Hooks
+## 18. Hook Contract — Project-Level Hooks（枚举以 `manifests/hook-registry.json` 为单一真相源；文档不写死数量，防 drift）
 
 > **注册位置（v3.0 P0.1）**：`<project-root>/.claude/settings.json`。
 > 不写 `~/.claude/hooks/hooks.json`。项目级 settings 是 single project, shareable, repo-committable 的正确入口。
@@ -1058,13 +1158,26 @@ esac
     ],
     "Stop": [
       { "command": "node ~/.claude/hooks/appsec-secret-redaction.js" },
-      { "command": "node ~/.claude/hooks/appsec-evidence-required.js" }
+      { "command": "node ~/.claude/hooks/appsec-evidence-required.js" },
+      { "command": "node ~/.claude/hooks/appsec-pentest-recommended.js" }
     ]
   }
 }
 ```
 
-> 所有 hook 都不设 `async` 字段（即同步阻断）。
+> 所有阻断式 hook 都不设 `async` 字段（即同步阻断）。`appsec-pentest-recommended.js` 是
+> **advisory-only**（emitAdvisory / exit 0，永不 block），见 §18.8。
+> **注**：`appsec-preview-gate.js` 与 `governed-gate-workflow-guard.js`（均 PreToolUse `Workflow`）
+> 也是 AppSec 项目 hook，由 `appsec-sdk init` 经 `install-subsystem-hooks.js` 读
+> `manifests/hook-registry.json`（单一真相源）注册——本片段是说明性子集，完整清单以 hook-registry 为准。
+
+### §18.8 `appsec-pentest-recommended.js`（Stop, **advisory-only — 永不 block**）
+
+- SKILL.md §16.9.5 的安全网。**用途**：AppSec release decision 出来后，若项目命中 pentest criteria 但建议还没被 surface，往下一轮 context 注入用户可见的"建议做渗透测试"卡。
+- **阻断方式**：无。用 `_appsec-common.js` 的 `emitAdvisory('Stop', lines)`（注 `additionalContext`）+ `exit 0`。**永不** `decision:block`、**永不** `exit 2`。
+- **触发**：`active_release_tag` 存在 AND decision ∈ {PASS, CONDITIONAL_PASS} AND `pentest_recommendation.recommended==true` AND `surfaced!=true` AND `pentest_status ∈ {not_required, skipped_with_reason}`。任一不满足 → exit 0 静默。
+- **停止 nag**：Skill 渲染卡后把 decision YAML 的 `pentest_recommendation.surfaced` 置 true；或用户设 `pentest_status: skipped_with_reason="..."`。
+- **安全铁律**：只产出建议。**绝不** invoke / route-to / pre-stage `authorized-pentest-validation`。§18.3 manual 硬门完全不动。
 
 ---
 
@@ -1109,6 +1222,11 @@ esac
 ### §20.7 Pentest 13-item Hard Gate
 
 - ROE 缺 13 字段任一 → `authorized-pentest-validation` 调用 block；validator 拒绝接受相关 evidence
+
+### §20.8 Pentest Recommendation Surfaced（主动提醒不可被静默吞掉）
+
+- 当 `pentest_recommendation.recommended == true` 且 `pentest_status ∈ {not_required, skipped_with_reason}` 时，本 run **不算 done**，除非：(a) Skill 已渲染 §16.9.5 的用户可见卡且把 `surfaced` 置 true，或 (b) 用户已显式 `pentest_status: skipped_with_reason="..."`。
+- `appsec-pentest-recommended.js` 是 advisory-only：拆掉它 → 提醒不再注入（证明它在场才提醒），装回 → 再跑必提醒；但它**永不** block release、**永不**调 `authorized-pentest-validation`（manual 不变）。
 
 ---
 

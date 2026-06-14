@@ -101,5 +101,20 @@
       "ensure_csf_coverage",
       "prune_below_floor"
     ]
+  },
+  "_estimate": {
+    "token_estimate_low": 100000,
+    "token_estimate_high": 250000,
+    "hard_budget_cap": 300000,
+    "wallclock_estimate_minutes": 4,
+    "evidence_layers": [
+      ".appsec/evidence/<tag>/threat-model/",
+      ".appsec/evidence/<tag>/sca/",
+      ".appsec/evidence/<tag>/secret-scan/",
+      ".appsec/evidence/<tag>/sast/",
+      ".appsec/evidence/<tag>/code-review/",
+      ".appsec/evidence/<tag>/headers-cookies/",
+      ".appsec/decisions/<tag>/appsec_release_decision.yaml"
+    ]
   }
 }

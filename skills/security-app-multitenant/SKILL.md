@@ -232,11 +232,34 @@ ALTER TABLE orders FORCE ROW LEVEL SECURITY;
 2. 12-layer checklist coverage matrix（每层 evidence）
 3. RLS policies inventory + force RLS 状态
 4. Common attack pattern verification（每种 attack 已验证 mitigation）
-5. Findings → security-remediation
-   - ASVS refs in emitted findings must use the versioned `v5.0.0-<chapter>.<section>.<req>` form (the chapter labels in this skill are for scoping only).
-6. SECURITY.md multi-tenant section + AppSec Release Evidence §12 叠加层
-7. Tenant lifecycle policy（onboarding / data export / deletion / archive）
-8. Support / admin tooling audit policy
+5. Tenant lifecycle policy（onboarding / data export / deletion / archive）
+6. Support / admin tooling audit policy
+7. SECURITY.md multi-tenant section + AppSec Release Evidence §12 叠加层
+8. **Findings** —— 全部经 `appsec-sdk finding.add <file>`（canonical path，redact-first）落 `.appsec/findings/<tag>/`，符合 orchestrator §9 finding schema v1.0：
+   - `source`（`manual_review` 或扫描命中）；`severity` **小写**；`cwe`（跨租户多为 `CWE-639` / `CWE-285`）；`api_top10`（如 `[API1]` BOLA / `[API5]` BFLA）；`reproduction_steps`（**禁含 raw tenant id / 真实 customer 标识 / token**——脱敏）
+   - `asvs_mapping` 用版本化三段 `v5.0.0-<ch>.<sec>.<req>`（正则 `^v5\.0\.0-\d+\.\d+\.\d+$`；Authorization 用 ASVS V8），不用 4.x 旧标签
+   - **绝不** Write 直写 `.appsec/findings/**`（orchestrator hook §18.5a 拦 Write/Edit/MultiEdit）；只走 sdk
+   - high+ finding → `security-remediation`（fix → 回归测试）；IAM 模型缺口 → 回灌 orchestrator §5.3 iam capability
+
+### 9.1 Overlay Evidence Contract（满足 release gate — 不可省）
+
+> 起因：appsec-evidence-validator（orchestrator §16.9 check #3）对**每个激活的 overlay** HARD-REQUIRE `.appsec/evidence/<tag>/overlay-<name>/checklist.yaml`，缺一即 release **BLOCKED**。本 overlay 的 `<name>` = `multitenant`。
+
+每次 review 结束，**两步落盘**（按序）：
+
+1. **标记 overlay active**：
+   ```bash
+   appsec-sdk overlay.activate "<release-tag>" multitenant
+   # → 建 .appsec/evidence/<tag>/overlay-multitenant/ + 写 .activated 标记
+   ```
+2. **写 overlay checklist evidence**（validator 真正校验的文件）：
+   - 写 `.appsec/evidence/<release-tag>/overlay-multitenant/checklist.yaml`
+   - 直接 Write 即可（evidence 路径不被 hook 拦；只有 `.appsec/findings/**` + `.appsec/decisions/**` 被 §18.5a 拦）
+   - 内容：把 §4 的 12-layer checklist（L1-L12，含 §4.13-§4.18 补充层如适用）逐项转成 `items[]`（每项 `id` / `requirement` / `asvs_ref`（`v5.0.0-8.x.x`）/ `status: pass|fail|na|not_tested` / `evidence_ref` / `notes`）+ `summary{total, pass, fail, na}`
+   - 任何 `status: fail` 在 `evidence_ref`/`notes` 引用对应 `finding.add` 出的 finding id（finding 本体走 sdk，不塞 checklist）
+   - 模板：[`appsec-security-orchestrator/templates/overlay-checklist.template.yaml`](../appsec-security-orchestrator/templates/overlay-checklist.template.yaml)（含 multitenant 示例 items：tenant isolation / cross-tenant IDOR / row-level security / cache+job tenant-scoping / admin cross-tenant audit）
+
+无此 checklist.yaml → §16.9 validator BLOCK 整个 release。
 
 ---
 
@@ -246,5 +269,7 @@ ALTER TABLE orders FORCE ROW LEVEL SECURITY;
 - [OWASP API Top 10 2023 API1 BOLA + API5 BFLA](https://owasp.org/www-project-api-security/)
 - [PostgreSQL Row-Level Security](https://www.postgresql.org/docs/current/ddl-rowsecurity.html)
 - [AWS Multi-Tenant SaaS Patterns](https://aws.amazon.com/blogs/apn/category/saas-and-apn/)
-- [appsec-security-orchestrator](../appsec-security-orchestrator/SKILL.md)
+- [appsec-security-orchestrator](../appsec-security-orchestrator/SKILL.md) — §9 finding schema / §16.3 overlay activation / §16.9 evidence validation / §18.5a finding-path hook
+- [overlay-checklist.template.yaml](../appsec-security-orchestrator/templates/overlay-checklist.template.yaml) — overlay-multitenant/checklist.yaml 模板
+- [security-app-api](../security-app-api/SKILL.md) — API1 BOLA / API5 BFLA tenant 维度
 - [security-governance-threat-modeling](../security-governance-threat-modeling/SKILL.md) — must include multi-tenant boundary in STRIDE

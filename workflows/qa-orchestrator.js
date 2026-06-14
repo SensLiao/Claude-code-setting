@@ -1,5 +1,5 @@
 /* @governance
- *   reviewed_by:             SensLiao (harness author)
+ *   reviewed_by:             廖神 (harness author)
  *   reviewed_at:             2026-06-10
  *   allowed_scope:           governed-gate
  *   release_gate_allowed:    true    # deterministic QA spec-runner; walks a spec_hash-approved spec only

@@ -139,6 +139,13 @@ Commands:
   roe.verify <roe-file>
   csf.coverage <tag>
   overlay.activate <tag> <overlay-name>
+  asset.inventory <tag> [<file>]      # enterprise module #2 — standing asset map
+  data.classify <tag> [<file>]        # enterprise module #3 — data classification map
+  authz.matrix <tag> [<file>]         # enterprise module #7 — role x resource x action (IDOR/BOLA)
+  attack.coverage <tag> [<file>]      # enterprise module #14 — MITRE ATT&CK coverage (defensive)
+  pentest.recommend <tag> [<file>]    # feeds §16.9.5 surfacing; RECOMMENDATION ONLY (never auto-fires gate)
+  control.coverage <tag>              # enterprise module #5 — ASVS 5.0 V1-V17 coverage matrix
+  audit.package <tag> [--output <path>] # enterprise module #16 — auditor deliverable bundle
   migrate-evidence [--from <path>] [--to <path>] [--dry-run]
                                       (D2 legacy adapter; default --from .planning/security/
                                        --to .appsec/evidence/<active-tag>/)
@@ -954,6 +961,293 @@ cmd_overlay_activate() {
   echo "$dir/.activated"
 }
 
+# ───── Enterprise security modules (v3.0 P1 — fact-source writers + generators) ─────
+# Extend the evidence sink with the enterprise body-of-knowledge fact-sources
+# (asset inventory / data classification / authz matrix / ATT&CK coverage /
+# pentest recommendation) + two generators (control.coverage, audit.package).
+# Every writer redacts before persisting and stays under .appsec/.
+
+# _write_layer_artifact <tag> <layer> <content> [<basename>]
+# Shared writer: redact + stamp + write into .appsec/evidence/<tag>/<layer>/.
+# Mirrors cmd_evidence_append's core but with a caller-chosen layer + optional
+# stable basename (standing artifacts overwrite; omit basename → timestamped).
+_write_layer_artifact() {
+  local tag="$1" layer="$2" content="$3" base="${4:-}"
+  validate_safe_name "release-tag" "$tag"
+  validate_safe_name "layer" "$layer"
+  local dir="$PROJECT_ROOT/.appsec/evidence/$tag/$layer"
+  mkdir -p "$dir"
+  ensure_under_root "$dir" "$PROJECT_ROOT/.appsec/evidence/$tag"
+  local fname
+  if [[ -n "$base" ]]; then
+    validate_safe_name "filename" "$base"
+    fname="$base"
+  else
+    local stamp; stamp=$(date -u +"%Y%m%d-%H%M%S")
+    local rand; rand=$(printf "%04x" $((RANDOM % 65536)))
+    fname="${stamp}-${rand}.yaml"
+  fi
+  local out="$dir/$fname"
+  ensure_under_root "$out" "$dir"
+  local redacted; redacted=$(printf '%s' "$content" | redact_stdin)
+  {
+    echo "# written-by: appsec-sdk@3.0.0"
+    echo "# layer: $layer"
+    echo "# release_tag: $tag"
+    echo "# appended_at: $(iso_now)"
+    printf '%s\n' "$redacted"
+  } > "$out"
+  echo "$out"
+}
+
+# _content_or_skeleton <file> <skeleton> — content from <file>, from stdin if <file> is
+# the literal "-", else the skeleton. NEVER reads stdin implicitly (an agent calling the
+# command non-interactively with no file must get the skeleton, not a hang on an empty pipe).
+_content_or_skeleton() {
+  local file="$1" skeleton="$2"
+  if [[ "$file" == "-" ]]; then
+    cat                                   # explicit stdin opt-in
+  elif [[ -n "$file" ]]; then
+    if [[ ! -f "$file" ]]; then echo "appsec-sdk: file not found: $file" >&2; exit 1; fi
+    cat "$file"
+  else
+    printf '%s' "$skeleton"               # default: write the documented skeleton
+  fi
+}
+
+# asset.inventory <tag> [<file>] — enterprise module #2 (standing asset map)
+cmd_asset_inventory() {
+  need_arg "release-tag" "${1:-}"; ensure_project_root
+  local tag="$1" file="${2:-}"
+  local skeleton; skeleton=$(cat <<'YAML'
+schema_version: "1.0"
+artifact: asset-inventory
+# Enterprise module #2. Enumerate every asset that carries or exposes risk; give
+# each a STABLE id so findings / authz-matrix / data-classification can reference it.
+assets:
+  - id: ASSET-001
+    type: service          # service | api | datastore | frontend | agent-tool | third-party | cloud-resource
+    name: ""
+    exposure: internal     # public | internal | private
+    auth_required: true
+    data_classes: []       # subset of [public, internal, confidential, restricted]
+    owner: ""
+    notes: ""
+YAML
+)
+  local content; content=$(_content_or_skeleton "$file" "$skeleton")
+  _write_layer_artifact "$tag" "asset-inventory" "$content" "asset-inventory.yaml"
+}
+
+# data.classify <tag> [<file>] — enterprise module #3 (standing data-classification map)
+cmd_data_classify() {
+  need_arg "release-tag" "${1:-}"; ensure_project_root
+  local tag="$1" file="${2:-}"
+  local skeleton; skeleton=$(cat <<'YAML'
+schema_version: "1.0"
+artifact: data-classification
+# Enterprise module #3. Classify each data entity by sensitivity + where it flows
+# + how it is protected. Tiers align with finding schema affected.data_classes.
+data_entities:
+  - id: DATA-001
+    name: ""
+    classification: internal   # public | internal | confidential | restricted
+    pii: false
+    stores: []                 # asset ids from asset-inventory
+    flows_to: []               # asset ids
+    protection: []             # e.g. [at-rest-encryption, tls, field-masking, tokenization]
+    retention: ""
+YAML
+)
+  local content; content=$(_content_or_skeleton "$file" "$skeleton")
+  _write_layer_artifact "$tag" "data-classification" "$content" "data-classification.yaml"
+}
+
+# authz.matrix <tag> [<file>] — enterprise module #7 (role x resource x action, IDOR/BOLA)
+cmd_authz_matrix() {
+  need_arg "release-tag" "${1:-}"; ensure_project_root
+  local tag="$1" file="${2:-}"
+  local skeleton; skeleton=$(cat <<'YAML'
+schema_version: "1.0"
+artifact: authz-matrix
+# Enterprise module #7. Persist the role x resource x action matrix that
+# security-app-api / security-app-multitenant review in prose, so IDOR/BOLA/BFLA
+# coverage is auditable evidence, not just a code-review note.
+roles: []                      # e.g. [anonymous, user, admin, tenant_owner]
+resources: []                  # e.g. [order, invoice, admin_panel]
+matrix:
+  - role: ""
+    resource: ""
+    actions_allowed: []        # subset of [create, read, update, delete, list]
+    object_level_check: false  # BOLA/IDOR: is ownership enforced server-side?
+    function_level_check: false# BFLA: is the role enforced server-side?
+    verdict: not_tested        # pass | fail | not_tested
+    evidence_ref: ""
+YAML
+)
+  local content; content=$(_content_or_skeleton "$file" "$skeleton")
+  _write_layer_artifact "$tag" "authz-matrix" "$content" "authz-matrix.yaml"
+}
+
+# attack.coverage <tag> [<file>] — enterprise module #14 (MITRE ATT&CK technique coverage)
+cmd_attack_coverage() {
+  need_arg "release-tag" "${1:-}"; ensure_project_root
+  local tag="$1" file="${2:-}"
+  local skeleton; skeleton=$(cat <<'YAML'
+schema_version: "1.0"
+artifact: attack-coverage
+# Enterprise module #14 (Red/Purple-Team planning, DEFENSIVE coverage only — no
+# adversary emulation runs here; active validation stays behind the pentest gate).
+# Map relevant MITRE ATT&CK techniques to detection/control status. Populated by
+# security-response-red-purple-team. ATT&CK Navigator layer can be exported from this.
+attack_coverage:
+  framework: "MITRE ATT&CK Enterprise"
+  techniques:
+    - id: ""                   # e.g. T1190 (Exploit Public-Facing Application)
+      tactic: ""               # e.g. Initial Access
+      relevant: true
+      control_status: none     # none | partial | covered
+      detection_status: none   # none | partial | covered
+      evidence_ref: ""
+YAML
+)
+  local content; content=$(_content_or_skeleton "$file" "$skeleton")
+  _write_layer_artifact "$tag" "attack-coverage" "$content" "attack-coverage.yaml"
+}
+
+# pentest.recommend <tag> [<file>] — feeds §16.9.5 proactive surfacing. RECOMMENDATION ONLY.
+# Never auto-fires authorized-pentest-validation (manual: ROE -> sign-off -> /authorized-pentest-validation).
+cmd_pentest_recommend() {
+  need_arg "release-tag" "${1:-}"; ensure_project_root
+  local tag="$1" file="${2:-}"
+  local cfg="$PROJECT_ROOT/.appsec/config.json" asvs="unknown"
+  if [[ -f "$cfg" ]]; then
+    asvs=$(grep -oE '"asvs_level"[[:space:]]*:[[:space:]]*"[^"]*"' "$cfg" | head -n1 \
+           | sed -E 's/.*"asvs_level"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/')
+    [[ -z "$asvs" ]] && asvs="unknown"
+  fi
+  local skeleton; skeleton=$(cat <<YAML
+schema_version: "1.0"
+artifact: pentest-recommendation
+release_tag: "$tag"
+generated_at: "$(iso_now)"
+# Computed honestly by appsec-evidence-validator (§16.9.5); this is the SDK fallback skeleton.
+# recommended==true iff the project meets criteria (user-data L2+ / payment / admin /
+# multitenant / public-api / llm-agent). RECOMMENDATION ONLY — never auto-fires the
+# manual pentest gate. surfaced flips true once the user-facing card has been shown.
+recommended: false
+criteria_met: []           # subset of [user_data_L2plus, payment, admin, multitenant, external_network, llm_agent]
+recommended_types: []      # subset of [web-app, api, authz-logic, ai-agent, cloud, network]
+suggested_box: gray        # white (dev/source-assisted) | gray (pre-release) | black (mature external)
+current_pentest_status: not_required
+surfaced: false
+detected_asvs_level: "$asvs"
+next_action: "Draft ROE via pentest-scope-and-roe, then manually run /authorized-pentest-validation"
+YAML
+)
+  local content; content=$(_content_or_skeleton "$file" "$skeleton")
+  _write_layer_artifact "$tag" "pentest-recommend" "$content" "pentest-recommendation.yaml"
+}
+
+# control.coverage <tag> — enterprise module #5 (ASVS 5.0 V1-V17 coverage matrix).
+# Honest, evidence-presence based: aggregates ASVS chapter references across findings +
+# code-review evidence presence. NOT a formal conformance claim (mirrors csf.coverage).
+cmd_control_coverage() {
+  need_arg "release-tag" "${1:-}"; validate_safe_name "release-tag" "$1"; ensure_project_root
+  local tag="$1"
+  local fnd_dir="$PROJECT_ROOT/.appsec/findings/$tag"
+  local ev_dir="$PROJECT_ROOT/.appsec/evidence/$tag"
+  declare -A chap_count
+  local f content e chap
+  if [[ -d "$fnd_dir" ]]; then
+    while IFS= read -r f; do
+      [[ -z "$f" ]] && continue
+      content=$(cat "$f" 2>/dev/null)
+      while IFS= read -r e; do
+        [[ -z "$e" ]] && continue
+        chap=$(printf '%s' "$e" | sed -E 's/^v5\.0\.0-([0-9]+)\..*/\1/')
+        [[ "$chap" =~ ^[0-9]+$ ]] && chap_count[$chap]=$(( ${chap_count[$chap]:-0} + 1 ))
+      done < <(printf '%s' "$content" | grep -oE 'v5\.0\.0-[0-9]+\.[0-9]+\.[0-9]+')
+    done < <(find "$fnd_dir" -type f -name '*.yaml' 2>/dev/null)
+  fi
+  local code_review_present=0
+  if [[ -d "$ev_dir/code-review" ]] && [[ -n "$(ls -A "$ev_dir/code-review" 2>/dev/null)" ]]; then code_review_present=1; fi
+  # ASVS 5.0 chapter short names (index 1..17)
+  local names=( "" "Encoding & Sanitization" "Validation & Business Logic" "Web Frontend Security" \
+    "API & Web Service" "File Handling" "Authentication" "Session Management" "Authorization" \
+    "Self-contained Tokens" "OAuth & OIDC" "Cryptography" "Secure Communication" "Configuration" \
+    "Data Protection" "Secure Coding & Architecture" "Security Logging & Error Handling" "WebRTC" )
+  echo "# appsec-sdk control.coverage"
+  echo "# release_tag: $tag"
+  echo "# generated_at: $(iso_now)"
+  echo "# basis: ASVS 5.0 chapter references across findings + code-review evidence presence."
+  echo "# NOT a formal ASVS conformance claim — an internal coverage/attention map."
+  echo "control_coverage:"
+  echo "  standard: \"OWASP ASVS 5.0 (V1-V17)\""
+  echo "  chapters:"
+  local i status cnt
+  for i in $(seq 1 17); do
+    cnt=${chap_count[$i]:-0}
+    if (( cnt > 0 )); then status="ASSESSED"
+    elif (( code_review_present == 1 )); then status="REVIEW_NO_FINDING"
+    else status="NOT_ASSESSED"; fi
+    echo "    V$i:"
+    echo "      name: \"${names[$i]}\""
+    echo "      findings_referencing: $cnt"
+    echo "      status: $status"
+  done
+}
+
+# audit.package <tag> [--output <path>] — enterprise module #16 (auditor deliverable bundle)
+cmd_audit_package() {
+  need_arg "release-tag" "${1:-}"; validate_safe_name "release-tag" "$1"; ensure_project_root
+  local tag="$1"; shift
+  local out_path=""
+  while (( "$#" )); do
+    case "$1" in
+      --output)   if [[ -z "${2:-}" ]]; then echo "appsec-sdk audit.package: --output requires <path>" >&2; exit 2; fi
+                  out_path="$2"; shift 2;;
+      --output=*) out_path="${1#--output=}"; shift;;
+      *) echo "appsec-sdk audit.package: unknown arg $1" >&2; exit 2;;
+    esac
+  done
+  local base="$PROJECT_ROOT/.appsec"
+  local stamp; stamp=$(date -u +"%Y%m%d-%H%M%S")
+  local pkg_dir="$base/audit-package/${tag}-${stamp}"
+  if [[ -n "$out_path" ]]; then
+    pkg_dir="$PROJECT_ROOT/$out_path"; [[ "$out_path" = /* ]] && pkg_dir="$out_path"
+  else
+    ensure_under_root "$pkg_dir" "$base"
+  fi
+  mkdir -p "$pkg_dir"
+  local n_ev=0 n_fnd=0 n_dec=0
+  if [[ -d "$base/evidence/$tag" ]]; then cp -r "$base/evidence/$tag" "$pkg_dir/evidence" 2>/dev/null; n_ev=$(find "$base/evidence/$tag" -type f 2>/dev/null | wc -l | tr -d ' '); fi
+  if [[ -d "$base/findings/$tag" ]]; then cp -r "$base/findings/$tag" "$pkg_dir/findings" 2>/dev/null; n_fnd=$(find "$base/findings/$tag" -type f 2>/dev/null | wc -l | tr -d ' '); fi
+  if [[ -d "$base/decisions/$tag" ]]; then cp -r "$base/decisions/$tag" "$pkg_dir/decisions" 2>/dev/null; n_dec=$(find "$base/decisions/$tag" -type f 2>/dev/null | wc -l | tr -d ' '); fi
+  local redaction_attested="unknown"
+  local dec_file="$base/decisions/$tag/appsec_release_decision.yaml"
+  if [[ -f "$dec_file" ]]; then
+    redaction_attested=$(grep -v '^[[:space:]]*#' "$dec_file" \
+      | awk '/^[[:space:]]{0,4}redaction[[:space:]]*:/{b=1;next} b&&/^[^[:space:]]/{b=0} b' \
+      | grep -E '^[[:space:]]+attested[[:space:]]*:' | head -n1 | sed -E 's/.*:[[:space:]]*(true|false).*/\1/')
+    [[ -z "$redaction_attested" ]] && redaction_attested="unknown"
+  fi
+  {
+    echo "# appsec-sdk audit.package — auditor deliverable manifest"
+    echo "schema_version: \"1.0\""
+    echo "release_tag: \"$tag\""
+    echo "generated_at: \"$(iso_now)\""
+    echo "generated_by: \"appsec-sdk@3.0.0\""
+    echo "redaction_attested: $redaction_attested"
+    echo "contents:"
+    echo "  evidence_files: $n_ev"
+    echo "  finding_files: $n_fnd"
+    echo "  decision_files: $n_dec"
+    echo "note: \"All artifacts were redacted at write-time by appsec-sdk. Verify redaction_attested==true before external delivery.\""
+  } > "$pkg_dir/MANIFEST.yaml"
+  echo "$pkg_dir"
+}
+
 # ───── D2 SDK adapter: migrate-evidence ─────
 # Relocates content from the deprecated alias .planning/security/ to the canonical
 # .appsec/evidence/<active-tag>/ layout. Preserves sub-structure under each layer.
@@ -1089,6 +1383,13 @@ main() {
     roe.verify)                   cmd_roe_verify "$@";;
     csf.coverage)                 cmd_csf_coverage "$@";;
     overlay.activate)             cmd_overlay_activate "$@";;
+    asset.inventory)              cmd_asset_inventory "$@";;
+    data.classify)                cmd_data_classify "$@";;
+    authz.matrix)                 cmd_authz_matrix "$@";;
+    attack.coverage)              cmd_attack_coverage "$@";;
+    pentest.recommend)            cmd_pentest_recommend "$@";;
+    control.coverage)             cmd_control_coverage "$@";;
+    audit.package)                cmd_audit_package "$@";;
     migrate-evidence)             cmd_migrate_evidence "$@";;
     -h|--help|help)               usage; exit 0;;
     *) echo "appsec-sdk: unknown command $cmd" >&2; usage; exit 2;;

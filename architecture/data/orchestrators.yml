@@ -1,0 +1,117 @@
+schema_version: "1.0"
+orchestrators:
+  bootstrap:
+    display_name: Environment Bootstrap Orchestrator
+    version: null
+    mainline: project-setup
+    trigger: [bootstrap, init, setup, missing .claude]
+    mode: manual-only            # disable-model-invocation: true, never auto-runs
+    execution: skill-direct
+    steps: [preflight, scan, ask, compose, propose, execute, verify]   # 6-step (verify split into execute+verify)
+    gates: [preflight, proposal, verify]
+    scale:
+      raw_signals: 25
+      derived_signals: 8
+      selector_engine: true       # catalog.json selectors, not preset bundles
+    subsystem_init: [appsec-sdk init, qa-sdk init, uiux-sdk init, discoverability-sdk init]
+    outputs: [.claude/manifest.json, CLAUDE.md, project hooks]
+
+  gsd_pm:
+    display_name: Delivery PM Orchestrator
+    version: null
+    mainline: pm-delivery
+    trigger: [non-trivial default, ambiguous delivery, complex implementation]
+    mode: tiered-adaptive
+    execution: skill-direct       # not workflow-spec: multi-cycle checkpoint + human BLOCK/FLAG
+    classification_flags:
+      - AMBIGUOUS_REQUIREMENTS
+      - FRONTEND_OR_UI
+      - AI_INTEGRATION
+      - CRITICAL_ARCHITECTURE_OR_NEW_FRAMEWORK
+      - SECURITY_SENSITIVE
+      - CORE_LOGIC_TDD_RECOMMENDED
+      - ORDINARY_CRUD
+      - MILESTONE_BOUNDARY
+    tiers:
+      - Tier 1 baseline (spec -> discuss -> plan -> plan-review-convergence -> execute -> code-review -> verify -> pr -> ship -> learnings)
+      - Tier 2 pre-plan inserts (ui-phase / ai-integration-phase)
+      - Tier 3 pre-verify gates (eval-review / secure-phase / add-tests / validate-phase)
+      - Tier 4 milestone boundary (audit -> complete -> cleanup -> summary -> new-milestone)
+    orchestration_modes: [single-review, parallel-fanout, plan-review-convergence, santa-loop, GAN, codex-delegation, multi-cycle-debug]
+    scale:
+      skills: 68
+      agents: 33
+    handoff:
+      uiux: frontend or product experience work
+      qa: ship gate or release readiness
+      appsec: security sensitive work
+
+  uiux:
+    display_name: Product Experience Orchestrator
+    version: "2.3"
+    mainline: uiux
+    trigger: [UI, UX, design, visual audit, screenshot reconstruction, style lock]
+    mode: 6-phase-quality-engine
+    execution: skill-direct       # L3 style mutex + interactive picking, not single-pass DAG
+    phases: [ground, explore, pick, build, unify, review]
+    gates: [grounding, style-lock, deterministic-unify, review-loop]
+    l3_mutex_styles: [taste-skill, luxury, brutalist-skill]   # exactly one lockable at a time
+    lenses: [editorial, soft-organic, swiss, brutalist, terminal, dark-editorial]
+    bridge_agent: uiux-gsd-contract-validator   # opus
+    downstream_gate: discoverability-orchestrator   # L12: web-seo / web-aeo / web-local-seo / app-aso
+    outputs:
+      - design/grounding.md
+      - design/directions/*.md
+      - .uiux/lock/style-lock.yaml
+      - .uiux/lock/chassis.yaml
+      - uiux_release_decision.yaml
+
+  qa:
+    display_name: Enterprise QA Orchestrator
+    version: "3.2"
+    mainline: qa
+    trigger: [testing, QA, E2E, release readiness, CI gate]
+    mode: [prompt-only 9-step, workflow-spec 14-step]   # dual-mode
+    presets: [quick-check, focused-gate, release-readiness, commercial-cert]
+    risk_model: Impact x Likelihood + Exposure modifier (cap +10) + floor rules
+    test_layers: 9       # + 4 cross-cutting (smoke / test-data / flaky / evidence-bundle)
+    agents:
+      orchestration: [qa-risk-classifier, qa-evidence-validator, qa-flaky-triager]
+      runners: [static-baseline, component, contract, visual, a11y, perf]
+      reused: [tdd-guide, e2e-runner, code-reviewer]
+    schemas: 13
+    standards: [WCAG 2.2, Core Web Vitals, ISO/IEC 25010:2023]
+    outputs: [qa_evidence_bundle.yaml, release_decision]
+    handoff:
+      appsec: auth, secret, payment, API abuse, cross-tenant, security-sensitive findings
+
+  appsec:
+    display_name: Application Security Orchestrator
+    version: "3.0"
+    mainline: appsec
+    trigger: [security, threat, secret, auth, API security, IaC, LLM security, payment, multitenant, file-upload]
+    mode: [prompt-only §16, workflow-spec 14-step]   # dual-mode
+    capability_layers: [governance, app, platform, operations, response, compliance]
+    csf_mapping: {governance: GV, app: ID+PR, platform: PR, operations: DE, response: RS+RC, compliance: GV}
+    scale:
+      sub_skills: 18
+      agents: 5
+      hooks: 10
+      sdk_commands: 22
+    mapped_frameworks:
+      - OWASP ASVS 5.0
+      - OWASP Top 10:2025
+      - OWASP API Top 10:2023
+      - OWASP LLM Top 10 (+ Agentic)
+      - OWASP WSTG
+      - OWASP MASVS 2.x
+      - NIST CSF 2.0
+      - NIST SSDF 800-218
+      - CIS Controls v8.1
+      - MITRE ATT&CK
+      - PCI DSS 4.0.1
+      - PIPL
+      - GDPR/CCPA/CPRA
+    gates: [classifier, finding-schema, evidence-validator, gate.check, ROE-for-active-pentest]
+    pentest_path: pentest-scope-and-roe -> authorized-pentest-validation   # manual, 5 locks
+    outputs: [findings/*.yaml, appsec_release_decision.yaml]

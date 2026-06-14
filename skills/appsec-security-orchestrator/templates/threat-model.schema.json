@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://senslliao.claude/appsec/threat-model.schema.json",
+  "title": "AppSec Threat Model (machine-readable)",
+  "description": "Enterprise module #4. Formal specification of threat-model.json emitted by the security-governance-threat-modeling skill alongside the human-readable threat-model-STRIDE.md. Persisted via `appsec-sdk evidence.append <tag> threat-model`. Feeds downstream automation (security-viz, control.coverage cross-check, remediation routing). The markdown stays the human-rendered view; this JSON is the additive machine view.",
+  "type": "object",
+  "required": ["schema_version", "threats", "generated_at"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0",
+      "description": "Fixed at 1.0 for this contract version."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp of generation."
+    },
+    "system": {
+      "type": "string",
+      "description": "Optional: name of the system / feature / architecture change modeled."
+    },
+    "threats": {
+      "type": "array",
+      "description": "The STRIDE threat register, one entry per identified threat. Mirrors threat-model-STRIDE.md §3.",
+      "items": { "$ref": "#/definitions/threat" }
+    }
+  },
+  "definitions": {
+    "threat": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "stride_category",
+        "component",
+        "mitigation",
+        "disposition",
+        "status",
+        "risk"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable unique id. Convention: T-NNN (matches markdown register row ids).",
+          "pattern": "^T-[0-9]+$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Short threat title / scenario summary."
+        },
+        "stride_category": {
+          "type": "string",
+          "description": "STRIDE category. S=Spoofing, T=Tampering, R=Repudiation, I=Information Disclosure, D=Denial of Service, E=Elevation of Privilege.",
+          "enum": ["S", "T", "R", "I", "D", "E"]
+        },
+        "component": {
+          "type": "string",
+          "description": "Affected component / flow / trust boundary. SHOULD reference a components.json id or asset-inventory ASSET-id where possible."
+        },
+        "attacker": {
+          "type": "string",
+          "description": "Attacker profile (e.g. external, authenticated user, privileged insider, compromised dependency). Optional but recommended."
+        },
+        "mitigation": {
+          "type": "string",
+          "description": "Existing control + planned mitigation. What stops / will stop this threat."
+        },
+        "disposition": {
+          "type": "string",
+          "description": "Risk treatment decision (classic 4): mitigate | accept | transfer | avoid.",
+          "enum": ["mitigate", "accept", "transfer", "avoid"]
+        },
+        "asvs_refs": {
+          "type": "array",
+          "description": "ASVS 5.0 version-pinned identifiers for controls addressing this threat. Empty array allowed when no honest mapping exists.",
+          "items": {
+            "type": "string",
+            "pattern": "^v5\\.0\\.0-[0-9]+\\.[0-9]+\\.[0-9]+$",
+            "description": "Format: v5.0.0-<chapter>.<section>.<requirement> — e.g. v5.0.0-8.1.1. ASVS 4.x labels (V8.1.1) are NOT permitted."
+          },
+          "default": []
+        },
+        "status": {
+          "type": "string",
+          "description": "Lifecycle status of the threat. open | mitigated | accepted.",
+          "enum": ["open", "mitigated", "accepted"]
+        },
+        "risk": {
+          "type": "object",
+          "description": "Qualitative risk rating.",
+          "required": ["likelihood", "impact"],
+          "additionalProperties": false,
+          "properties": {
+            "likelihood": {
+              "type": "string",
+              "enum": ["high", "medium", "low", "theoretical"],
+              "description": "Likelihood of successful exploitation."
+            },
+            "impact": {
+              "type": "string",
+              "enum": ["high", "medium", "low"],
+              "description": "Business/security impact if exploited."
+            }
+          }
+        }
+      }
+    }
+  }
+}
