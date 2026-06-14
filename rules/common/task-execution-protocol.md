@@ -189,6 +189,14 @@ GPT-5.5   整理为实验记录 / report / slides
 - 修改 → 调整后再确认
 - 拒绝 → 重新规划
 
+### Step 5.5: 执行期纪律 — 实时 ToDo + 持久账本 + 收尾坎（CLAUDE.md §0.7）
+
+预览卡是*开工前*的坎；**执行期**还有一道（详 [CLAUDE.md §0.7](../../CLAUDE.md)）：
+
+- **实时 ToDo**：中等/复杂任务一开工就用内置 `TaskCreate` / `TaskUpdate` / `TaskList` 维护可勾选清单，做一步勾一步（开始 `in_progress`、完成 `completed`）。
+- **持久账本**：跨 session / 多阶段工程额外落仓库内 `*-LEDGER.md`（防 `/clear` 失忆，新 session 先读它续上）；机器审计走 `run-ledger.js`。
+- **收尾坎**：声称"完成"前对账本核未勾 / 未验证项，否则不许说 done（呼应硬规则"先验证再声称完成"）。
+
 ## 例外
 
 - 用户明确说"直接做"/"不用问我"→ 跳过 Step 5 的审查等待，但仍需内部走 Step 1-4

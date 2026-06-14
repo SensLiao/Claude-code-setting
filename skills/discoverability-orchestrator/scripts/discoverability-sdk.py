@@ -8,8 +8,11 @@ harness-contract.md sections 1-4 + 9 (binding). Stdlib-only fallback
 
 Commands (frozen per §9): init / classify / audit / evidence.append /
 evidence.validate / gate.check / report / mark-stale / explain / status.
-Every command emits its result as a single-line JSON to stdout; logs go
-to stderr.
+Additive (post-frozen, never gate inputs): ledger.append (T1.1 black box) +
+L1 post-launch measurement (measure.pull / measure.compare — pull real
+GSC / GA4 / Bing / ASO API metrics; measurement.json is decoupled from the
+release gate and gate.check ignores it). Every command emits its result as a
+single-line JSON to stdout; logs go to stderr.
 """
 
 import argparse, hashlib, json, os, shutil, subprocess, sys
@@ -55,6 +58,29 @@ LLMS_TXT_BLOCKER_TYPES = ("api_with_public_docs",)
 DETERMINISTIC_SOURCES = {"script", "api", "framework_adapter"}
 EXIT_OK, EXIT_FAIL, EXIT_BLOCKED, EXIT_STALE = 0, 1, 2, 3
 _RANK = {"PASS": 0, "SKIPPED": 0, "WARN": 1, "FAIL": 2, "BLOCKED": 3, "STALE": 3}
+
+# ----- L1 post-launch measurement (additive; NEVER affects gate verdict) ----
+# These commands pull REAL post-launch data from official APIs (Google Search
+# Console / GA4 / Bing Webmaster). They are measurement-only: they write a
+# separate measurement.json artifact and NEVER feed the release gate decision
+# (gate.check ignores measurement.json). Script-first per L12 constitution: the
+# numbers come from the API, never from an LLM. When credentials are absent the
+# pullers emit status=skipped (NOT a fabricated metric) so a missing GSC token
+# never silently invents impressions/clicks.
+MEASUREMENT_PROVIDERS = ("gsc", "ga4", "bing", "aso", "aeo")
+# Canonical L12 channel each provider feeds (so measurement maps onto the same
+# channel vocabulary as audit evidence). 'aeo' feeds the ai-search channel
+# (web-aeo §20 AI citation tracking — measurement-only, never a gate input).
+PROVIDER_CHANNEL = {"gsc": "seo", "ga4": "seo", "bing": "seo", "aso": "aso",
+                    "aeo": "ai-search"}
+# Metric keys the comparator knows how to delta (direction = "higher is better"
+# except avg_position / keyword_rank where LOWER is better — handled explicitly
+# in compare). ASO funnel keys (product_page_views / conversion_rate /
+# keyword_rank) added for app-aso §16.6 ASO measurement.
+MEASURE_METRICS = ("impressions", "clicks", "ctr", "avg_position",
+                   "sessions", "ai_referral_sessions", "ai_citations",
+                   "product_page_views", "conversion_rate", "keyword_rank")
+MEASURE_LOWER_IS_BETTER = ("avg_position", "keyword_rank")
 
 # ----- Minimal YAML reader (mappings/sequences/scalars/inline flow) ---------
 
@@ -1033,6 +1059,191 @@ def cmd_ledger_append(args: argparse.Namespace, ctx: Context) -> int:
     err(f"ledger.append: recorded tag={args.tag} decision={decision}")
     return EXIT_OK
 
+# ----- L1 measurement command implementations -------------------------------
+
+def _measurement_path(ctx: Context, tag: str) -> Path:
+    return ctx.evidence_dir(tag) / "measurement.json"
+
+def _try_json_file(path: Path) -> Optional[Dict[str, Any]]:
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else None
+    except Exception as e:
+        err(f"measurement: could not parse {path}: {e}")
+        return None
+
+def _normalize_pull_provider(provider: str, raw: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize one provider's raw API export into the measurement schema's
+    per-provider block. The raw export is produced by the puller agent running
+    the official API/CLI (api-key from env, NEVER committed). We do NOT call the
+    API here — the SDK normalizes whatever real export the agent dropped in.
+    Missing metrics stay absent (NOT zero-filled) so they read as 'no data',
+    never as a fabricated zero."""
+    metrics: Dict[str, Any] = {}
+    src = raw.get("metrics") if isinstance(raw.get("metrics"), dict) else raw
+    for k in MEASURE_METRICS:
+        if isinstance(src, dict) and k in src and isinstance(src[k], (int, float)):
+            metrics[k] = src[k]
+    block: Dict[str, Any] = {
+        "provider": provider,
+        "channel": PROVIDER_CHANNEL.get(provider, "seo"),
+        "status": "ok" if metrics else "no_metrics",
+        "source": "api",
+        "period": raw.get("period") or raw.get("date_range") or None,
+        "property": raw.get("property") or raw.get("site_url") or raw.get("app_id"),
+        "metrics": metrics,
+        "rows": raw.get("rows") if isinstance(raw.get("rows"), list) else None,
+        "pulled_at": now_iso(),
+    }
+    # Carry through an explicit skip the agent recorded (credentials missing,
+    # API not configured) so it is auditable instead of silently dropped.
+    if raw.get("status") in ("skipped", "error", "not_configured"):
+        block["status"] = raw["status"]
+        block["skip_reason"] = raw.get("reason") or raw.get("error") or "unspecified"
+        block["source"] = "api"
+    return block
+
+def cmd_measure_pull(args: argparse.Namespace, ctx: Context) -> int:
+    """Merge a provider's real API export into measurement.json. The puller
+    agent runs the official API/CLI, writes a raw JSON, then calls this to
+    normalize + merge. Measurement is decoupled from the gate — this never
+    changes gate_status."""
+    tag = args.tag
+    provider = (args.provider or "").lower()
+    if provider in CHANNEL_ALIASES:  # tolerate aeo/geo though pullers use gsc/ga4/bing/aso
+        provider = provider
+    if provider not in MEASUREMENT_PROVIDERS:
+        err(f"invalid --provider '{provider}' (must be one of {MEASUREMENT_PROVIDERS})")
+        emit_result({"command": "measure.pull", "tag": tag, "exit_code": EXIT_FAIL,
+                     "error": "invalid_provider"})
+        return EXIT_FAIL
+    src = Path(args.file)
+    if not src.exists():
+        err(f"measure.pull: source export not found: {src} — the puller agent "
+            f"must write the raw API export first (script-first; never fabricate)")
+        emit_result({"command": "measure.pull", "tag": tag, "exit_code": EXIT_FAIL,
+                     "error": "source_missing"})
+        return EXIT_FAIL
+    try:
+        raw = json.loads(src.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            raise ValueError("export top-level must be a JSON object")
+    except Exception as e:
+        err(f"measure.pull: source export parse failed: {e}")
+        emit_result({"command": "measure.pull", "tag": tag, "exit_code": EXIT_FAIL,
+                     "error": "source_parse"})
+        return EXIT_FAIL
+    block = _normalize_pull_provider(provider, raw)
+    target = _measurement_path(ctx, tag)
+    doc = _try_json_file(target) or {}
+    doc.setdefault("_schema_version", "1.0.0")
+    doc.setdefault("tag", tag)
+    doc["artifact"] = "measurement"
+    doc["measurement_only"] = True   # explicit: NOT a gate input
+    doc.setdefault("_note", "Post-launch measurement. NOT consumed by gate.check; "
+                            "release verdict comes only from gate-result.yaml.")
+    providers = doc.get("providers")
+    if not isinstance(providers, dict):
+        providers = {}
+    providers[provider] = block
+    doc["providers"] = providers
+    doc["updated_at"] = now_iso()
+    atomic_write(target, json.dumps(doc, ensure_ascii=False, indent=2))
+    nmetrics = len(block.get("metrics") or {})
+    err(f"measure.pull OK: provider={provider} status={block['status']} metrics={nmetrics}")
+    emit_result({"command": "measure.pull", "tag": tag, "provider": provider,
+                 "exit_code": EXIT_OK, "status": block["status"],
+                 "metrics_count": nmetrics, "measurement_path": str(target)})
+    return EXIT_OK
+
+def _flatten_metrics(doc: Dict[str, Any]) -> Dict[str, Dict[str, float]]:
+    """Return {provider: {metric: value}} from a measurement.json doc."""
+    out: Dict[str, Dict[str, float]] = {}
+    providers = doc.get("providers") if isinstance(doc.get("providers"), dict) else {}
+    for prov, block in providers.items():
+        m = block.get("metrics") if isinstance(block, dict) else None
+        if isinstance(m, dict):
+            out[prov] = {k: v for k, v in m.items()
+                         if isinstance(v, (int, float)) and k in MEASURE_METRICS}
+    return out
+
+def cmd_measure_compare(args: argparse.Namespace, ctx: Context) -> int:
+    """Compute before/after deltas between two measurement.json snapshots so the
+    team can answer 'did the optimization actually move the needle?'. Pure
+    arithmetic over real API numbers — no AI, no fabrication. avg_position is
+    treated as lower-is-better. Writes measurement-compare.json."""
+    tag = args.tag
+    after_path = _measurement_path(ctx, tag)
+    after = _try_json_file(after_path)
+    if after is None:
+        err(f"measure.compare: current measurement.json missing for tag={tag} "
+            f"(run measure.pull first)")
+        emit_result({"command": "measure.compare", "tag": tag, "exit_code": EXIT_FAIL,
+                     "error": "after_missing"})
+        return EXIT_FAIL
+    # Baseline source: explicit --baseline file, else the baseline tag's
+    # measurement.json. Either way it must be REAL pulled data.
+    if args.baseline_file:
+        before = _try_json_file(Path(args.baseline_file))
+        baseline_ref = args.baseline_file
+    elif args.baseline_tag:
+        before = _try_json_file(_measurement_path(ctx, args.baseline_tag))
+        baseline_ref = f"tag:{args.baseline_tag}"
+    else:
+        before = None
+        baseline_ref = None
+    if before is None:
+        err("measure.compare: baseline measurement missing — provide --baseline-tag "
+            "or --baseline-file pointing at a prior measurement.json")
+        emit_result({"command": "measure.compare", "tag": tag, "exit_code": EXIT_FAIL,
+                     "error": "baseline_missing"})
+        return EXIT_FAIL
+    after_m = _flatten_metrics(after)
+    before_m = _flatten_metrics(before)
+    deltas: Dict[str, Any] = {}
+    for prov in sorted(set(after_m) | set(before_m)):
+        a = after_m.get(prov, {})
+        b = before_m.get(prov, {})
+        prov_deltas: Dict[str, Any] = {}
+        for metric in sorted(set(a) | set(b)):
+            av, bv = a.get(metric), b.get(metric)
+            if av is None or bv is None:
+                prov_deltas[metric] = {"before": bv, "after": av,
+                                       "delta": None, "note": "one_side_missing"}
+                continue
+            abs_delta = round(av - bv, 4)
+            pct = round((abs_delta / bv) * 100, 2) if bv else None
+            lower_better = metric in MEASURE_LOWER_IS_BETTER
+            if abs_delta == 0:
+                direction = "flat"
+            else:
+                improved = (abs_delta < 0) if lower_better else (abs_delta > 0)
+                direction = "improved" if improved else "regressed"
+            prov_deltas[metric] = {"before": bv, "after": av, "delta": abs_delta,
+                                   "pct_change": pct, "direction": direction,
+                                   "lower_is_better": lower_better}
+        deltas[prov] = prov_deltas
+    doc = {
+        "_schema_version": "1.0.0", "tag": tag, "artifact": "measurement-compare",
+        "measurement_only": True,
+        "_note": "Before/after post-launch deltas over real API metrics. NOT a "
+                 "gate input; informs growth prioritization only.",
+        "generated_at": now_iso(),
+        "generated_by": f"{GENERATOR_TAG} measure.compare",
+        "baseline_ref": baseline_ref, "current_ref": str(after_path),
+        "deltas": deltas,
+    }
+    out_path = ctx.evidence_dir(tag) / "measurement-compare.json"
+    atomic_write(out_path, json.dumps(doc, ensure_ascii=False, indent=2))
+    nprov = len(deltas)
+    err(f"measure.compare OK: providers={nprov} baseline={baseline_ref}")
+    emit_result({"command": "measure.compare", "tag": tag, "exit_code": EXIT_OK,
+                 "providers": nprov, "baseline_ref": baseline_ref,
+                 "compare_path": str(out_path)})
+    return EXIT_OK
+
 # ----- CLI dispatch ---------------------------------------------------------
 
 COMMANDS = {
@@ -1041,6 +1252,8 @@ COMMANDS = {
     "gate.check": cmd_gate_check, "report": cmd_report,
     "mark-stale": cmd_mark_stale, "explain": cmd_explain, "status": cmd_status,
     "ledger.append": cmd_ledger_append,
+    # L1 post-launch measurement (measurement-only; never gate inputs)
+    "measure.pull": cmd_measure_pull, "measure.compare": cmd_measure_compare,
 }
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1063,6 +1276,13 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("status"); sp.add_argument("--tag", default=None)
     sp = sub.add_parser("ledger.append"); sp.add_argument("tag")
     sp.add_argument("--decision", default=None); sp.add_argument("--stage", default=None)
+    # L1 measurement: measure.pull <tag> --provider {gsc|ga4|bing|aso} <export.json>
+    sp = sub.add_parser("measure.pull"); sp.add_argument("tag")
+    sp.add_argument("--provider", required=True); sp.add_argument("file")
+    # L1 measurement: measure.compare <tag> --baseline-tag T | --baseline-file F
+    sp = sub.add_parser("measure.compare"); sp.add_argument("tag")
+    sp.add_argument("--baseline-tag", dest="baseline_tag", default=None)
+    sp.add_argument("--baseline-file", dest="baseline_file", default=None)
     return p
 
 def main(argv: Optional[List[str]] = None) -> int:

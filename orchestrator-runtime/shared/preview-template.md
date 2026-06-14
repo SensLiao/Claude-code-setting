@@ -12,6 +12,11 @@
 > - **prompt-only / ad-hoc mode** (DEFAULT, incl. Windows) → the card is the
 >   instruction-layer **坎** (CLAUDE.md §0.6): render → wait for confirm → run.
 >   No sentinel, no hash — just the visible plan + a confirmation reply.
+>   Hook-backed since 2026-06-15: the GLOBAL `plan-card-reminder.js`
+>   (PreToolUse[Agent|Workflow]) deterministically REMINDS (soft, never blocks)
+>   when a ≥3 fan-out / Workflow launches without a card this turn; and
+>   `report-gate.js` (Stop) HARD-blocks a non-trivial turn that ends with no report.
+>   Both register in ~/.claude/settings.json (manifests/hook-registry.json global_live).
 >
 > **Design (CLAUDE.md §0.5 reporting style)**: business value first (目标 / 能力 /
 > 做完得到 / 成本); agents · tools · flow readable at a glance; `spec_hash`,

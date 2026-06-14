@@ -16,6 +16,11 @@
 #   appsec-sdk roe.verify <roe-file>                 # 13-field ROE checklist (11 user-visible sections)
 #   appsec-sdk csf.coverage <tag>                    # GV/ID/PR/DE/RS/RC YAML
 #   appsec-sdk overlay.activate <tag> <overlay-name>
+#   appsec-sdk recon.append <tag> [<file>|-]            # P4 pentest pipeline — PTES recon evidence
+#   appsec-sdk scan.append <tag> [<file>|-]             # P4 pentest pipeline — PTES scan evidence
+#   appsec-sdk validate.append <tag> [<file>|-]         # P4 pentest pipeline — non-destructive validate evidence
+#   appsec-sdk report.append <tag> [<file>|-]           # P4 pentest pipeline — report evidence
+#   appsec-sdk pentest.evidence-check <tag> [--require-validate] [--require-report]  # P4 — verify recon→scan→validate→report progression
 #   appsec-sdk migrate-evidence [--from <path>] [--to <path>] [--dry-run]
 #                                                    # D2 legacy-path adapter — move
 #                                                    # .planning/security/ → .appsec/evidence/<tag>/
@@ -144,6 +149,13 @@ Commands:
   authz.matrix <tag> [<file>]         # enterprise module #7 — role x resource x action (IDOR/BOLA)
   attack.coverage <tag> [<file>]      # enterprise module #14 — MITRE ATT&CK coverage (defensive)
   pentest.recommend <tag> [<file>]    # feeds §16.9.5 surfacing; RECOMMENDATION ONLY (never auto-fires gate)
+  recon.append <tag> [<file>|-]       # P4 — PTES recon (Intelligence Gathering) evidence
+  scan.append <tag> [<file>|-]        # P4 — PTES scan (Vulnerability Analysis) evidence
+  validate.append <tag> [<file>|-]    # P4 — non-destructive validate (Exploitation) evidence; behind manual gate
+  report.append <tag> [<file>|-]      # P4 — PTES report evidence
+  retest.append <tag> [<file>|-]      # P6 — retest-verification evidence (CREST retest + NIST CA-8 + PCI DSS 4.0 Req 11.4.4)
+  pentest.evidence-check <tag> [--require-validate] [--require-report] [--require-retest]
+                                      # P4/P6 — verify recon→scan→validate→report→retest progression (0 OK / 1 gap / 2 bad input)
   control.coverage <tag>              # enterprise module #5 — ASVS 5.0 V1-V17 coverage matrix
   audit.package <tag> [--output <path>] # enterprise module #16 — auditor deliverable bundle
   migrate-evidence [--from <path>] [--to <path>] [--dry-run]
@@ -1298,6 +1310,148 @@ YAML
   _write_layer_artifact "$tag" "pentest-recommend" "$content" "pentest-recommendation.yaml"
 }
 
+# ───── P4: pentest evidence pipeline (recon → scan → validate → report) ─────
+# Adds the pentest workflow's evidence layers so security-pentest-recon-scan /
+# security-pentest-ai-redteam / authorized-pentest-validation persist artifacts
+# through the SAME sink + redaction + path-containment as every other layer.
+# Each appender is a thin, timestamped (collision-safe) wrapper over
+# _write_layer_artifact — content from <file>, stdin via "-", else a documented
+# skeleton. Redaction is ALWAYS applied (no raw secret / payload / PII leaks).
+# These add CAPABILITY only — NO new gate. Active testing stays behind the
+# pentest-scope-and-roe + authorized-pentest-validation double-gate (unchanged).
+#
+# Six evidence artifact classes (deep-research §6 finding 6): pcap / log /
+# screenshot / command-output / web-response / db-result. Recorded as the
+# `artifact_class` field in each appended file's skeleton so the report can
+# attest SHA256 + write-protection over them.
+
+# _pentest_layer_append <tag> <layer> <kind-label> <file>
+# Shared timestamped appender for the four pentest pipeline layers.
+_pentest_layer_append() {
+  local tag="$1" layer="$2" kind="$3" file="$4"
+  need_arg "release-tag" "$tag"; ensure_project_root
+  local skeleton; skeleton=$(cat <<YAML
+schema_version: "1.0"
+artifact: pentest-$layer
+phase: $layer                  # recon | scan | validate | report (PTES-aligned pipeline)
+release_tag: "$tag"
+generated_at: "$(iso_now)"
+# $kind
+# Persisted through appsec-sdk (redaction applied). Active testing remains gated by
+# pentest-scope-and-roe + authorized-pentest-validation (this writer adds NO gate).
+roe_ref: ".planning/PENTEST-ROE.md"   # the ROE that authorized this evidence (must exist)
+tool: ""                       # e.g. nuclei | amass | ffuf | httpx | promptfoo | PyRIT | ZAP
+target: ""                     # MUST be in ROE in-scope[]
+artifact_class: command-output # pcap | log | screenshot | command-output | web-response | db-result
+summary: ""
+findings_ref: []               # finding ids (schema v1.0, source: pentest) raised from this phase
+YAML
+)
+  local content; content=$(_content_or_skeleton "$file" "$skeleton")
+  # Timestamped (no fixed basename) — a pentest run appends many artifacts per phase.
+  _write_layer_artifact "$tag" "$layer" "$content"
+}
+
+# recon.append <tag> [<file>|-]   — PTES phase 2 (Intelligence Gathering) evidence
+cmd_recon_append()    { _pentest_layer_append "${1:-}" "recon"    "Reconnaissance / attack-surface evidence (amass / httpx; passive-first). Layer owner: security-pentest-recon-scan." "${2:-}"; }
+# scan.append <tag> [<file>|-]    — PTES phase 4 (Vulnerability Analysis) evidence
+cmd_scan_append()     { _pentest_layer_append "${1:-}" "scan"     "Vulnerability-scan evidence (nuclei / ffuf templated; promptfoo AI red-team). Layer owner: security-pentest-recon-scan / security-pentest-ai-redteam." "${2:-}"; }
+# validate.append <tag> [<file>|-] — PTES phase 5 (Exploitation, NON-DESTRUCTIVE validation only) evidence
+cmd_validate_append() { _pentest_layer_append "${1:-}" "validate" "Authorized validation evidence (non-destructive). Produced ONLY under authorized-pentest-validation (manual hard gate) or PyRIT harnessed eval on own/staging. NEVER destructive/persistence/exfiltration." "${2:-}"; }
+# report.append <tag> [<file>|-]  — PTES phase 7 (Reporting) evidence
+cmd_report_append()   { _pentest_layer_append "${1:-}" "report"   "Pentest report evidence (exec summary / technical findings / retest checklist). Aligns with templates/pentest-report.template.md." "${2:-}"; }
+# retest.append <tag> [<file>|-]  — P6 retest-verification evidence (CREST retest + NIST 800-53 CA-8 + PCI DSS 4.0 Req 11.4.4)
+# A retest is itself NON-DESTRUCTIVE active validation under the SAME ROE — it does NOT bypass any gate.
+# A finding is only `resolved` after a retest confirms the fix (verify_result FIXED); PARTIAL/NOT_FIXED loop
+# back to security-remediation. This appender adds CAPABILITY only — no new gate.
+cmd_retest_append()   { _pentest_retest_append "${1:-}" "${2:-}"; }
+
+# _pentest_retest_append <tag> <file> — like _pentest_layer_append but with a retest-shaped skeleton.
+_pentest_retest_append() {
+  local tag="$1" file="$2"
+  need_arg "release-tag" "$tag"; ensure_project_root
+  local skeleton; skeleton=$(cat <<YAML
+schema_version: "1.0"
+artifact: pentest-retest
+phase: retest                  # CREST retest + NIST SP 800-53 CA-8 + PCI DSS 4.0 Req 11.4.4 verification
+release_tag: "$tag"
+generated_at: "$(iso_now)"
+# Retest verifies that a remediated finding is actually fixed (non-destructive, same ROE, manual gate).
+# Persisted through appsec-sdk (redaction applied). Adds NO new gate — double-gate unchanged.
+roe_ref: ".planning/PENTEST-ROE.md"     # the ROE authorizing this retest (window must still be valid)
+pci_scope: false                        # true only if cardholder data flows through an in-scope asset (PCI DSS 4.0 Req 11.4.4)
+retests:
+  - finding_id: ""                      # finding id (schema v1.0, source: pentest) being re-verified
+    original_severity: ""               # critical | high | medium | low
+    fix_applied_by: security-remediation
+    retest_method: ""                   # non-destructive: replay original repro within ROE whitelist
+    regression_test_green: false        # the remediation's regression test passes
+    verify_result: NOT_FIXED            # FIXED | PARTIAL | NOT_FIXED
+    new_status: open                    # resolved (FIXED) | mitigated (PARTIAL) | open (NOT_FIXED)
+    wstg_id: ""                         # WSTG-<CATEGORY>-<NN> the finding maps to (report §6 alignment)
+    evidence_ref: ""                    # redacted retest evidence path
+YAML
+)
+  local content; content=$(_content_or_skeleton "$file" "$skeleton")
+  # Timestamped — a retest cycle may append multiple verification artifacts.
+  _write_layer_artifact "$tag" "retest" "$content"
+}
+
+# pentest.evidence-check <tag> [--require-validate] [--require-report] [--require-retest]
+# Verify the recon→scan→validate→report→retest pipeline progression for a tag.
+# Record/advisory by default (capability, not gate): recon+scan are the baseline
+# expectation; validate/report/retest only required when the corresponding flag is set
+# (e.g. after an authorized active engagement + remediation). Ordering rule: a later phase
+# present while an earlier phase is empty is a PIPELINE GAP (exit 1) — you cannot
+# have validate evidence with no recon/scan behind it, nor retest evidence with no
+# validate behind it (P6: a retest re-verifies a finding that validation first confirmed).
+# Exit: 0 OK · 1 pipeline gap / required-phase missing · 2 bad input.
+cmd_pentest_evidence_check() {
+  need_arg "release-tag" "${1:-}"; validate_safe_name "release-tag" "$1"
+  local tag="$1"; shift
+  local require_validate="false" require_report="false" require_retest="false"
+  while (( "$#" )); do
+    case "$1" in
+      --require-validate) require_validate="true"; shift;;
+      --require-report)   require_report="true"; shift;;
+      --require-retest)   require_retest="true"; shift;;
+      *) echo "appsec-sdk pentest.evidence-check: unknown arg $1" >&2; exit 2;;
+    esac
+  done
+  ensure_project_root
+  local base="$PROJECT_ROOT/.appsec/evidence/$tag"
+  _phase_present() {
+    local d="$base/$1"
+    [[ -d "$d" ]] && [[ -n "$(ls -A "$d" 2>/dev/null)" ]]
+  }
+  local has_recon=0 has_scan=0 has_validate=0 has_report=0 has_retest=0
+  _phase_present recon    && has_recon=1
+  _phase_present scan     && has_scan=1
+  _phase_present validate && has_validate=1
+  _phase_present report   && has_report=1
+  _phase_present retest   && has_retest=1
+  echo "pentest pipeline [$tag]: recon=$has_recon scan=$has_scan validate=$has_validate report=$has_report retest=$has_retest"
+  local gaps=()
+  # Ordering: a present phase must have all earlier phases present (no out-of-order evidence).
+  (( has_scan == 1 && has_recon == 0 ))     && gaps+=("scan present but recon empty (recon-first violated)")
+  (( has_validate == 1 && has_scan == 0 ))  && gaps+=("validate present but scan empty (no scan behind validation)")
+  (( has_report == 1 && has_validate == 0 && has_scan == 0 )) && gaps+=("report present but no scan/validate evidence behind it")
+  # P6 retest ordering: a retest re-verifies a finding that validation first confirmed —
+  # retest evidence with no validate behind it is a pipeline gap.
+  (( has_retest == 1 && has_validate == 0 )) && gaps+=("retest present but validate empty (no confirmed finding behind the retest)")
+  # Required-phase enforcement (opt-in).
+  [[ "$require_validate" == "true" && "$has_validate" == "0" ]] && gaps+=("--require-validate: validate phase missing")
+  [[ "$require_report" == "true" && "$has_report" == "0" ]]     && gaps+=("--require-report: report phase missing")
+  [[ "$require_retest" == "true" && "$has_retest" == "0" ]]     && gaps+=("--require-retest: retest phase missing (P6: corrected findings must be re-tested)")
+  if (( ${#gaps[@]} > 0 )); then
+    echo "appsec-sdk pentest.evidence-check: pipeline issue(s):" >&2
+    for g in "${gaps[@]}"; do echo "  - $g" >&2; done
+    exit 1
+  fi
+  echo "pentest pipeline progression OK"
+  exit 0
+}
+
 # control.coverage <tag> — enterprise module #5 (ASVS 5.0 V1-V17 coverage matrix).
 # Honest, evidence-presence based: aggregates ASVS chapter references across findings +
 # code-review evidence presence. NOT a formal conformance claim (mirrors csf.coverage).
@@ -1704,6 +1858,12 @@ main() {
     authz.matrix)                 cmd_authz_matrix "$@";;
     attack.coverage)              cmd_attack_coverage "$@";;
     pentest.recommend)            cmd_pentest_recommend "$@";;
+    recon.append)                 cmd_recon_append "$@";;
+    scan.append)                  cmd_scan_append "$@";;
+    validate.append)              cmd_validate_append "$@";;
+    report.append)                cmd_report_append "$@";;
+    retest.append)                cmd_retest_append "$@";;
+    pentest.evidence-check)       cmd_pentest_evidence_check "$@";;
     control.coverage)             cmd_control_coverage "$@";;
     audit.package)                cmd_audit_package "$@";;
     migrate-evidence)             cmd_migrate_evidence "$@";;

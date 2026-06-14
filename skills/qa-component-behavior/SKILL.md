@@ -31,6 +31,7 @@ Component-layer 测试 skill。针对**同步 Client Components / 交互组件 /
 ## 3. Responsibilities
 
 - **Testing Library query priority**：`getByRole` > `getByLabel` > `getByText` > `getByPlaceholder` > `getByTestId`（fallback only）
+- **`afterEach(cleanup)` 必配（高频假阳根因）**：多个 `render()` 而不 unmount 会让 DOM 在同一文件内**累积**，下一个 `getByRole`/`getByText` 撞到上一个 test 的残留节点 → 报 **"Found multiple elements with…"** 假失败（不是组件 bug，是测试卫生）。RTL 在 vitest globals / jest 环境下**通常自动 cleanup**，但**非 globals 模式（如 vitest `globals:false`）必须显式 `import { cleanup } from '@testing-library/react'; afterEach(cleanup);`**。命中"multiple elements"先查 cleanup，再考虑用 `getByRole(role, { name })` exact-match 收窄，而不是改断言去迁就脏 DOM。E2E 实测：首版组件测试因缺 cleanup 触发此假失败，补 cleanup 后即转绿。
 - **Storybook `play` function**：在 story 上跑交互断言
 - **State matrix**（必填）：
   - default

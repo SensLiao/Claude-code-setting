@@ -27,7 +27,11 @@ description: >
   Google Search / Bing search / technical SEO / on-page SEO / sitemap.xml /
   robots.txt / canonical / structured data / Schema.org (general) /
   Lighthouse SEO / Search Console / meta description / title tag / hreflang /
-  国际 SEO / canonical URL / 重定向 / 301 / 网站地图 / 搜索引擎收录".
+  国际 SEO / canonical URL / 重定向 / 301 / 网站地图 / 搜索引擎收录 /
+  tech SEO CI / technical SEO gate / SEO CI gate / site-wide SEO crawl /
+  full-site SEO audit / unlighthouse / lighthouse-ci / lhci / SEO budget /
+  broken link check / 整站 SEO / SEO 进 CI / SEO 流水线门禁 / 全站爬虫审计 /
+  Lighthouse CI / SEO assertions / SEO regression gate".
 ---
 
 # web-seo — 标准 Web SEO 子层
@@ -630,3 +634,165 @@ evidence/discoverability/<tag>/
 | SDK | `scripts/discoverability-sdk.py`（10 commands）|
 | Contract | `~/.claude/templates/discoverability/harness-contract.md` §1 §4 |
 | Validator agent | `disc-evidence-validator` |
+
+---
+
+## 15. Tech-SEO CI gate（整站技术 SEO 进 CI — CLI-first）
+
+> **加入 2026-06-15（CAPABILITY-UPGRADE L4）。** §4-§8 是**单 URL / 抽样**的 audit；本节是把技术 SEO 升级为 **site-wide + CI-gated**：整站智能爬取（unlighthouse）+ 可断言的预算门禁（@lhci/cli），pass/fail 阈值进流水线。**纯能力扩展，不新增 governance** —— 沿用 §6 blocker / §7 warn 分级，只是从"手动跑一次"变成"CI 每次跑 + 阈值断言"。
+
+### 15.0 为什么需要（§4.7 单页 Lighthouse 的缺口）
+
+- §4.7 的 `npx lighthouse <url>` 一次只审**一个 URL**；大型站点有几十到上千个 public page，单页审不出"整站哪些页 regression 了"。
+- 没有 CI gate → SEO regression（误加 `noindex`、canonical 链断、sitemap 出 4xx）要等线上排名掉了才发现。
+- **CLI > MCP**：两个工具都是纯 CLI（`npx unlighthouse` / `lhci autorun`），无需 MCP server，agent 用 Bash 直接调。
+
+### 15.1 工具分工（unlighthouse 整站 + @lhci/cli 断言）
+
+| 工具 | license | 角色 | 命令 |
+|---|---|---|---|
+| **unlighthouse** | MIT | **整站智能采样**：爬全站 → 对每个 route 跑 Lighthouse → 出 site-wide SEO/perf/a11y/best-practices 矩阵 + CI exit code | `npx unlighthouse-ci --site <url> --budget <n>` |
+| **@lhci/cli** | Apache-2.0 | **预算断言 + 历史**：对**关键页**跑 Lighthouse + `assert` 断言 SEO category / 具体 audit；CI 失败可阻断 | `lhci autorun` / `lhci assert` |
+
+> **@lhci/cli 跨域复用（统一接入）**：同一个 `@lhci/cli` 被 L12（本节 SEO category）+ UIUX（a11y category）+ QA（perf/a11y gate）三处使用（见 research `2-uiux.md` / `4-qa.md`）。**实施时一处接入、共享 `lighthouserc` 配置**，按 category 各取所需，不要各装一份。本 skill 只 OWN `categories:seo`，不碰 perf/a11y 的阈值决策（那归 QA / UIUX）。
+
+> **Node engine 前置（避免 EBADENGINE）**：Lighthouse 13.x（unlighthouse / `@lhci/cli` / `npx lighthouse` 底层都拉它）要求 **`node >= 22.19`**。低于该版本 `npx` 会打 `npm warn EBADENGINE` —— 宽松环境仍能跑通，但 `engine-strict=true` / 严格 CI 会被 npm **直接拒装**。要么升 node ≥ 22.19，要么钉用 `lighthouse@12`（无此 engine 要求）。E2E 实测 node 22.17 即触发该 warn（跑通了，但 strict CI 会拒）。
+
+### 15.2 unlighthouse 整站爬取（CI 模式）
+
+```bash
+# 整站爬取 + SEO/perf/a11y/best-practices 矩阵，写 JSON + CI exit code
+# --budget 设最低分阈值；任何 route 低于阈值 → 非 0 exit（CI 失败）
+npx unlighthouse-ci \
+  --site https://example.com \
+  --budget 95 \
+  --reporter jsonExpanded \
+  --output-path "evidence/discoverability/$TAG/raw/unlighthouse" \
+  --build-static
+
+# 仅审 SEO 维度（缩小爬取成本，大型站点推荐）
+npx unlighthouse-ci --site https://example.com \
+  --budget 95 \
+  --lighthouse-options.onlyCategories=seo \
+  --output-path "evidence/discoverability/$TAG/raw/unlighthouse"
+```
+
+| 关键 flag | 作用 |
+|---|---|
+| `--site` | 入口 URL；unlighthouse 自动爬 internal links + 读 sitemap.xml |
+| `--budget <n>` | 全 category 最低分（0-100）；低于 → CI 失败 |
+| `--lighthouse-options.onlyCategories=seo` | 只跑 SEO 维度，省时（本 skill 主关注点） |
+| `--reporter jsonExpanded` | 机器可读，供 evidence.append 归一化 |
+| `--build-static` | 出静态 HTML 报告（人看） |
+
+> **采样说明**：unlighthouse 用 route-group 智能采样（同模板页只抽样几个代表），不是每页都全量跑 —— 这是它能在大型站点 CI 里跑的关键。evidence 里必须记录 `sampled_routes` 数 vs `total_routes`，不要把"抽样通过"说成"全站每页通过"。
+
+> **`--site` 必须给站点根（不要给子路径）**：`--site` 传带 path 的入口（如 `https://example.com/good/`）会让 unlighthouse 打出 WARN "providing a site with a path, disabling sitemap, robots and dynamic sampling" 并**退化为纯 JS-crawl** —— sitemap.xml / robots 智能采样被关掉，整站覆盖不完整、SEO 分会抖动。`--site` 一律指向**站点根**（apex / 主域）；要单独审某个 section 用单页 `npx lighthouse <url>`（§4.7）而不是把子路径塞给 `--site`。apex redirect（`/good/`→`/`）也会触发 unlighthouse 自报 "may cause issues in final report"。
+
+### 15.3 @lhci/cli 预算断言（关键页 + CI 阻断）
+
+`lighthouserc.json`（共享配置，SEO category 段）：
+
+```json
+{
+  "ci": {
+    "collect": {
+      "url": [
+        "https://example.com/",
+        "https://example.com/pricing",
+        "https://example.com/blog"
+      ],
+      "numberOfRuns": 3
+    },
+    "assert": {
+      "assertions": {
+        "categories:seo": ["error", { "minScore": 0.95 }],
+        "meta-description": "error",
+        "document-title": "error",
+        "http-status-code": "error",
+        "is-crawlable": "error",
+        "canonical": "error",
+        "hreflang": "warn",
+        "structured-data": "warn",
+        "image-alt": "warn"
+      }
+    },
+    "upload": { "target": "filesystem", "outputDir": "evidence/discoverability/$TAG/raw/lhci" }
+  }
+}
+```
+
+```bash
+# 一条命令 collect + assert + upload（CI 入口）
+lhci autorun --config=lighthouserc.json
+# exit 0 = 全断言过；非 0 = 有 error 级断言失败 → CI 阻断
+```
+
+| Lighthouse audit ID | 映射本 skill 章节 | 默认 severity |
+|---|---|---|
+| `categories:seo` | §4.7 Lighthouse SEO | error（< 0.95 阻断）|
+| `is-crawlable` | §4.1 robots / §6 `critical_public_page_blocked_by_robots` | error |
+| `http-status-code` | §6 `critical_public_page_returns_4xx_or_5xx` | error |
+| `document-title` / `meta-description` | §4.5 metadata | error / warn |
+| `canonical` | §4.3 canonical | error |
+| `hreflang` | §4.4 hreflang | warn（仅多语言站强制）|
+| `structured-data` | §4.6 structured data | warn |
+| `image-alt` | §4.5 `<img alt>` | warn |
+
+> **阈值映射 §6/§7，不另起一套**：`error` 级断言对应 §6 blocker（CI 阻断 = release 阻断）；`warn` 级对应 §7 warn-only（进 report 不阻断）。**严禁**把 §7 warn 项偷偷设成 `error` —— 与 orchestrator §7 "严禁把 warn-only 偷偷升级成 blocker" 同理。升级必须显式改配置 + 写明理由。
+
+### 15.4 broken-link / sitemap / canonical / structured-data CI 检查（补 Lighthouse 覆盖不到的）
+
+Lighthouse 单页审不出"整站链接是否断" / "sitemap 每条 URL 是否 200"。补这几个 site-wide CLI 检查：
+
+```bash
+# 1. broken-link 整站爬取（linkinator，MIT，CLI）
+npx linkinator https://example.com --recurse --format json \
+  > "evidence/discoverability/$TAG/raw/broken-links.json"
+# 任何 BROKEN 状态 → §6 critical_public_page_returns_4xx_or_5xx（关键页）/ §7（非关键页）
+
+# 2. sitemap 每条 URL status（复用 §8.4 批量 status code 检查，整站版）
+#    解析 sitemap.xml → 对每条 URL HEAD → 任何 4xx/5xx 记 finding
+
+# 3. canonical / structured-data 整站（复用 §8.5 parse-jsonld.mjs，遍历 sitemap URL）
+#    对每个 sitemap URL 跑 canonical 提取 + JSON-LD validate → 聚合 finding
+```
+
+| 检查 | 工具 | 阈值 → severity |
+|---|---|---|
+| broken link（整站） | `linkinator`（MIT, CLI） | 关键页 BROKEN → blocker；其余 → warn |
+| sitemap URL status | 复用 §8.4（curl 批量） | 关键页非 2xx → blocker |
+| canonical 整站 | 复用 §8.5 | misdirected to 404/cross-domain → blocker；缺失 → warn |
+| structured-data 整站 | 复用 §8.5 + schema validator | 与可见内容不一致 → blocker；invalid → warn |
+
+> 全部 free + OSS / 已在 §4-§8 的检查项，本节只是把它们从"单页 / 抽样"升级到"整站 + CI"。**不引入任何 paywall 工具**（Screaming Frog 付费版、Ahrefs Site Audit 等都不用）。
+
+### 15.5 CI 接入示例（GitHub Actions，跨平台命令留档）
+
+```yaml
+# .github/workflows/tech-seo-gate.yml（示例骨架，项目按需裁剪）
+- name: Tech-SEO site-wide gate
+  run: |
+    npx unlighthouse-ci --site "$DEPLOY_URL" --budget 95 \
+      --lighthouse-options.onlyCategories=seo \
+      --output-path "evidence/discoverability/$TAG/raw/unlighthouse"
+    lhci autorun --config=lighthouserc.json
+    npx linkinator "$DEPLOY_URL" --recurse --format json \
+      > "evidence/discoverability/$TAG/raw/broken-links.json"
+- name: Normalize into seo channel evidence
+  run: |
+    python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py \
+      --project-root . evidence.append "$TAG" seo \
+      "evidence/discoverability/$TAG/raw/unlighthouse/ci-result.json"
+```
+
+> **Windows / 跨平台**：`npx` / `lhci` 跨平台一致；CI 通常 Linux runner。本地 Windows 跑用 PowerShell / Git Bash 均可（`npx` 行为一致）。Chrome headless flag 同 §4.7（`--headless --no-sandbox`）。
+
+### 15.6 evidence 归一化（进 seo channel，沿用既有 schema）
+
+- unlighthouse / lhci / linkinator 的 raw 产物落 `evidence/discoverability/<tag>/raw/`（`unlighthouse/` / `lhci/` / `broken-links.json`）。
+- 经 `discoverability-sdk evidence.append <tag> seo <file>` 归一化进 **既有 `seo.json` channel evidence**（§9 schema 不变），`source: script`。
+- finding ID **复用 §6/§7 既有 ID**（`lighthouse_seo_score_below_target` / `critical_public_page_returns_4xx_or_5xx` / `critical_public_page_blocked_by_robots` 等），新增的 site-wide finding 用既有 ID + `scope: site_wide` 标记，**不新造 blocker ID**。
+- 进 §14.3 harness gate-result 对齐：site-wide blocker 仍是 blocker，site-wide warn 仍是 warn —— gate 决策算法（harness-contract §4.1）不变。
+
+> **这是 capability 扩展，不是新 gate**：tech-SEO CI gate 复用 L12 既有的 `seo` channel + `gate.check` + blocker/warn 分级。CI 的 exit code 只是 deterministic evidence 的另一个采集入口，最终 release verdict 仍由 `discoverability-sdk gate.check` 产出（governed gate，CLAUDE.md §3.7：CI/unlighthouse/lhci 是 scout/evidence 采集，verdict 走 SDK + evidence）。

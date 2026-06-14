@@ -21,7 +21,9 @@
         {"name": "gsd-phase-boundary.sh", "trigger": "Stop", "purpose": "Enforce GSD phase boundary"},
         {"name": "gsd-check-update.js", "trigger": "SessionStart", "purpose": "Check for GSD updates"},
         {"name": "gsd-session-state.sh", "trigger": "Stop", "purpose": "Persist session state"},
-        {"name": "gsd-statusline.js", "trigger": "Statusline", "purpose": "Render GSD statusline"}
+        {"name": "gsd-statusline.js", "trigger": "Statusline", "purpose": "Render GSD statusline"},
+        {"name": "report-gate.js", "trigger": "Stop", "purpose": "Deterministic completion-report gate (HARD block): after a non-trivial turn (Agent/Task/Workflow used, or >=N file edits) whose closing assistant message has no report >= threshold chars, block the stop so the model must produce the CLAUDE.md §0.5/§0.6/§0.7 report. Enforces report PRESENCE, not quality; format stays prompt-guided. Loop-safe via stop_hook_active; FAILS OPEN (productivity gate, not safety); tunable via CLAUDE_REPORT_GATE_MINCHARS/MINEDITS/OFF"},
+        {"name": "plan-card-reminder.js", "trigger": "PreToolUse(Agent|Workflow)", "purpose": "Deterministic plan-preview-card reminder (SOFT — never blocks): on the >=3rd Agent/Task of a turn or ANY Workflow launch without a §0.6 plan-card rendered this turn, inject an additionalContext reminder (CLAUDE.md §0.6). At most once per turn; suppressed once a card marker appears; FAILS OPEN; tunable via CLAUDE_PLAN_CARD_MINAGENTS/OFF"}
       ]
     },
 

@@ -81,6 +81,105 @@ description: >
 
 > 任一自动化工具的 violations 都按 impact 归一到 `critical / serious / moderate / minor`（见 §6 / schema）。
 
+## 3.6 Toolchain landing（concrete CLI — CLI-first, free + OSS, Q6）
+
+> 加入 2026-06-15（Q6 — a11y 工具链落地，纯能力，**零新 gate**）。§3.5 枚举了"有哪些工具"，本节落地"**具体怎么装、怎么跑、怎么进 CI**"。全部 free + OSS，CLI-first（不依赖任何付费 SaaS / MCP）。runner（`qa-a11y-runner`）只跑**项目已安装**的工具，缺失即 `decision_hint: WARN`（tool absence 是项目缺口，不是 regression）——所以本节是"建议项目装这套"，不是 runner 私自 `npm install`。
+
+### 3.6.1 四个工具的安装命令（按需选，不必全装）
+
+| 工具 | 安装命令 | 引擎 | 最适合 |
+|---|---|---|---|
+| `@axe-core/playwright` | `npm i -D @axe-core/playwright @playwright/test` | axe-core | **QA 主路径** — E2E 集成、跑真实渲染后的页面 / 交互态 |
+| `@lhci/cli`（Lighthouse CI） | `npm i -D @lhci/cli` | axe-core 子集 | 单页快速评分 + CI assertion（a11y category score gate） |
+| `pa11y-ci` | `npm i -D pa11y-ci` | HTML_CodeSniffer 或 axe（可切） | CLI 批量多 URL 扫描 + threshold gate |
+| `vitest-axe` / `jest-axe` | `npm i -D vitest-axe`（或 `jest-axe`） | axe-core | 组件 / 单测级回归（设计系统组件库） |
+
+> 选型建议：**有 Playwright E2E → 首选 `@axe-core/playwright`**（跑交互后真实 DOM，覆盖最全）；**只有静态页 / 想要分数门 → `@lhci/cli` 或 `pa11y-ci`**；**组件库 → 加 `vitest-axe` 做单测级回归**。三档可叠加。
+
+### 3.6.2 各工具的 runner 调用命令（runner 自动发现并执行）
+
+`qa-a11y-runner` 按 `devDependencies` 自动发现已装工具，跑对应命令，输出机器可读 JSON 作 evidence：
+
+```bash
+# A. @axe-core/playwright（QA 主路径）— 在 Playwright test 里 import + analyze，跑带 @a11y tag 的 spec
+npx playwright test --grep @a11y --reporter=json
+
+# B. Lighthouse CI（a11y category）— 单页评分，JSON 输出
+npx lhci autorun --collect.settings.onlyCategories=accessibility
+#   或单次：npx lighthouse <url> --only-categories=accessibility --output=json --quiet --output-path=a11y-lh.json
+
+# C. pa11y-ci（批量 URL + WCAG2AA 标准）— .pa11yci 配置 urls + threshold
+npx pa11y-ci --json > a11y-pa11y.json
+#   或单 URL：npx pa11y --standard WCAG2AA --reporter json <url>
+
+# D. vitest-axe（组件级）— 在 component test 里 expect(await axe(container)).toHaveNoViolations()
+npx vitest run --reporter=json a11y
+```
+
+**axe Playwright 用法骨架**（项目侧 spec，runner 跑它、不写它）：
+
+```ts
+import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+test('checkout page @a11y', async ({ page }) => {
+  await page.goto('/checkout');
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])  // §3.6.4 标签映射
+    .analyze();
+  expect(results.violations).toEqual([]);  // gate：critical/serious 见 §6.5 floor
+});
+```
+
+`pa11y-ci` 配置骨架（`.pa11yci`，`WCAG2AA` 标准 + threshold）：
+
+```json
+{
+  "defaults": { "standard": "WCAG2AA", "threshold": 0, "timeout": 30000 },
+  "urls": ["https://staging.example.com/", "https://staging.example.com/checkout"]
+}
+```
+
+### 3.6.3 CI wiring（GitHub Actions — a11y job 进 release gate）
+
+> a11y 进 CI 是 §4 Layer 8（含 HTML 输出的 surface 必跑）+ commercial-cert 的 hard gate（§6.5 floor）。下面是最小可用 job 骨架（注入 staging URL，evidence 上传给 `qa-evidence-bundle` 引用）：
+
+```yaml
+# .github/workflows/qa-a11y.yml （或并入既有 qa job）
+a11y:
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with: { node-version: 20, cache: npm }
+    - run: npm ci
+    - run: npx playwright install --with-deps chromium   # 仅 @axe-core/playwright 路径需要
+    # 主路径：axe + Playwright（真实渲染）
+    - run: npx playwright test --grep @a11y --reporter=json > a11y-axe.json
+      continue-on-error: true     # 由 deterministic A11yGate / qa-evidence-bundle 裁决，不靠 step exit
+    # 可选：Lighthouse a11y 分数门
+    - run: npx lhci autorun --collect.settings.onlyCategories=accessibility || true
+    # 可选：pa11y-ci 批量
+    - run: npx pa11y-ci --json > a11y-pa11y.json || true
+    - uses: actions/upload-artifact@v4
+      with: { name: a11y-evidence, path: "a11y-*.json" }
+```
+
+> **裁决归 gate，不靠 CI step exit**：CI step 用 `continue-on-error`/`|| true` 收集证据即可；PASS/WARN/BLOCK 由 §6.5 `a11y_gate_policy`（workflow 模式）或 `qa-evidence-bundle`（prompt-only）按 floor 裁决。**绝不**为了 step 变绿而放宽阈值（违反父级 Hard Rule §2.7 + §8 Forbidden）。
+
+### 3.6.4 WCAG 2.2 AA ↔ axe tag 映射（自动化覆盖哪些、漏哪些）
+
+axe-core 用 `withTags()` 选规则集。覆盖 WCAG 2.2 AA 需挂全下列标签；但**自动化仅约 57% SC 可机检**（§1），剩余须 §3.5 manual 档补：
+
+| axe tag | 覆盖 | 机检性 |
+|---|---|---|
+| `wcag2a` / `wcag2aa` | WCAG 2.0 A/AA | 自动 |
+| `wcag21a` / `wcag21aa` | WCAG 2.1 新增 A/AA | 自动 |
+| `wcag22aa` | WCAG 2.2 新增 AA（部分，如 2.4.11 Focus Not Obscured 的可机检子集） | 部分自动 |
+| `best-practice` | axe 最佳实践（非 WCAG 强制） | 自动（advisory） |
+
+**axe 标签覆盖不到、必须 manual / semi-automated 的 WCAG 2.2 新增 A/AA**（与 §3.5 表一致）：`2.5.7` Dragging Movements（manual）· `2.5.8` Target Size（semi-automated 可脚本量测 ≥24×24px）· `3.2.6` Consistent Help（manual）· `3.3.7` Redundant Entry（manual）· `3.3.8` Accessible Authentication（manual）。→ 这 5 条是 §3.5 "axe 全绿 ≠ AA pass" 的具体落点。
+
 ## 4. Non-responsibilities
 
 - 不替代真正屏幕阅读器人工测试（NVDA / JAWS / VoiceOver 测试需 owner 安排）

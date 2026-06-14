@@ -1,0 +1,80 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "acme",
+  "homepage": "https://acme.com",
+  "items": [
+    {
+      "name": "acme-style",
+      "type": "registry:style",
+      "title": "Acme Design System",
+      "description": "Whole-system installer: design tokens (cssVars sourced from design-token-pipeline) + base components. `npx shadcn add @acme/acme-style` bootstraps a fresh project with the full chassis.",
+      "dependencies": ["tailwindcss"],
+      "registryDependencies": ["button", "stat-card"],
+      "cssVars": {
+        "theme": {
+          "--radius": "0.625rem",
+          "--font-sans": "Geist, ui-sans-serif, system-ui, sans-serif",
+          "--font-mono": "Geist Mono, ui-monospace, monospace",
+          "--duration-fast": "150ms",
+          "--ease-standard": "cubic-bezier(0.4, 0, 0.2, 1)"
+        },
+        "light": {
+          "--background": "oklch(1 0 0)",
+          "--foreground": "oklch(0.14 0 0)",
+          "--primary": "oklch(0.62 0.19 260)",
+          "--primary-foreground": "oklch(0.99 0 0)",
+          "--muted": "oklch(0.97 0 0)",
+          "--border": "oklch(0.92 0 0)"
+        },
+        "dark": {
+          "--background": "oklch(0.14 0 0)",
+          "--foreground": "oklch(0.98 0 0)",
+          "--primary": "oklch(0.70 0.16 260)",
+          "--primary-foreground": "oklch(0.14 0 0)",
+          "--muted": "oklch(0.22 0 0)",
+          "--border": "oklch(0.27 0 0)"
+        }
+      }
+    },
+    {
+      "name": "button",
+      "type": "registry:ui",
+      "title": "Button",
+      "description": "Primary action button with variants. Example registry:ui item.",
+      "dependencies": ["@radix-ui/react-slot", "class-variance-authority"],
+      "registryDependencies": [],
+      "files": [
+        {
+          "path": "registry/ui/button.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "stat-card",
+      "type": "registry:block",
+      "title": "Stat Card",
+      "description": "Dashboard KPI block composed from the design system. Example registry:block item that depends on another registry item.",
+      "dependencies": [],
+      "registryDependencies": ["button"],
+      "files": [
+        {
+          "path": "registry/blocks/stat-card.tsx",
+          "type": "registry:block"
+        }
+      ]
+    },
+    {
+      "name": "use-mounted",
+      "type": "registry:hook",
+      "title": "useMounted",
+      "description": "SSR-safe mounted-state hook. Example registry:hook item.",
+      "files": [
+        {
+          "path": "registry/hooks/use-mounted.ts",
+          "type": "registry:hook"
+        }
+      ]
+    }
+  ]
+}

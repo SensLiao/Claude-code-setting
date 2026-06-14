@@ -87,6 +87,7 @@
       "domain": "uiux",
       "kind": "orchestrator",
       "selector": {"all_of": [{"signal": "ui_present", "equals": true}]},
+      "agent_addon": ["uiux-surface-builder", "uiux-design-reviewer"],
       "priority": "high"
     },
     "taste-skill": {
@@ -163,6 +164,43 @@
       "_note": "Composes on top of the locked L3 style; NOT an L3 style itself — does NOT join the l3-style mutex.",
       "priority": "medium"
     },
+    "design-token-pipeline": {
+      "domain": "uiux",
+      "kind": "narrow",
+      "selector": {
+        "all_of": [
+          {"signal": "ui_present", "equals": true},
+          {"signal": "surface", "contains_any": ["public-web", "internal-web", "design-prototype"]}
+        ]
+      },
+      "_note": "Design-token foundation (Style Dictionary / Terrazzo, multi-theme / dark-mode, DTCG). Feeds taste-skill / shadcn-registry / theme-factory / motion-engineering. Replaces the old 27-line stub (U1).",
+      "priority": "medium"
+    },
+    "motion-engineering": {
+      "domain": "uiux",
+      "kind": "narrow",
+      "selector": {
+        "all_of": [
+          {"signal": "ui_present", "equals": true},
+          {"signal": "surface", "contains_any": ["public-web", "design-prototype"]}
+        ]
+      },
+      "_note": "GSAP / ScrollTrigger / useGSAP scroll-motion engineering (U2). Consumes motion tokens from design-token-pipeline; composes UNDER the locked L3 style — never an L3 style itself.",
+      "priority": "medium"
+    },
+    "shadcn-registry": {
+      "domain": "uiux",
+      "kind": "narrow",
+      "selector": {
+        "all_of": [
+          {"signal": "ui_present", "equals": true},
+          {"signal": "framework", "contains_any": ["next", "react"]}
+        ]
+      },
+      "requires": ["design-token-pipeline"],
+      "_note": "Self-hosted shadcn registry to reuse one design system across repos (React/Next, U5). Consumes design-token-pipeline outputs; consumed by uiux-surface-builder.",
+      "priority": "low"
+    },
 
     "enterprise-qa-testing": {
       "domain": "qa",
@@ -176,6 +214,64 @@
       },
       "rules_addon": ["testing-policy.md"],
       "priority": "high"
+    },
+    "qa-load-stress-reliability": {
+      "domain": "qa",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "_derived.needs_release_gate", "equals": true},
+          {"signal": "risk_surface", "contains_any": ["public-api", "payment"]},
+          {"signal": "_derived.is_saas", "equals": true}
+        ]
+      },
+      "requires": ["enterprise-qa-testing"],
+      "agent_addon": ["qa-load-stress-runner"],
+      "_note": "k6 load/stress/soak/spike + capacity-ceiling (Q1). STAGING/LAB ONLY — runner refuses production.",
+      "priority": "medium"
+    },
+    "qa-mutation-effectiveness": {
+      "domain": "qa",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "risk_surface", "contains_any": ["auth", "payment", "financial"]},
+          {"signal": "_derived.is_saas", "equals": true}
+        ]
+      },
+      "requires": ["enterprise-qa-testing"],
+      "agent_addon": ["qa-mutation-runner"],
+      "_note": "Mutation testing (StrykerJS / cargo-mutants / mutmut / PIT) scoped to high/critical-risk module diffs (Q2). Measures TEST-SUITE effectiveness, not code correctness.",
+      "priority": "medium"
+    },
+    "qa-mobile-native-e2e": {
+      "domain": "qa",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "mobile_native_signal", "equals": true},
+          {"signal": "distribution", "contains_any": ["app-store", "play-store"]}
+        ]
+      },
+      "requires": ["enterprise-qa-testing"],
+      "agent_addon": ["qa-mobile-e2e-runner"],
+      "_note": "DORMANT/backup — Maestro native-app E2E (Q3). Activates ONLY on a real mobile-app marker; emits NOT_APPLICABLE on web/backend.",
+      "priority": "low"
+    },
+    "qa-resilience-fault-injection": {
+      "domain": "qa",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "deploy_target", "contains_any": ["k8s", "docker-compose"]},
+          {"signal": "data_layer", "contains_any": ["sql-db", "nosql", "blob-storage"]},
+          {"signal": "_derived.is_saas", "equals": true}
+        ]
+      },
+      "requires": ["enterprise-qa-testing"],
+      "agent_addon": ["qa-resilience-runner"],
+      "_note": "RED-LINE chaos/fault-injection (Toxiproxy / Pumba / stress-ng, Q4). Planning-first DOUBLE-GATE; STAGING/LAB ONLY; always rolls back. Runner refuses un-gated + production.",
+      "priority": "low"
     },
 
     "appsec-security-orchestrator": {
@@ -426,6 +522,72 @@
       "requires": ["appsec-security-orchestrator"],
       "priority": "high"
     },
+    "security-app-fuzzing": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "risk_surface", "contains_any": ["file-upload", "llm-agentic", "public-api"]},
+          {"signal": "lang", "contains_any": ["rust", "go", "cpp", "c"]}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "_note": "Coverage-guided fuzzing (libFuzzer / AFL++ / cargo-fuzz / Atheris / Jazzer / fast-check), incl. AI-agent tool-boundary fuzz (A1). Native fuzzers need WSL2/Linux on Windows.",
+      "priority": "medium"
+    },
+    "security-app-sast-deep": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "risk_surface", "contains_any": ["auth", "payment", "public-api", "multitenant", "pii"]},
+          {"signal": "_derived.is_saas", "equals": true}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator"],
+      "_note": "Deep taint/dataflow SAST (Semgrep taint / CodeQL / Joern) for source-to-sink reachability confirmation (A2).",
+      "priority": "medium"
+    },
+    "security-pentest-ai-redteam": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {
+        "any_of": [
+          {"signal": "risk_surface", "contains": "llm-agentic"},
+          {"signal": "ai_pattern", "in": ["agentic", "chat", "rag"]}
+        ]
+      },
+      "requires": ["appsec-security-orchestrator", "security-app-llm"],
+      "_note": "AI/agentic red-team harnessed eval (PyRIT / promptfoo) against OWN/lab/staging agents only (P3). Read-only; third-party/production needs the manual authorized-pentest-validation gate.",
+      "priority": "medium"
+    },
+    "dast-authenticated": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {"never": true, "note": "RED-LINE authenticated DAST — installed only when user answers Q-pentest = yes (HARD-REQUIRES ROE)."},
+      "manual_only_question": "Q-pentest",
+      "requires": ["appsec-security-orchestrator", "dast-baseline-scanning", "pentest-scope-and-roe"],
+      "_note": "RED-LINE authenticated/logged-in DAST (ZAP AF + Nuclei-with-session, A4). Wrapper-only; HARD-REQUIRES completed ROE + per-session human authorization. Frozen name. Offensive tools install at ROE-time, not bootstrap.",
+      "priority": "low"
+    },
+    "security-pentest-recon-scan": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {"never": true, "note": "Authorized recon/scan — installed only when user answers Q-pentest = yes."},
+      "manual_only_question": "Q-pentest",
+      "requires": ["appsec-security-orchestrator", "pentest-scope-and-roe"],
+      "_note": "Templated recon + authorized scanning (nuclei / amass / ffuf / httpx, P2) — wrapper-only, ROE-gated, never auto-scans. Offensive tools install at ROE-time, not bootstrap.",
+      "priority": "low"
+    },
+    "security-pentest-exploitation-planning": {
+      "domain": "appsec",
+      "kind": "narrow",
+      "selector": {"never": true, "note": "Exploitation/adversary-sim PLANNING reference — installed only when user answers Q-pentest = yes."},
+      "manual_only_question": "Q-pentest",
+      "requires": ["appsec-security-orchestrator", "pentest-scope-and-roe", "security-pentest-recon-scan"],
+      "_note": "PLANNING/REFERENCE ONLY (Metasploit / Sliver / Caldera / Pacu / BloodHound, P5). Read-only; never executes; offensive tools never bootstrap-installed.",
+      "priority": "low"
+    },
 
     "discoverability-orchestrator": {
       "domain": "discoverability",
@@ -439,6 +601,7 @@
       },
       "rules_addon": ["discoverability-l12.md"],
       "template_addon": ["discoverability/"],
+      "agent_addon": ["disc-scope-classifier", "disc-evidence-validator", "disc-remediation-planner", "disc-measurement-puller"],
       "priority": "high"
     },
     "web-seo": {
@@ -484,6 +647,22 @@
       "selector": {"all_of": [{"signal": "distribution", "contains_any": ["app-store", "play-store"]}]},
       "requires": ["discoverability-orchestrator"],
       "priority": "high"
+    },
+    "discoverability-growth": {
+      "domain": "discoverability",
+      "kind": "narrow",
+      "selector": {
+        "all_of": [
+          {"signal": "surface", "contains": "public-web"},
+          {"any_of": [
+            {"signal": "content_type", "contains_any": ["marketing-site", "docs-site", "content-app"]},
+            {"signal": "_derived.is_consumer_web", "equals": true}
+          ]}
+        ]
+      },
+      "requires": ["discoverability-orchestrator"],
+      "_note": "Growth-execution (keyword strategy / content-gap / programmatic SEO) via advertools (L2). Not a new audit channel — consumes measurement.json.",
+      "priority": "medium"
     },
 
     "env-parity-baseline": {

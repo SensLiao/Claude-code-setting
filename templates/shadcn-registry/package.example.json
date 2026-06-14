@@ -1,0 +1,12 @@
+{
+  "//": "Add these scripts to your REGISTRY-HOST project's package.json. registry:build flattens registry.json into public/r/*.json; registry:check is the CI drift guard (fails if public/r was hand-edited instead of regenerated from source).",
+  "name": "acme-registry",
+  "private": true,
+  "scripts": {
+    "registry:build": "shadcn build",
+    "registry:check": "shadcn build && git diff --exit-code public/r/"
+  },
+  "devDependencies": {
+    "shadcn": "latest"
+  }
+}

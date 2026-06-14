@@ -13,6 +13,9 @@
 tokens/
 oauth/
 *token*
+# design-token-pipeline 是合法 skill（非 secret），豁免上面的 *token* 误伤
+!skills/design-token-pipeline/
+!skills/design-token-pipeline/**
 *.pem
 *.key
 *.p12

@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/RESILIENCE_SCHEMA.v1",
+  "title": "Chaos / Fault-Injection / Resilience Runner Output",
+  "description": "Output of qa-resilience-runner agent (CAPABILITY-UPGRADE Wave B, Q4 — RED-LINE). Runs hypothesis-driven, blast-radius-bounded fault-injection experiments (Toxiproxy latency/partition/bandwidth/timeout + Pumba container kill/pause/netem + resource pressure) against an AUTHORIZED NON-PRODUCTION target only, after the parent skill's planning-first DOUBLE-GATE. Steady-state measured BEFORE and AFTER; the injected fault is ALWAYS rolled back. Consumed by enterprise-qa-testing Resilience/Fault-Injection layer (§4). decision_hint is a draft — the parent skill / deterministic gate makes the final call. Production/unproven target OR un-approved experiment OR un-rolled-back fault => BLOCKED, never PASS. Safety boundary REUSES parent Hard Rule §2.6 (no new gate machinery).",
+  "type": "object",
+  "required": ["command_evidence", "environment", "gates", "results", "decision_hint"],
+  "properties": {
+    "command_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["cmd", "exit_code"],
+        "properties": {
+          "cmd": { "type": "string" },
+          "stdout": { "type": "string" },
+          "stderr": { "type": "string" },
+          "exit_code": { "type": "integer" },
+          "duration_ms": { "type": "integer" }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "required": ["target", "is_production"],
+      "properties": {
+        "target": { "type": "string", "description": "staging/lab/preview host — production is BLOCKED per parent Hard Rule §2.6, even in plan-only" },
+        "is_production": { "type": "boolean", "description": "MUST be false; a passing run against a production/unproven-production target is INVALID" },
+        "environment_confirmed_by": { "type": "string", "description": "handle/source that positively proved the target is non-production" },
+        "isolation": { "type": "string", "enum": ["docker-network", "k8s-namespace", "lab", "localhost"], "description": "how the blast radius is physically/network isolated" }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "required": ["gate1_experiment_approved", "gate2_execution_mode"],
+      "properties": {
+        "gate1_experiment_approved": { "type": "boolean", "description": "GATE-1 planning approval — the human approved this designed experiment. MUST be true for execution mode; false => BLOCKED (never auto-inject)." },
+        "gate1_approved_by": { "type": "string" },
+        "gate2_execution_mode": { "type": "string", "enum": ["execution", "plan-only", "design-only"] }
+      }
+    },
+    "experiment": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "steady_state": {
+          "type": "object",
+          "properties": {
+            "metric": { "type": "string", "description": "business/output metric, not an internal resource metric" },
+            "healthy_threshold": { "type": "string" },
+            "measured_baseline": { "type": "string", "description": "observed before injection; must come from a real probe" }
+          }
+        },
+        "hypothesis": { "type": "string", "description": "the falsifiable claim: steady state holds after injection because of mechanism X" },
+        "fault": {
+          "type": "object",
+          "required": ["category", "tool"],
+          "properties": {
+            "category": { "type": "string", "enum": ["network-latency", "network-partition", "bandwidth", "container-kill", "container-pause", "netem", "dependency-failure", "resource-pressure"] },
+            "tool": { "type": "string", "enum": ["toxiproxy", "pumba", "stress-ng", "service-virtualization"] },
+            "injection": { "type": "string", "description": "exact bounded injection, e.g. latency=2000ms toxicity=0.5 on payment-proxy" },
+            "blast_radius": { "type": "string", "description": "precise bound: which proxy/container + toxicity + duration — MUST be bounded or run is BLOCKED" },
+            "duration": { "type": "string", "description": "bounded; Pumba/stress carry --duration/--timeout, Toxiproxy toxic is on a single named proxy" }
+          }
+        },
+        "abort_conditions": { "type": "array", "items": { "type": "string" } },
+        "rollback_plan": { "type": "string", "description": "deterministic restore steps, prepared BEFORE injection" }
+      }
+    },
+    "results": {
+      "type": "object",
+      "properties": {
+        "steady_state_held": { "type": "boolean", "description": "did steady state hold (hypothesis verified). false = a real resilience weakness was found (FAIL, valuable), NOT something to hide." },
+        "observed_behavior": {
+          "type": "object",
+          "properties": {
+            "timeout_triggered": { "type": ["boolean", "string"] },
+            "retry_bounded": { "type": ["boolean", "string"], "description": "no retry storm" },
+            "circuit_breaker_opened": { "type": ["boolean", "string"] },
+            "graceful_degradation": { "type": ["boolean", "string"] },
+            "cascade_contained": { "type": ["boolean", "string"], "description": "fault did not drag down unrelated functionality" },
+            "alert_fired": { "type": ["boolean", "string"] },
+            "data_integrity_preserved": { "type": ["boolean", "string"] }
+          }
+        },
+        "recovery": {
+          "type": "object",
+          "required": ["rollback_executed"],
+          "properties": {
+            "rollback_executed": { "type": "boolean", "description": "MUST be true on any executed run — chaos is observe-and-rollback; a leftover fault = BLOCKED, never PASS" },
+            "self_healed": { "type": "boolean", "description": "system auto-recovered after fault removal" },
+            "steady_state_restored": { "type": "boolean", "description": "steady state confirmed restored after rollback (re-measured)" },
+            "mttr_seconds": { "type": "number", "description": "mean time to recovery; MUST come from real measurement, never invented" }
+          }
+        },
+        "weaknesses_found": { "type": "array", "items": { "type": "string" }, "description": "resilience gaps: no timeout / unbounded retry / no degradation / cascade / no alert" }
+      }
+    },
+    "artifacts": { "type": "array", "items": { "type": "string" } },
+    "notes": { "type": "array", "items": { "type": "string" }, "description": "SCOPE_CREEP: / THRESHOLD_WEAKENED: prefixed entries surface (do not act on) widened blast radius / loosened steady-state threshold / removed --duration / missing rollback" },
+    "decision_hint": { "type": "string", "enum": ["PASS", "WARN", "FAIL", "BLOCKED", "NOT_APPLICABLE"], "description": "Agent's draft assessment; parent skill / deterministic gate makes final decision. steady_state_held && rollback_executed && steady_state_restored => PASS; steady_state_held=false => FAIL (weakness found); production/unproven target OR gate1 not approved OR fault not rolled back OR unbounded => BLOCKED." }
+  }
+}

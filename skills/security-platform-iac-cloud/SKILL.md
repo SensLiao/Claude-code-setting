@@ -14,7 +14,11 @@ standards_versions:
   - CIS Controls: v8.1
   - CIS Benchmarks: AWS / GCP / Azure / Kubernetes / Docker
   - OWASP ASVS: 5.0 (V13 Configuration)
-  - NIST CSF: 2.0 (PR.IP, PR.PT, DE.CM)
+  - NIST CSF: 2.0 (PR.IP, PR.PT, PR.PS, DE.CM)
+  - Pod Security Standards: restricted / baseline (k8s admission)
+  - Kyverno / OPA Gatekeeper: admission control policy (defensive authoring)
+  - Security Profiles Operator: seccomp / SELinux / AppArmor least-privilege recording
+  - Tetragon: eBPF runtime observability + enforcement (TracingPolicy)
 sensitive_data_rules:
   never_read: [".env*", "secrets/**", "*.tfstate", "*.tfvars", "*.pem", "*.key", "kubeconfig", "credentials"]
   never_write: ["actual resource modifications"]
@@ -59,13 +63,27 @@ trigger_phrases:
 
 | Trigger | Action |
 |---|---|
-| 项目使用 Terraform / Helm / K8s manifests / Ansible / Pulumi | 默认激活 |
+| 项目使用 Terraform / Helm / K8s manifests / Ansible / Pulumi | 默认激活（template scan）|
 | 新增云资源 | IaC PR 触发 |
 | 容器化项目（Dockerfile 存在）| 镜像扫描 + Hadolint |
 | K8s 部署 | kube-bench + manifest scan |
 | 云账号引入 | 全量 cloud posture baseline |
 | 定期巡检（月 / 季）| drift detection + re-baseline |
 | 上线前 | CIS Benchmark 验证 |
+| **◇ k8s 项目** + 需要 admission 准入 / seccomp·AppArmor profile / runtime detection | **激活 §4.5 Runtime Authoring**（仅 k8s 项目，见下方 detection）|
+
+### 2.1 ◇ Kubernetes detection（决定 §4.5 Runtime Authoring 是否激活）
+
+§4.5「Runtime Authoring」是**条件激活段**：仅当项目命中 k8s marker 时才纳入工作流，否则 N/A（与 research 3-appsec §A3 "非 k8s 项目此项 N/A" 一致）。命中任一即视为 k8s 项目：
+
+- `kind: Deployment|StatefulSet|DaemonSet|Pod|Service|Ingress` 等 K8s manifest（`*.yaml` 含 `apiVersion:` + `kind:`）
+- `Chart.yaml` / `values.yaml` / `templates/*.yaml`（Helm chart）
+- `kustomization.yaml`（Kustomize）
+- `skaffold.yaml` / `.argocd/` / `argocd-*.yaml`（GitOps 部署到 k8s）
+- 已有 `kube-system` 引用 / `kubeconfig` context / CI 中 `kubectl` / `helm` 调用
+- 项目 `PROJECT.md` Tech Stack 标注 Kubernetes / EKS / GKE / AKS / k3s / OpenShift
+
+非 k8s 项目（纯 serverless / VM / PaaS / 无编排容器）→ **跳过 §4.5**，只跑 §4 Tier A/B 的 template scan + cloud posture。本段的 admission / SPO / Tetragon **全部** defensive authoring（准入策略 + 最小权限录制 + 检测策略），**不**是 offensive、**不**扫描、**不**改生产集群（见 §4.5 hard rules）。
 
 ---
 
@@ -160,6 +178,202 @@ Step 10 输出 + 路由
         → IaC / cloud / container findings → 写入 AppSec Release Evidence §9 Platform Layer（**不是 SECURITY.md §13** — §13 仅含 Security Headers）
         → 给 risk-register 补条目
 ```
+
+---
+
+## 4.5 Runtime Authoring — Kubernetes / Container 运行时防护（◇ 仅 k8s 项目）
+
+> 加入 2026-06-15（A3 — 纯能力，**零新 gate**）。本段是 §4 template-scan 的**互补面**，不是替代。
+> **激活条件**：§2.1 检测到 k8s marker。非 k8s 项目 → 整段 N/A，跳过。
+> **全 defensive authoring**：写准入策略（admission）、录最小权限 profile（SPO）、写运行时检测策略（Tetragon）。**绝不**做 offensive、绝不扫生产集群、绝不在没有 user 二次确认时 apply 到 live cluster。
+
+### 4.5.0 边界声明 — RUNTIME authoring ≠ template scanning（关键，别混）
+
+| 维度 | §4 IaC template scan（既有） | §4.5 Runtime authoring（本段新增） |
+|---|---|---|
+| **对象** | 静态 YAML / Dockerfile / *.tf **文件** | 集群**运行时**的 admission / syscall / kernel-level 行为 |
+| **动作** | 读文件 → 报 misconfig（review only） | **编写**防护工件（policy / profile / TracingPolicy YAML）供 user 审后部署 |
+| **时机** | build-time / PR / CI | deploy-time（admission）+ run-time（seccomp / eBPF detection）|
+| **工具** | Checkov / Trivy config / Hadolint / kube-bench | Kyverno / OPA Gatekeeper / Security Profiles Operator / Tetragon |
+| **本 skill 落盘** | 报告（vuln-report / evidence §9） | 防护工件 YAML（写到项目 `security/k8s-runtime/`，**不**直接 apply）|
+
+> 一句话：§4 查"清单写对没"，§4.5 写"运行起来后拿什么挡 + 拿什么看"。两者都不改生产集群——§4 是 review，§4.5 是产出 user 去 apply 的工件。
+
+### 4.5.1 三层运行时防护（admission → least-privilege → detection）
+
+```
+        ┌─────────────────────────── deploy-time ───────────────────────────┐
+Layer 1 │ Admission control   Kyverno / OPA Gatekeeper                       │
+        │   准入即拦截：把 §5 K8s checklist 的硬项变成集群级 enforce 策略     │
+        └────────────────────────────────────────────────────────────────────┘
+        ┌─────────────────────────── workload-spec ──────────────────────────┐
+Layer 2 │ Least-privilege     Security Profiles Operator (SPO)               │
+        │   ProfileRecording 从真实流量录最小 seccomp / SELinux / AppArmor    │
+        └────────────────────────────────────────────────────────────────────┘
+        ┌─────────────────────────── run-time ───────────────────────────────┐
+Layer 3 │ Runtime detection   Tetragon (eBPF) — 默认 observe，Sigkill 须显式 │
+        │   TracingPolicy 声明式监控 syscall / 文件 / 网络异常               │
+        └────────────────────────────────────────────────────────────────────┘
+```
+
+### 4.5.2 Layer 1 — Admission control（Kyverno / OPA Gatekeeper）
+
+准入控制器在 Pod **创建/更新进入集群前**校验/变更其 spec —— 把 §5 Kubernetes checklist 从"事后扫描发现违规"升级为"违规根本进不来"。两个主流选型：
+
+| 选型 | 策略语言 | 适合 | 许可 |
+|---|---|---|---|
+| **Kyverno** | YAML（k8s-native，无需学新 DSL）| 大多数团队首选；validate / mutate / generate / verifyImages | Apache-2.0（CNCF）|
+| **OPA Gatekeeper** | Rego（OPA policy language）| 已有 OPA 生态 / 需要复杂逻辑策略 | Apache-2.0（CNCF）|
+
+**编写纪律**（本 skill 产出 policy YAML 供 user 审 → user apply）：
+
+1. **先 `Audit`/`audit` 模式，后 `Enforce`/`enforce`**：新策略一律先以审计模式上线（只报不拦），观察 violations 不误伤现有 workload，再切 enforce。直接 enforce 易在生产挡掉合法部署。
+2. **映射 §5 checklist 为策略**：每条 K8s checklist 硬项 → 一条 admission rule（如 `runAsNonRoot` / `readOnlyRootFilesystem` / drop ALL caps / 禁 `hostPath` / 禁 `privileged` / require resource limits / 禁 `latest` tag / require NetworkPolicy 标签）。
+3. **Pod Security Standards 对齐**：策略 baseline 至少达 PSS `baseline`，生产目标 `restricted`。
+4. **不在没有 user 二次确认时部署到 live cluster**：本 skill 只写 policy 文件；apply（`kubectl apply` / `helm install kyverno`）是 user 动作（与 §4 Tier B 同纪律）。
+
+**Kyverno 策略示例骨架**（require runAsNonRoot + drop ALL caps，**先 Audit**）：
+
+```yaml
+# security/k8s-runtime/kyverno/require-nonroot-drop-caps.yaml
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-nonroot-drop-caps
+spec:
+  validationFailureAction: Audit   # ← 先 Audit；观察无误伤后改 Enforce
+  background: true
+  rules:
+    - name: require-run-as-non-root
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+      validate:
+        message: "containers must set securityContext.runAsNonRoot=true"
+        pattern:
+          spec:
+            =(securityContext):
+              =(runAsNonRoot): true
+            containers:
+              - =(securityContext):
+                  =(runAsNonRoot): true
+                  =(allowPrivilegeEscalation): false
+                  =(capabilities):
+                    drop: ["ALL"]
+```
+
+**OPA Gatekeeper 等价**：写一个 `ConstraintTemplate`（Rego）+ 对应 `Constraint`（`enforcementAction: dryrun` 先行，等价 Kyverno 的 Audit）。
+
+CLI（命令留档，实装以各 repo 当下 README 为准 — 版本号别写死）：
+- 安装 Kyverno：`helm install kyverno kyverno/kyverno -n kyverno --create-namespace`（CNCF chart）
+- 本地校验策略 against manifest（**不连集群**）：`kyverno apply security/k8s-runtime/kyverno/ --resource <your-manifests-dir>`（kyverno CLI dry-run，可进 CI）
+- Gatekeeper：`helm install gatekeeper gatekeeper/gatekeeper -n gatekeeper-system --create-namespace`
+
+### 4.5.3 Layer 2 — Least-privilege profiles（Security Profiles Operator）
+
+Security Profiles Operator（SPO，kubernetes-sigs，Apache-2.0）负责把 seccomp / SELinux / AppArmor profile 作为 k8s CRD 管理并下发到节点。核心能力 = **`ProfileRecording` 从真实流量录最小权限**，避免手写 syscall allowlist 的猜测。
+
+**录制 → 固化流程**（defensive，本 skill 写 CRD YAML + recording 流程指导）：
+
+```
+Step A  装 SPO（user 动作）：kubectl apply -f <SPO release manifests>（含 cert-manager 前置）
+Step B  写 ProfileRecording CRD（recorder: bpf 或 logs）选中目标 workload label
+Step C  在 staging/lab 跑真实/代表性流量（让 workload 执行全部正常路径）
+Step D  停录 → SPO 生成 SeccompProfile / SelinuxProfile / AppArmorProfile CRD（最小集）
+Step E  人工审 profile（去掉录制噪声 / 补漏掉的低频合法 syscall）
+Step F  把 profile 挂回 workload securityContext.seccompProfile（type: Localhost）
+Step G  先以 audit/complain 模式观察一轮，再切 enforce
+```
+
+**`ProfileRecording` 骨架**：
+
+```yaml
+# security/k8s-runtime/spo/recording-api.yaml
+apiVersion: security-profiles-operator.x-k8s.io/v1alpha1
+kind: ProfileRecording
+metadata:
+  name: api-seccomp-recording
+  namespace: app-staging       # ← staging/lab，绝不生产录制
+spec:
+  kind: SeccompProfile
+  recorder: bpf                 # bpf（eBPF）或 logs（audit log）
+  mergeStrategy: containers
+  podSelector:
+    matchLabels:
+      app: api                  # 选中要录的 workload
+```
+
+**录制纪律（safety）**：
+- ❌ **绝不**在生产环境跑 ProfileRecording（录制 = 观测真实流量；放生产有侧信道/性能风险，且录到的 profile 可能含异常路径）。只在 **staging / lab** 录。
+- ❌ **绝不**把录制出的 `SeccompProfile: Unconfined`（空/全放）当成"已加固"——录制噪声需人工裁剪。
+- seccomp profile 切 enforce 前必须先 `audit`（complain）一轮，确认无 legit syscall 被挡（否则 workload 直接 crash）。
+- 默认起点用 upstream `RuntimeDefault` seccomp（比 Unconfined 强很多、零维护），SPO 录制是在此之上做 workload-specific 收紧。
+
+CLI（命令留档）：
+- 安装 SPO：`kubectl apply -f https://github.com/kubernetes-sigs/security-profiles-operator/releases/download/<version>/operator.yaml`（需 cert-manager）
+- 录制依赖 SPO 的 `spod` DaemonSet + `enableBpfRecorder: true`（用 bpf recorder 时）。
+
+### 4.5.4 Layer 3 — Runtime detection（Tetragon eBPF）
+
+Tetragon（cilium，eBPF-based，Apache-2.0）在内核态观测进程/文件/网络/syscall 事件；`TracingPolicy` 是声明式 YAML 策略。它能 **observe**（产 event）或 **enforce**（内核态 `Sigkill` 同步阻断）。
+
+**铁律 — 默认 observe，Sigkill 须显式（safety boundary）**：
+
+- ✅ **默认只 observe**：写 TracingPolicy 先做"监控 + 告警"，产出 event 流接 SIEM / 审计。这是绝大多数场景的正确起点。
+- ⚠️ **`Sigkill` action 须显式 + 经 user 审批**：内核态 kill 进程是高风险（误杀合法进程 = 自造 DoS）。任何含 `Sigkill` / `Override` enforcement 的 TracingPolicy 必须：(1) 先以 observe 版本跑一轮验证规则不误报；(2) user 显式确认"我授权在 <env> 启用 Tetragon 内核态阻断"；(3) 默认只在 staging 验证，生产 enforce 须额外二次确认。
+- ❌ **绝不**默认产出带 `Sigkill` 的策略；绝不在 observe 验证前直接 enforce。
+
+**TracingPolicy 骨架（observe-only — 监控写敏感路径）**：
+
+```yaml
+# security/k8s-runtime/tetragon/monitor-sensitive-write.yaml
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: monitor-sensitive-write
+spec:
+  kprobes:
+    - call: "security_file_permission"
+      syscall: false
+      args:
+        - index: 0
+          type: "file"
+        - index: 1
+          type: "int"
+      selectors:
+        - matchArgs:
+            - index: 1
+              operator: "Equal"
+              values: ["2"]          # MAY_WRITE
+          matchActions:
+            - action: Post           # ← observe：产 event，不阻断
+        # 若要阻断：增加 action: Sigkill —— 但须先 observe 验证 + user 显式授权（见上铁律）
+```
+
+**Tetragon vs Falco（§3 Coverage Matrix 已列两者）**：两者都做 runtime detection；Falco 偏 rule-based 告警（成熟、规则库大），Tetragon 偏 eBPF + 声明式 policy + 可选内核态 enforce。本 skill 写策略时按项目已有栈选；**两者的 enforce/kill 能力都遵守"observe-default、阻断须显式授权"铁律**。
+
+CLI（命令留档）：
+- 安装 Tetragon：`helm install tetragon cilium/tetragon -n kube-system`
+- 看 event（observe 验证）：`kubectl exec -n kube-system ds/tetragon -c tetragon -- tetra getevents -o compact`
+- 应用策略（user 动作，审后）：`kubectl apply -f security/k8s-runtime/tetragon/<policy>.yaml`
+
+### 4.5.5 Runtime authoring → finding / evidence 接口
+
+§4.5 产出的是**防护工件**（不是漏洞 finding）。但运行时 detection 触发的真实异常、或 admission audit 暴露的违规聚类，按 §7 Output Contract 走：
+
+- Admission `Audit` 模式暴露的 violation 聚类（如"30% workload 跑 root"）→ 作为 misconfig finding 经 `appsec-sdk finding.add`（`source: container_scan`，`csf_function: PR`，映射 ASVS v5.0.0-13.x / NIST SP 800-190）。
+- Tetragon observe 捕获的运行时异常（容器内起 shell / 写 `/etc` / 异常出站）→ 若构成 incident，escalate `security-response-incident-response`；若是 detection gap，记 risk-register。
+- 防护工件本身（policy / profile / TracingPolicy YAML）写到项目 `security/k8s-runtime/`，列入版本控制（**不**含 secret），作为 §9 Platform Layer evidence 的配套工件引用。
+
+### 4.5.6 §4.5 Hard Rules（运行时 authoring 专属，叠加 §6）
+
+- ❌ **不**直接 apply policy / profile / TracingPolicy 到 live cluster（本 skill 只写工件；apply 是 user 二次确认动作，同 §4 Tier B）
+- ❌ **不**默认产出带 `Sigkill` / `Override` / `enforce` 的 Tetragon 策略（默认 observe；阻断须 observe 验证 + user 显式授权）
+- ❌ **不**在生产环境跑 SPO `ProfileRecording`（只在 staging/lab 录；录制 = 观测真实流量）
+- ❌ **不**直接把新 admission 策略上 `Enforce`（先 `Audit`/`dryrun` 观察无误伤再 enforce）
+- ❌ **不**把录制出的 `Unconfined` / 空 profile 当作"已加固"（录制噪声须人工裁剪）
+- ❌ **不**把 §4.5 当 offensive —— admission/SPO/Tetragon 全是 defensive（准入 / 最小权限 / 检测）；本 skill 永不做 active scan / exploit / 攻击集群
 
 ---
 
@@ -272,6 +486,13 @@ Step 10 输出 + 路由
 - [kube-bench](https://github.com/aquasecurity/kube-bench)
 - [Prowler](https://github.com/prowler-cloud/prowler)
 - [Falco](https://falco.org/)
+- §4.5 Runtime authoring (◇ k8s):
+  - [Kyverno (CNCF, admission control)](https://github.com/kyverno/kyverno)
+  - [OPA Gatekeeper (CNCF, admission control)](https://github.com/open-policy-agent/gatekeeper)
+  - [Security Profiles Operator (kubernetes-sigs)](https://github.com/kubernetes-sigs/security-profiles-operator)
+  - [Tetragon (Cilium, eBPF runtime detection)](https://github.com/cilium/tetragon)
+  - [Kubernetes Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/)
 - [appsec-security-orchestrator](../appsec-security-orchestrator/SKILL.md)
 - [security-platform-secrets](../security-platform-secrets/SKILL.md)
 - [env-parity-baseline](../env-parity-baseline/SKILL.md)
+- [security-response-incident-response](../security-response-incident-response/SKILL.md)（§4.5.5 runtime detection → incident escalation）

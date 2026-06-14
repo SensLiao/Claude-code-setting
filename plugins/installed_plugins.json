@@ -99,6 +99,96 @@
         "lastUpdated": "2026-06-10T11:23:22.923Z",
         "gitCommitSha": "807e03ac9d5aa23bc395fdec8c3767500a86b3cf"
       }
+    ],
+    "bencium-controlled-ux-designer@bencium-marketplace": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_HOME_JSON__\\plugins\\cache\\bencium-marketplace\\bencium-controlled-ux-designer\\1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-06-12T02:20:31.937Z",
+        "lastUpdated": "2026-06-12T02:20:31.937Z",
+        "gitCommitSha": "20077d3e396e7c5b3eeea035dd0538d2e500ec19"
+      }
+    ],
+    "design-ops@designer-skills": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_HOME_JSON__\\plugins\\cache\\designer-skills\\design-ops\\1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-06-12T02:20:31.937Z",
+        "lastUpdated": "2026-06-12T02:20:31.937Z",
+        "gitCommitSha": "5446f2a8eb8f90d6784578961024ec2db1d231e5"
+      }
+    ],
+    "design-research@designer-skills": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_HOME_JSON__\\plugins\\cache\\designer-skills\\design-research\\1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-06-12T02:20:31.937Z",
+        "lastUpdated": "2026-06-12T02:20:31.937Z",
+        "gitCommitSha": "5446f2a8eb8f90d6784578961024ec2db1d231e5"
+      }
+    ],
+    "designer-toolkit@designer-skills": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_HOME_JSON__\\plugins\\cache\\designer-skills\\designer-toolkit\\1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-06-12T02:20:31.937Z",
+        "lastUpdated": "2026-06-12T02:20:31.937Z",
+        "gitCommitSha": "5446f2a8eb8f90d6784578961024ec2db1d231e5"
+      }
+    ],
+    "prototyping-testing@designer-skills": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_HOME_JSON__\\plugins\\cache\\designer-skills\\prototyping-testing\\1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-06-12T02:20:31.937Z",
+        "lastUpdated": "2026-06-12T02:20:31.937Z",
+        "gitCommitSha": "5446f2a8eb8f90d6784578961024ec2db1d231e5"
+      }
+    ],
+    "ux-strategy@designer-skills": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_HOME_JSON__\\plugins\\cache\\designer-skills\\ux-strategy\\1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-06-12T02:20:31.937Z",
+        "lastUpdated": "2026-06-12T02:20:31.937Z",
+        "gitCommitSha": "5446f2a8eb8f90d6784578961024ec2db1d231e5"
+      }
+    ],
+    "frontend-design-pro@frontend-design-pro": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_HOME_JSON__\\plugins\\cache\\frontend-design-pro\\frontend-design-pro\\1.0.0",
+        "version": "1.0.0",
+        "installedAt": "2026-06-12T02:20:40.616Z",
+        "lastUpdated": "2026-06-12T02:20:40.616Z",
+        "gitCommitSha": "756b8d99618b2c4e8a90c89a99f678009468aae3"
+      }
+    ],
+    "ui-ux-pro-max@ui-ux-pro-max-skill": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_HOME_JSON__\\plugins\\cache\\ui-ux-pro-max-skill\\ui-ux-pro-max\\2.5.0",
+        "version": "2.5.0",
+        "installedAt": "2026-06-12T02:20:56.944Z",
+        "lastUpdated": "2026-06-12T02:20:56.944Z",
+        "gitCommitSha": "b7e3af80f6e331f6fb456667b82b12cade7c9d35"
+      }
+    ],
+    "ux-design@wondelai-skills": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_HOME_JSON__\\plugins\\cache\\wondelai-skills\\ux-design\\1.1.0",
+        "version": "1.1.0",
+        "installedAt": "2026-06-12T02:21:25.105Z",
+        "lastUpdated": "2026-06-12T02:21:25.105Z",
+        "gitCommitSha": "71ae22973d8ccdcccd504f3682db6d621d39c255"
+      }
     ]
   }
 }

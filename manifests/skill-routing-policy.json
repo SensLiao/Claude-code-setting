@@ -34,7 +34,10 @@
         "audit UI", "UI 升级", "重做页面", "原型",
         "premium", "luxury", "brutalist",
         "design system", "tokens", "色彩", "字体",
-        "做一个", "优化", "create", "optimize", "组合"
+        "做一个", "优化", "create", "optimize", "组合",
+        "动效", "动画", "motion", "GSAP", "design token", "设计变量", "多主题",
+        "shadcn registry", "私有组件库", "复用设计系统", "组件库分发",
+        "multi-surface", "量产页面", "设计审", "design review"
       ],
       "orchestrator": "uiux-product-orchestrator",
       "trigger_mode": "auto",
@@ -50,6 +53,51 @@
       "orchestrator": "enterprise-qa-testing",
       "trigger_mode": "auto",
       "notes": "9-layer test matrix decision tree. Includes AppSec routing for backend/API/auth changes."
+    },
+    {
+      "intent_category": "qa_narrow_load_stress_reliability",
+      "intent_keywords": [
+        "load test", "stress test", "soak", "spike", "压测", "负载测试",
+        "k6", "RPS", "capacity", "容量", "p99"
+      ],
+      "orchestrator": "qa-load-stress-reliability",
+      "parent_orchestrator": "enterprise-qa-testing",
+      "trigger_mode": "auto",
+      "notes": "QA load / stress / soak / spike reliability layer (k6 etc.). Dispatched under enterprise-qa-testing; not a standalone release gate."
+    },
+    {
+      "intent_category": "qa_narrow_mutation_effectiveness",
+      "intent_keywords": [
+        "mutation testing", "变异测试", "mutation score", "Stryker",
+        "cargo-mutants", "mutmut", "PIT", "test effectiveness", "测试有效性"
+      ],
+      "orchestrator": "qa-mutation-effectiveness",
+      "parent_orchestrator": "enterprise-qa-testing",
+      "trigger_mode": "auto",
+      "notes": "QA mutation-testing / test-effectiveness layer (Stryker / cargo-mutants / mutmut / PIT). Dispatched under enterprise-qa-testing."
+    },
+    {
+      "intent_category": "qa_narrow_mobile_native_e2e",
+      "intent_keywords": [
+        "mobile e2e", "native app test", "Maestro", "原生 App 测试",
+        "Android 测试", "iOS 测试", "React Native 测试", "Flutter 测试"
+      ],
+      "orchestrator": "qa-mobile-native-e2e",
+      "parent_orchestrator": "enterprise-qa-testing",
+      "trigger_mode": "auto-when-mobile-marker-present",
+      "notes": "QA mobile / native-app E2E layer (Maestro etc.). DORMANT / 备选 — only activates when the project carries a mobile marker (android/ ios/ React Native / Flutter / Expo). Does NOT trigger for web-only projects."
+    },
+    {
+      "intent_category": "qa_narrow_resilience_fault_injection",
+      "intent_keywords": [
+        "chaos", "chaos engineering", "fault injection", "resilience test",
+        "混沌工程", "韧性测试", "故障注入", "Toxiproxy", "Pumba",
+        "blast radius", "爆炸半径", "steady-state hypothesis", "GameDay"
+      ],
+      "orchestrator": "qa-resilience-fault-injection",
+      "parent_orchestrator": "enterprise-qa-testing",
+      "trigger_mode": "auto",
+      "notes": "RED-LINE planning-first double-gate chaos engineering / fault injection (Toxiproxy / Pumba; steady-state hypothesis + blast-radius). Staging only, NEVER production. Dispatched under enterprise-qa-testing; not a standalone release gate."
     },
     {
       "intent_category": "appsec_defensive",
@@ -107,11 +155,14 @@
       "intent_keywords": [
         "IaC scan", "Terraform security", "Checkov", "Hadolint", "Trivy",
         "Kubernetes security", "K8s security", "kube-bench", "Falco",
-        "cloud posture", "Prowler", "container security"
+        "cloud posture", "Prowler", "container security",
+        "Kyverno", "OPA Gatekeeper", "admission control", "Tetragon",
+        "Security Profiles Operator", "seccomp", "AppArmor",
+        "k8s runtime security", "准入控制", "运行时防护"
       ],
       "orchestrator": "security-platform-iac-cloud",
       "trigger_mode": "auto",
-      "notes": "Direct narrow route to IaC/cloud posture skill. Runtime cloud/cluster commands require user explicit confirmation (Tier B per skill §4)."
+      "notes": "Direct narrow route to IaC/cloud posture skill. Runtime cloud/cluster commands require user explicit confirmation (Tier B per skill §4). §4.5 k8s runtime authoring (Kyverno / OPA Gatekeeper admission control / Tetragon / Security Profiles Operator / seccomp / AppArmor) is conditional-k8s (only when a k8s marker is present) and strictly defensive."
     },
     {
       "intent_category": "appsec_narrow_supply_chain",
@@ -120,11 +171,13 @@
         "dependency vulnerability", "依赖漏洞", "CycloneDX", "SPDX", "SLSA",
         "provenance", "in-toto", "cosign", "sigstore", "image signing",
         "镜像签名", "dependency confusion", "typosquatting",
-        "lockfile integrity", "VEX"
+        "lockfile integrity", "VEX",
+        "reachability", "可达性", "漏洞降噪", "SCA 误报", "CSPM",
+        "cloud posture", "prowler", "云安全配置"
       ],
       "orchestrator": "security-platform-supply-chain",
       "trigger_mode": "auto",
-      "notes": "Direct narrow route to supply-chain skill (SBOM gen + provenance/signing + deep SCA). The §16 Step 4 npm/pip/cargo/trivy audit remains the inline floor."
+      "notes": "Direct narrow route to supply-chain skill (SBOM gen + provenance/signing + deep SCA; deepened with reachability-based noise reduction + Prowler CSPM cloud posture). The §16 Step 4 npm/pip/cargo/trivy audit remains the inline floor."
     },
     {
       "intent_category": "appsec_narrow_mobile",
@@ -190,6 +243,39 @@
       "orchestrator": "security-app-api",
       "trigger_mode": "auto",
       "notes": "Direct narrow route to API security skill (OWASP API Top 10:2023, per-endpoint authz for REST / GraphQL / gRPC)."
+    },
+    {
+      "intent_category": "appsec_narrow_fuzzing",
+      "intent_keywords": [
+        "fuzzing", "fuzz test", "模糊测试", "libFuzzer", "AFL++", "cargo-fuzz",
+        "Atheris", "Jazzer", "ClusterFuzzLite", "coverage-guided",
+        "structure-aware", "fuzz harness", "corpus", "工具边界模糊"
+      ],
+      "orchestrator": "security-app-fuzzing",
+      "trigger_mode": "auto",
+      "notes": "Direct narrow route to coverage-guided / structure-aware fuzzing skill (libFuzzer / AFL++ / cargo-fuzz / Atheris / Jazzer / ClusterFuzzLite). Authors fuzz harness + corpus; defensive only."
+    },
+    {
+      "intent_category": "appsec_narrow_sast_deep",
+      "intent_keywords": [
+        "taint analysis", "污点分析", "dataflow", "source to sink",
+        "数据流分析", "CodeQL", "Joern", "semgrep taint", "深度 SAST",
+        "interprocedural", "跨函数分析"
+      ],
+      "orchestrator": "security-app-sast-deep",
+      "trigger_mode": "auto",
+      "notes": "Direct narrow route to deep interprocedural taint/dataflow SAST skill (CodeQL / Joern / semgrep taint). Source→sink reachability; deeper than the inline §16 Step floor."
+    },
+    {
+      "intent_category": "appsec_narrow_dast_authenticated",
+      "intent_keywords": [
+        "authenticated DAST", "登录态扫描", "logged-in scan", "authenticated ZAP scan",
+        "ZAP authentication context", "认证后扫描", "authenticated active scan",
+        "session-based scan", "post-auth DAST"
+      ],
+      "orchestrator": "dast-authenticated",
+      "trigger_mode": "ROE-gated",
+      "notes": "RED-LINE double-gate authenticated/logged-in DAST (ZAP AF browser auth-context + spider + scan, Nuclei-with-session). Middle layer between dast-baseline-scanning (passive) and authorized-pentest-validation (exploitation). HARD-REQUIRES completed .planning/PENTEST-ROE.md + in-scope authorized staging/preview/lab target + active time window + explicit human authorization before any authenticated active step. Wrapper-only (raw ZAP/Nuclei CLI forbidden). NEVER auto-scans; no production; references (never bypasses/weakens) the frozen-name gates dast-baseline-scanning + authorized-pentest-validation."
     },
     {
       "intent_category": "appsec_narrow_payment",
@@ -287,8 +373,68 @@
       "orchestrator": "discoverability-orchestrator",
       "parent_orchestrator": "uiux-product-orchestrator",
       "narrow_skills": ["web-seo", "web-aeo", "web-local-seo", "app-aso"],
+      "growth_skill": "discoverability-growth",
+      "growth_keywords": [
+        "growth", "关键词策略", "keyword strategy", "content gap",
+        "内容缺口", "程序化 SEO", "该写什么内容"
+      ],
+      "measurement_agent": "disc-measurement-puller",
+      "measurement_keywords": [
+        "post-launch measurement", "上线后测量", "GSC", "GA4",
+        "Search Console", "impressions", "clicks", "实际效果回流"
+      ],
+      "narrow_skill_keyword_extensions": {
+        "_comment": "Wave B (2026-06-15) post-launch measurement / CI extensions on existing narrow skills. web-aeo §20 AI citation tracking + app-aso §16.6 ASO measurement are measurement-only (never gate inputs); web-seo §15 tech-SEO CI feeds the seo evidence channel.",
+        "web-aeo": [
+          "AI citation tracking", "citation monitoring", "share of voice",
+          "does Perplexity cite me", "AI 引用追踪", "AI 引用监测"
+        ],
+        "web-seo": [
+          "tech SEO CI", "unlighthouse", "lighthouse-ci", "lhci",
+          "SEO budget", "整站 SEO", "SEO 进 CI"
+        ],
+        "app-aso": [
+          "ASO measurement", "keyword difficulty", "App Store Connect Analytics",
+          "install funnel", "上架后效果", "商店转化率"
+        ]
+      },
       "trigger_mode": "auto",
-      "notes": "L12 release gate; downstream of UIUX orchestrator. Narrow domain words (SEO / AEO / GEO / ASO alone) route directly to narrow skills, not here."
+      "notes": "L12 release gate; downstream of UIUX orchestrator. Narrow domain words (SEO / AEO / GEO / ASO alone) route directly to narrow skills, not here. `discoverability-growth` is growth-EXECUTION (keyword strategy / content-gap / programmatic SEO) — NOT a 5th audit channel and adds NO new evidence channel or gate. `disc-measurement-puller` pulls real post-launch metrics (GSC / GA4 / Bing / ASC) via discoverability-sdk measure.pull/measure.compare — measurement-only, NEVER a gate input (gate.check ignores measurement.json). Wave B narrow_skill_keyword_extensions add post-launch measurement (web-aeo §20 citation tracking, app-aso §16.6 ASO measurement — both measurement-only) + CI (web-seo §15 tech-SEO CI, feeds seo channel)."
+    },
+    {
+      "intent_category": "appsec_narrow_pentest_recon_scan",
+      "intent_keywords": [
+        "recon", "侦察", "reconnaissance", "attack surface mapping",
+        "subdomain enumeration", "子域枚举", "nuclei", "amass", "ffuf", "httpx",
+        "templated vuln scan", "漏洞扫描", "content discovery",
+        "authorized scan", "授权扫描"
+      ],
+      "orchestrator": "security-pentest-recon-scan",
+      "trigger_mode": "ROE-gated",
+      "notes": "Templated recon + authorized vuln scan (nuclei / amass / ffuf / httpx). ROE-gated: planning + authorized scan only, behind the pentest-scope-and-roe + authorized-pentest-validation double-gate. Never runs active scan without ROE + user sign-off."
+    },
+    {
+      "intent_category": "appsec_narrow_pentest_ai_redteam",
+      "intent_keywords": [
+        "AI red team", "agentic red team", "LLM red team", "红队 AI", "智能体红队",
+        "prompt injection test", "提示词注入测试", "tool abuse test",
+        "memory poisoning test", "记忆投毒测试", "PyRIT", "promptfoo redteam",
+        "OWASP Agentic Top 10", "ASI01", "indirect prompt injection test"
+      ],
+      "orchestrator": "security-pentest-ai-redteam",
+      "trigger_mode": "auto",
+      "notes": "AI / agentic red team (prompt injection / tool abuse / memory poisoning; PyRIT / promptfoo redteam; OWASP Agentic Top 10). Planning-only — never executes attacks; any active validation stays behind the pentest-scope-and-roe + authorized-pentest-validation double-gate."
+    },
+    {
+      "intent_category": "appsec_narrow_pentest_exploitation_planning",
+      "intent_keywords": [
+        "exploitation planning", "利用规划", "post-exploitation planning",
+        "adversary simulation planning", "C2 planning", "Sliver", "Metasploit",
+        "Caldera", "Pacu", "BloodHound", "AD pentest planning", "域渗透规划"
+      ],
+      "orchestrator": "security-pentest-exploitation-planning",
+      "trigger_mode": "ROE-gated",
+      "notes": "Planning/reference-only exploitation + adversary-simulation planning (Metasploit / Sliver / Caldera / Pacu / BloodHound). Read-only. Routes AFTER security-pentest-recon-scan. References the manual authorized-pentest-validation hard gate but is NEVER a bridge to it and NEVER auto-fires active/post-exploitation work — all active validation stays behind the pentest-scope-and-roe + authorized-pentest-validation double-gate."
     },
     {
       "intent_category": "pentest_active",

@@ -90,6 +90,7 @@ P5 REVIEW  ux-principles MODE C + gsd-ui-review + santa-loop + Codex plugin /cod
 
 ## Layer 4 — Production
 - `anchor-prototype-wave`(手动,多 surface 量产)
+- `uiux-surface-builder`(agent, Wave B; orchestrator-driven 并行多 surface 量产,`anchor-prototype-wave` 的 sibling;由 orchestrator 在 max 档 P3 BUILD 调度 fan-out)
 - `sens-frontend-design`(3-stage 客户提案型,静态原型可部署/截图进 PDF)
 - `luxury-editorial-site-builder`(brand landing 专用 workflow,不占 L3 锁)
 - `frontend-design@official`(生产 React 默认)
@@ -104,11 +105,13 @@ P5 REVIEW  ux-principles MODE C + gsd-ui-review + santa-loop + Codex plugin /cod
 - `visual-critique`(截图 critique)
 - `redesign-skill`(整页升级 workflow)
 - `gsd-ui-review`(上线前 6-pillar gate)
+- `uiux-design-reviewer`(agent, Wave B; pre-release scored 设计 audit,complements `gsd-ui-auditor`、**不取代**;由 orchestrator 在 P5 REVIEW 调度做发布前评分审查)
 
 ## Layer 7 — Design System
 - `design-systems:tokenize` / `:create-component` / `:design-system-governance` / `:accessibility-audit`
 - `ui-design:color-palette` / `:type-system` / `:spacing-system` / `:layout-grid` / `:responsive-design` / `:dark-mode-design`
 - `interaction-design:animation-principles` / `:form-design` / `:state-machine` / `:loading-states`
+- `shadcn-registry`(Wave B; 自建私有 shadcn registry,分发自己的 design system;wires to `design-token-pipeline`——把已编译 token set 接进 registry 组件)
 
 ## Layer 8 — Brand / Assets
 - `brandkit` — logo / identity / brand board
@@ -134,6 +137,9 @@ P5 REVIEW  ux-principles MODE C + gsd-ui-review + santa-loop + Codex plugin /cod
 | agency 高级感 / 嵌套硬件感 | `taste` MODE B (Double-Bezel) | 3 |
 | GSAP / 滚动叙事 / 高动效 | `taste` MODE C (GSAP) | 3 |
 | 完整 UI 项目(多 surface 量产) | `anchor-prototype-wave`(手动) | 4 |
+| 多 surface / 量产页面(orchestrator 并行铺) | `uiux-surface-builder`(agent,orchestrator-driven) | 4 |
+| 设计审 / design review(发布前评分审查) | `uiux-design-reviewer`(agent,complements `gsd-ui-auditor`) | 6 |
+| 私有组件库 / 复用设计系统 / 组件库分发 | `shadcn-registry`(wires to `design-token-pipeline`) | 7 |
 | 客户提案(多方向不上线) | `sens-frontend-design` | 4 |
 | Brand landing 单页 | `luxury-editorial-site-builder` | 4 |
 | 生产 React | `frontend-design@official` + `vercel:nextjs` | 4+5 |
