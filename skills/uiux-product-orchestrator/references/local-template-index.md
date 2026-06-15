@@ -11,7 +11,7 @@
 GROUND 阶段加载本地语料前,按顺序解析 corpus 根,**第一个存在的胜出**:
 1. `.uiux/config.json.corpus_root`(项目级覆盖,最高优先)
 2. 环境变量 `$UIUX_DESIGN_CORPUS`
-3. canonical 默认:`C:/Users/user/Desktop/Innovation_projects/Self-project/awesome-design-md/design-md/`
+3. canonical 默认:`<LOCAL_ROOT>/awesome-design-md/design-md/`
 4. 仓内 vendored 副本:`reference/repos/awesome-design-md/design-md/`(若项目 clone 了参考库)
 
 **presence-check**:对解析出的根跑一次 Glob `<root>/*/DESIGN.md`。
@@ -28,7 +28,7 @@ GROUND 阶段加载本地语料前,按顺序解析 corpus 根,**第一个存在�
 
 **SOURCE A 的一等接地源是本地的 58 品牌 DESIGN.md 语料库** —— 58 个从顶级网站抽取的真实品牌 DESIGN.md(Google Stitch 9-section 格式:theme / color / typography / component / layout / depth / do-dont / responsive / agent-prompt),每个品牌配 `preview.html` + `preview-dark.html`。
 
-- **语料根(canonical,直接读)**:`C:/Users/user/Desktop/Innovation_projects/Self-project/awesome-design-md/design-md/<slug>/DESIGN.md`
+- **语料根(canonical,直接读)**:`<LOCAL_ROOT>/awesome-design-md/design-md/<slug>/DESIGN.md`
   - `<slug>` 见 §2 的 9 桶 / §3 的 archetype 锚(全名是目录名,如 `linear.app` / `stripe` / `vercel` / `ferrari`)。
   - 每个 `<slug>/` 目录含:`DESIGN.md`(9-section 主文件)+ `preview.html` + `preview-dark.html` + `README.md`。
   - 语料自带 `README.md` + `SKILL.md`(在语料根 `…/awesome-design-md/`,非本 `~/.claude` 下,作为可选的桶/recipe 说明文档)。
@@ -88,7 +88,7 @@ P1 EXPLORE 加载某个 product archetype 时,按下表先验挑参考品牌(GRO
 | agent-console ui-lab c1–c5 | `…/Company/agent-console/ui-lab/v1 - static-html/c*/tokens.candidate.css` | agent console / 静态 HTML 后台 |
 | dashboard 生产 tokens | `…/AI agents应用/dashboard/apps/web/src/styles/tokens.css` | 已上生产的真实 token |
 
-> 根前缀 `…` = `C:/Users/user/Desktop/Innovation_projects/Self-project/Personal AI Infrastructure/`。
+> 根前缀 `…` = `<LOCAL_ROOT>/Personal AI Infrastructure/`。
 
 ---
 
@@ -118,6 +118,6 @@ P0 GROUND 把上述资产抽进 `design/grounding.md`(schema 见 combination-pol
 
 ## 7. 维护
 
-- §1/§4 的 Desktop 路径指向用户当前 canonical 资产位置(多在 `Desktop/Innovation_projects/Self-project/` 下)。资产移动 → **更新本表的语料根路径(§1)**——本表是 corpus 路径的单一真相源(没有 skill 间接层,所以路径只在这里维护)。
+- §1/§4 的 Desktop 路径指向用户当前 canonical 资产位置(在本地 `<LOCAL_ROOT>/` 下)。资产移动 → **更新本表的语料根路径(§1)**——本表是 corpus 路径的单一真相源(没有 skill 间接层,所以路径只在这里维护)。
 - 本表是 GROUND 的稳定查找入口:新 project 读本表即可够到散落资产,无需每次重新发现。
 - 58 品牌全名 = `…/design-md/` 下的目录名(`ls` 即得);§2/§3 已按桶/archetype 列出常用锚,本表不逐一重复全部 58 个,避免双真相源。
