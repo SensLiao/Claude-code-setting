@@ -14,7 +14,7 @@ output: per-variant prototype package — HTML/React mocks + palette.json + toke
 > **不干什么**：不写最终生产代码、不做组件库实施、不做测试 / 合流 / 部署。Prototype 是用来**做方向决策**的，不是用来直接上线的。后半段交给用户自己的工程流程。
 
 > **在 UIUX 调度引擎里的位置（v1.0 升产，2026-06-10）**：本 skill 是 [`uiux-product-orchestrator` 组合引擎](../uiux-product-orchestrator/references/combination-policy.md) **P1 EXPLORE 阶段的承重 owner** —— 负责"先出几版给用户挑"。三条硬约束:
-> 1. **参考接地是上游硬前置**:进 EXPLORE 前必须有 `design/grounding.md`（P0 GROUND 产物）。本地 58 品牌 DESIGN.md（**直接读语料根** `C:/Users/廖神/Desktop/Innovation_projects/Self-project/awesome-design-md/design-md/<slug>/DESIGN.md`，查找表见 [`local-template-index.md`](../uiux-product-orchestrator/references/local-template-index.md)）+ 产品 archetype 的 `reference-anchors.md` 优先，本地无品类匹配才走 web。**不接地不出 variant**（根治凭空生造）。
+> 1. **参考接地是上游硬前置**:进 EXPLORE 前必须有 `design/grounding.md`（P0 GROUND 产物）。本地 58 品牌 DESIGN.md（**直接读语料根** `<LOCAL_ROOT>/awesome-design-md/design-md/<slug>/DESIGN.md`，查找表见 [`local-template-index.md`](../uiux-product-orchestrator/references/local-template-index.md)）+ 产品 archetype 的 `reference-anchors.md` 优先，本地无品类匹配才走 web。**不接地不出 variant**（根治凭空生造）。
 > 2. **产品 archetype 已全建成**（v1.0）:`canvas` / `landing-marketing` / `data-dashboard` / `game-style` / `bubble-physics` / `creative-eye` / `narrative-scrolly` 七型齐备。Stage 0 按产品类型加载,variant 必须套对应 archetype 的 pattern + reference-anchors。
 > 3. **红队 gate（Stage 3）单 agent 模式**:显式路由 `taste-skill` 当 anti-slop 守门人，不假设独立 red-team owner 存在。
 

@@ -133,7 +133,7 @@ node -e "const s=require(require('os').homedir()+'/.claude/settings.json'); cons
 cp ~/.claude/managed-settings.json ~/.claude/managed-settings.json.bak 2>/dev/null || true
 
 # 2. 复制 solo 模板
-cp "C:/Users/廖神/.claude/templates/managed-settings/solo.json" \
+cp "~/.claude/templates/managed-settings/solo.json" \
    ~/.claude/managed-settings.json
 
 # 3. 验证 JSON 语法

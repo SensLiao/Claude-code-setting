@@ -1,6 +1,6 @@
 {
   "_profile": "portable",
-  "_doc": "项目移交配置——把项目交给他人时使用。不包含任何机器特定路径（无硬编码的 C:/Users/廖神/ 路径）。采用保守权限：只允许 read-only 审查类操作和标准测试命令，禁止所有破坏性操作和凭证访问。启用 project-scoped customization，接收方可以在项目 .claude/ 目录中添加自己的配置，不需要修改用户全局 settings.json。",
+  "_doc": "项目移交配置——把项目交给他人时使用。不包含任何机器特定路径（无硬编码的 C:/Users/<user>/ 路径）。采用保守权限：只允许 read-only 审查类操作和标准测试命令，禁止所有破坏性操作和凭证访问。启用 project-scoped customization，接收方可以在项目 .claude/ 目录中添加自己的配置，不需要修改用户全局 settings.json。",
 
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
