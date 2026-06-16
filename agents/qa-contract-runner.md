@@ -61,6 +61,18 @@ When emitting `drift_findings[].kind`, map detected changes to:
 
 Count `breaking_changes` = number of {removed, type-changed, required-changed-tightened, enum-shrunk, incompatible} entries.
 
+## Evidence capture protocol (v2 tamper-evident — MANDATORY)
+
+NEVER hand-type stdout, exit codes, or metric numbers. For EVERY command, capture it through the SDK wrapper, which writes raw stdout to `.qa/runs/<tag>/raw/`, hashes the bytes (SHA256), runs a named deterministic parser, binds git HEAD + dirty-tree, and appends a tamper-evident record to the machine evidence file `.qa/evidence/<tag>/<LAYER>.json`:
+
+```bash
+bash "$HOME/.claude/scripts/qa-sdk.sh" evidence.run <release_tag> <LAYER> \
+  --command-id <unique-id> [--parser <PARSER>] [--parser-input stdout|artifact] [--artifact <path>] \
+  -- <the real command>
+```
+
+Then read back `.qa/evidence/<tag>/<LAYER>.json` and emit its `command_evidence[]` array VERBATIM in your StructuredOutput — it already carries `stdout_path` + `stdout_sha256` + `parser` + `parser_input_sha256` + `parse_status` + `parsed_metrics`. `qa-recompute-gate.js` re-reads, re-hashes and re-parses every record, so a hand-edited number BLOCKs the release. A command with no metric to parse (build/setup) omits `--parser` and is recorded `parse_status: SKIPPED` (still hash-verified). Preferred parser(s) for this layer: (none — SKIPPED; breaking_changes read from schema-diff artifact).
+
 ## Output (StructuredOutput tool)
 
 Return JSON validating against `qa/CONTRACT_TEST_SCHEMA.v1`:
@@ -70,8 +82,36 @@ Return JSON validating against `qa/CONTRACT_TEST_SCHEMA.v1`:
   "api_or_event": { "identifier": "POST /api/checkout", "kind": "rest" },
   "schema_source": { "kind": "openapi", "path": "openapi.yaml" },
   "command_evidence": [
-    { "cmd": "npx @stoplight/spectral-cli lint openapi.yaml", "exit_code": 0, "duration_ms": 1820 },
-    { "cmd": "npx openapi-diff main:openapi.yaml HEAD:openapi.yaml", "exit_code": 0, "duration_ms": 950 }
+    {
+      "command_id": "spectral-001",
+      "command": "npx @stoplight/spectral-cli lint openapi.yaml",
+      "exit_code": 0,
+      "duration_ms": 1820,
+      "stdout_path": ".qa/runs/<tag>/raw/spectral-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "SKIPPED",
+      "parsed_metrics": null,
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    },
+    {
+      "command_id": "openapi-diff-001",
+      "command": "npx openapi-diff main:openapi.yaml HEAD:openapi.yaml",
+      "exit_code": 0,
+      "duration_ms": 950,
+      "stdout_path": ".qa/runs/<tag>/raw/openapi-diff-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "SKIPPED",
+      "parsed_metrics": null,
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    }
   ],
   "drift_findings": [
     { "kind": "added", "location": "POST /api/checkout/discount" }

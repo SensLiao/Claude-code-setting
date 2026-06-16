@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/RUNTIME_DETECTION_SCHEMA.v1",
+  "title": "Architecture Intake — Runtime Detection Output",
+  "description": "Output of qa-runtime-detector (§6 Step 1.7 Architecture Intake). Marker-bound classification of every runnable target (web/api/mobile/desktop/cli/library/worker) + how to start + health-probe each. NO-DOWNGRADE rule: no marker / high-confidence conflict / type-known-but-no-entry / only-low-confidence / host-incapable => decision=BLOCKED + blockers[], NEVER a silent default to web app. Written to .qa/evidence/<tag>/00-runtime.json. Consumed by qa-runtime-mismatch-gate.js (target kind vs produced E2E artifact type) and the test-plan synthesis.",
+  "type": "object",
+  "required": ["decision", "runtimes", "is_multi_service", "blockers"],
+  "additionalProperties": false,
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": ["DETECTED", "BLOCKED"],
+      "description": "DETECTED only when at least one target is resolved with sufficient confidence; otherwise BLOCKED (no silent web-app default)."
+    },
+    "runtimes": {
+      "type": "array",
+      "description": "Every runnable target. MAY be empty only when decision=BLOCKED.",
+      "items": {
+        "type": "object",
+        "required": ["kind", "confidence", "markers", "host_capable"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "kind": {
+            "type": "string",
+            "enum": ["web-spa", "web-ssr", "api-server", "graphql-server", "mobile-android", "mobile-ios", "mobile-react-native", "mobile-flutter", "desktop-electron", "desktop-tauri", "cli", "library", "worker", "static-site"]
+          },
+          "framework": { "type": "string", "description": "next / vite / express / fastify / nestjs / fastapi / django / gin / spring / aspnetcore / rails / expo / metro / …" },
+          "language": { "type": "string" },
+          "markers": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Provenance — every classification MUST cite the concrete files/signals that prove it.",
+            "items": {
+              "type": "object",
+              "required": ["file", "signal"],
+              "additionalProperties": false,
+              "properties": {
+                "file": { "type": "string" },
+                "signal": { "type": "string", "description": "e.g. 'next dependency in package.json', 'next.config.js present', 'pubspec.yaml flutter:'" }
+              }
+            }
+          },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+          "start_command": { "type": ["string", "null"] },
+          "health_probe": { "type": ["string", "null"], "description": "URL (http://localhost:3000/api/health) or shell probe that returns 0 when ready" },
+          "readiness_timeout_sec": { "type": "integer", "minimum": 1, "maximum": 600 },
+          "host_capable": { "type": "boolean", "description": "Can THIS host actually run it? e.g. iOS simulator on Windows = false → NOT_APPLICABLE / RUNTIME_HOST_INCAPABLE downstream, never a fake PASS." }
+        }
+      }
+    },
+    "is_multi_service": { "type": "boolean" },
+    "monorepo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "detected": { "type": "boolean" },
+        "tool": { "type": "string", "enum": ["turborepo", "nx", "lerna", "pnpm-workspace", "yarn-workspaces", "npm-workspaces", "docker-compose", "none"] },
+        "workspaces": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "description": "Non-empty when decision=BLOCKED. Each is a concrete reason the runtime cannot be resolved safely.",
+      "items": {
+        "type": "object",
+        "required": ["reason", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "reason": { "type": "string", "enum": ["no_marker", "confidence_conflict", "type_known_no_entrypoint", "only_low_confidence", "host_incapable"] },
+          "evidence": { "type": "string" },
+          "suggested_question": { "type": "string", "description": "What to ask the user to unblock." }
+        }
+      }
+    },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}

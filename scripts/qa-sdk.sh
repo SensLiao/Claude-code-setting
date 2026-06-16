@@ -120,6 +120,9 @@ Commands:
   finding.add [<file>]
   quarantine.add --test <name> --owner <id> --issue <url> --expiry <date> --repro <cmd> --unblock <cond> [--class <n>]
   approve.snapshot --scope <csv> --reason <text> --hours <n> --pattern <regex> [--human-attested]
+  fallback.approve --scope <csv> --reason <text> --hours <n> --human-attested   # human-attest a degraded QA path (qa-no-silent-fallback)
+  level.select <L1|L2|L3|L4> [--run-id <tag>]   # write .qa/state/level-selected.json (SKILL §6 Step 0)
+  tasklist.write [<file>]                        # write .qa/state/tasklist.json from file/stdin (SKILL §6 Step 0.5)
   spec.hash <spec.json|-> -- compute canonical sha256:<hex> matching qa-preview-gate.js
   sentinel.write --run-id <id> --mode <m> --spec-file <p> --approval-text <txt> [--ttl-seconds <n>] [--approved-estimate-high <tokens>] [--preview-hash <hex>]
   sentinel.show <run-id>
@@ -175,7 +178,16 @@ cmd_evidence_append() {
   ensure_project_root
   local dir="$PROJECT_ROOT/.qa/evidence/$tag"
   mkdir -p "$dir"
-  local out="$dir/${layer}.yaml"
+  # JSON evidence (Architecture-Intake 00-runtime.json / path-graph.json /
+  # 00-test-plan.json + recompute-context.json) is written verbatim with a .json
+  # suffix so hooks + qa-recompute-gate.js can JSON.parse it. All other layers get
+  # the canonical .yaml provenance treatment. A layer arg already ending in .json
+  # selects JSON mode; legacy callers (no .json) are unchanged.
+  local out is_json=0
+  case "$layer" in
+    *.json) out="$dir/${layer}"; is_json=1;;
+    *)      out="$dir/${layer}.yaml";;
+  esac
 
   # Confirm resolved path stays under the evidence dir (defense in depth against shell-side traversal)
   local resolved
@@ -200,6 +212,32 @@ cmd_evidence_append() {
     cat > "$out"
   fi
 
+  # JSON-evidence path: validate it parses (fail-closed — a gate must not consume
+  # malformed intake/context), then return WITHOUT the YAML provenance header
+  # (JSON has no '#' comments) and WITHOUT canon-bundle.
+  if [[ "$is_json" == "1" ]]; then
+    if ! node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$out" 2>/dev/null; then
+      echo "qa-sdk evidence.append: BLOCKED — $out is not valid JSON" >&2
+      exit 2
+    fi
+    echo "$out"
+    return 0
+  fi
+
+  # Canonicalize the release bundle: EvidenceBundle agents emit StructuredOutput JSON, but
+  # gate.check / qa-evidence-required require a col-0, unquoted, single `release_decision:` scalar.
+  # canon-bundle.js converts JSON bundles to canonical YAML (col-0 scalars + flow-style nested);
+  # idempotent + passthrough for non-JSON content, so it can never drop/corrupt a bundle. qa-sdk
+  # writes via Bash, so qa-bundle-write-guard's provenance allow-path is unaffected.
+  if [[ "$layer" == "qa_evidence_bundle" ]]; then
+    local _canon; _canon=$(mktemp)
+    if node "$HOME/.claude/scripts/canon-bundle.js" < "$out" > "$_canon" 2>/dev/null && [[ -s "$_canon" ]]; then
+      mv "$_canon" "$out"
+    else
+      rm -f "$_canon"
+    fi
+  fi
+
   local tmp; tmp=$(mktemp)
   {
     # E7 follow-up (2026-06-05, HANDOFF §6 "必须"): first non-empty line is the canonical qa-sdk
@@ -216,6 +254,122 @@ cmd_evidence_append() {
   } > "$tmp"
   mv "$tmp" "$out"
   echo "$out"
+}
+
+# ───── evidence.run — tamper-evident capture wrapper (P0-3, 2026-06-16) ─────
+# Runs a command, captures raw stdout/stderr to .qa/runs/<tag>/raw/, hashes the
+# BYTES via node crypto (byte-identical to qa-recompute-gate.js), runs a named
+# deterministic parser → parsed_metrics, binds git HEAD + dirty-tree hash (G2),
+# and is the SOLE writer of the machine-facing per-layer JSON
+# (.qa/evidence/<tag>/<layer>.json). The model never types a metric — the SDK
+# derives it. Consumed by qa-recompute-gate.js (re-hash + re-parse + re-derive).
+#   qa-sdk evidence.run <tag> <layer> --command-id <id> [--parser <name@v>]
+#       [--parser-input stdout|artifact] [--artifact <path>] [--state-node <node>] -- <cmd...>
+_qa_sha256_file() {  # hash file BYTES via node (no sha256sum dependency; parity with recompute)
+  node -e "const c=require('crypto'),f=require('fs');process.stdout.write(c.createHash('sha256').update(f.readFileSync(process.argv[1])).digest('hex'))" "$1" 2>/dev/null
+}
+cmd_evidence_run() {
+  need_arg "release-tag" "${1:-}"
+  need_arg "layer" "${2:-}"
+  validate_safe_name "release-tag" "$1"
+  validate_safe_name "layer" "$2"
+  local tag="$1" layer="$2"; shift 2
+  local command_id="" parser="" parser_input="stdout" artifact="" state_node="$layer"
+  local -a cmd=()
+  while (( "$#" )); do
+    case "$1" in
+      --command-id)   command_id="${2:-}"; shift 2;;
+      --parser)       parser="${2:-}"; shift 2;;
+      --parser-input) parser_input="${2:-}"; shift 2;;
+      --artifact)     artifact="${2:-}"; shift 2;;
+      --state-node)   state_node="${2:-}"; shift 2;;
+      --) shift; cmd=( "$@" ); break;;
+      *) echo "qa-sdk evidence.run: unknown arg $1" >&2; exit 2;;
+    esac
+  done
+  [[ -z "$command_id" ]] && { echo "qa-sdk evidence.run: --command-id required" >&2; exit 2; }
+  validate_safe_name "command-id" "$command_id"
+  (( ${#cmd[@]} == 0 )) && { echo "qa-sdk evidence.run: missing command after --" >&2; exit 2; }
+  case "$parser_input" in stdout|artifact) :;; *) echo "qa-sdk evidence.run: --parser-input must be stdout|artifact" >&2; exit 2;; esac
+  ensure_project_root
+  local raw_dir="$PROJECT_ROOT/.qa/runs/$tag/raw"
+  mkdir -p "$raw_dir"
+  local ev_dir="$PROJECT_ROOT/.qa/evidence/$tag"; mkdir -p "$ev_dir"
+  local stdout_f="$raw_dir/${command_id}.stdout"
+  local stderr_f="$raw_dir/${command_id}.stderr"
+  local rel_stdout=".qa/runs/$tag/raw/${command_id}.stdout"
+  local rel_stderr=".qa/runs/$tag/raw/${command_id}.stderr"
+
+  local started_at; started_at=$(iso_now)
+  local start_ns; start_ns=$(date +%s%N 2>/dev/null || echo 0)
+  "${cmd[@]}" >"$stdout_f" 2>"$stderr_f"
+  local ec=$?
+  local end_ns; end_ns=$(date +%s%N 2>/dev/null || echo 0)
+  local duration_ms=0
+  if [[ "$start_ns" != "0" && "$end_ns" != "0" ]]; then duration_ms=$(( (end_ns - start_ns) / 1000000 )); fi
+
+  local stdout_sha; stdout_sha=$(_qa_sha256_file "$stdout_f")
+  local stderr_sha; stderr_sha=$(_qa_sha256_file "$stderr_f")
+
+  # artifact (optional structured parser input)
+  local rel_artifact="" artifact_sha=""
+  if [[ -n "$artifact" ]]; then
+    if [[ ! -f "$artifact" ]]; then echo "qa-sdk evidence.run: --artifact not found: $artifact" >&2; exit 1; fi
+    local art_dest="$raw_dir/${command_id}$(basename "$artifact" | sed 's/^[^.]*//')"
+    cp "$artifact" "$art_dest"
+    rel_artifact=".qa/runs/$tag/raw/$(basename "$art_dest")"
+    artifact_sha=$(_qa_sha256_file "$art_dest")
+  fi
+
+  # parser → parsed_metrics
+  local parse_status="OK" parser_input_sha="$stdout_sha" pm_file=""
+  local input_for_parser="$stdout_f"
+  if [[ "$parser_input" == "artifact" ]]; then
+    if [[ -z "$rel_artifact" ]]; then echo "qa-sdk evidence.run: --parser-input artifact requires --artifact" >&2; exit 2; fi
+    input_for_parser="$PROJECT_ROOT/$rel_artifact"; parser_input_sha="$artifact_sha"
+  elif [[ "$parser_input" == "stderr" ]]; then
+    input_for_parser="$stderr_f"; parser_input_sha="$stderr_sha"
+  fi
+  if [[ -n "$parser" ]]; then
+    local base="${parser%@*}"
+    local parser_path="$HOME/.claude/scripts/qa-parsers/${base}.js"
+    pm_file=$(mktemp)
+    if [[ -f "$parser_path" ]] && node "$parser_path" "$input_for_parser" > "$pm_file" 2>/dev/null && [[ -s "$pm_file" ]]; then
+      if ! node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$pm_file" 2>/dev/null; then
+        parse_status="PARSER_FAILED"; printf 'null' > "$pm_file"
+      fi
+    else
+      parse_status="PARSER_FAILED"; printf 'null' > "$pm_file"
+    fi
+  else
+    pm_file=$(mktemp); printf 'null' > "$pm_file"; parse_status="SKIPPED"
+  fi
+
+  # G2 git binding
+  local git_head="" git_dirty_sha=""
+  if git_head=$(git -C "$PROJECT_ROOT" rev-parse HEAD 2>/dev/null); then
+    local porcelain; porcelain=$(git -C "$PROJECT_ROOT" status --porcelain 2>/dev/null)
+    git_dirty_sha=$(printf '%s' "$porcelain" | node -e "const c=require('crypto');let d='';process.stdin.on('data',x=>d+=x).on('end',()=>process.stdout.write(c.createHash('sha256').update(d).digest('hex')))" 2>/dev/null)
+  else
+    git_head=""
+  fi
+
+  # build command_evidence record + merge into layer file (SDK = sole writer)
+  local layer_file="$ev_dir/${layer}.json"
+  node "$HOME/.claude/scripts/qa-evidence-merge.js" \
+    --layer-file "$layer_file" --layer "$layer" --state-node "$state_node" \
+    --command-id "$command_id" --command "$(printf '%s ' "${cmd[@]}")" --exit-code "$ec" \
+    --started-at "$started_at" --duration-ms "$duration_ms" \
+    --stdout-path "$rel_stdout" --stdout-sha256 "$stdout_sha" \
+    --stderr-path "$rel_stderr" --stderr-sha256 "$stderr_sha" \
+    --artifact-path "$rel_artifact" --artifact-sha256 "$artifact_sha" \
+    --parser "$parser" --parser-input "$parser_input" --parser-input-sha256 "$parser_input_sha" \
+    --parse-status "$parse_status" --parsed-metrics-file "$pm_file" \
+    --git-head "$git_head" --git-dirty-sha256 "$git_dirty_sha" \
+    --captured-by "qa-sdk@3.2.0 evidence.run" || { rm -f "$pm_file"; echo "qa-sdk evidence.run: merge failed" >&2; exit 1; }
+  rm -f "$pm_file"
+  echo "$layer_file"
+  return 0
 }
 
 cmd_evidence_list() {
@@ -439,6 +593,23 @@ cmd_gate_check() {
   if [[ -s "$failures" ]]; then
     echo "qa-sdk gate.check: BLOCKED — dispatch-failures.log non-empty" >&2
     exit 2
+  fi
+
+  # ───── (R-recompute) DEFAULT-mode deterministic verdict recompute (P0-4, 2026-06-16) ─────
+  # Re-derive the verdict from MACHINE evidence (.qa/evidence/<tag>/<layer>.json written by
+  # evidence.run) via the canonical shared module, and BLOCK if the declared release_decision is
+  # MORE LENIENT than computed, or if any command_evidence hash/parse integrity check fails. This
+  # closes the audit's "default mode never recomputes" hole. Additive: the engine NO-OPs when a run
+  # produced no machine evidence (legacy back-compat). Engine present + errors → BLOCK (fail-closed);
+  # engine file MISSING → WARN-continue (additive rollout; tighten to fail-closed once deployed).
+  local recompute_engine="$HOME/.claude/orchestrator-runtime/shared/qa-recompute-gate.js"
+  if [[ -f "$recompute_engine" ]]; then
+    if ! node "$recompute_engine" --tag "$tag" --project-root "$PROJECT_ROOT" --declared "$decision" >&2; then
+      echo "qa-sdk gate.check: BLOCKED — deterministic recompute rejected declared release_decision='$decision' (see .qa/evidence/$tag/recompute-verdict.json)" >&2
+      exit 2
+    fi
+  else
+    echo "qa-sdk gate.check: WARN — qa-recompute-gate.js not found; default-mode recompute skipped (additive rollout)" >&2
   fi
 
   case "$decision" in
@@ -697,6 +868,93 @@ EOF
   echo "$PROJECT_ROOT/.qa/snapshot-update-approval.json"
 }
 
+# ───── fallback.approve — human attestation for a degraded QA path (P3, 2026-06-16) ─────
+# Mints .qa/fallback-approval.json so qa-no-silent-fallback.js allows evidence that
+# records fallback_used:true. --human-attested is REQUIRED (Claude cannot self-mint);
+# same contract-trust model as approve.snapshot (attestation, not crypto).
+cmd_fallback_approve() {
+  ensure_project_root
+  local scope="" reason="" hours="" human_attested="false"
+  while (( "$#" )); do
+    case "$1" in
+      --scope)   scope="${2:-}"; shift 2;;
+      --reason)  reason="${2:-}"; shift 2;;
+      --hours)   hours="${2:-}"; shift 2;;
+      --human-attested) human_attested="true"; shift 1;;
+      *) echo "qa-sdk fallback.approve: unknown arg $1" >&2; exit 2;;
+    esac
+  done
+  local missing=()
+  [[ -z "$scope"  ]] && missing+=("--scope")
+  [[ -z "$reason" ]] && missing+=("--reason")
+  [[ -z "$hours"  ]] && missing+=("--hours")
+  if (( ${#missing[@]} > 0 )); then echo "qa-sdk fallback.approve: missing: ${missing[*]}" >&2; exit 2; fi
+  if ! [[ "$hours" =~ ^[0-9]+$ ]] || (( hours < 1 || hours > 24 )); then
+    echo "qa-sdk fallback.approve: --hours must be 1..24 (got $hours)" >&2; exit 2; fi
+  if (( ${#reason} < 8 )); then echo "qa-sdk fallback.approve: --reason too short (min 8 chars)" >&2; exit 2; fi
+  if [[ "$human_attested" != "true" ]]; then
+    echo "qa-sdk fallback.approve: --human-attested is required (Claude cannot self-mint a fallback approval)" >&2; exit 2; fi
+  local now expires approver
+  now=$(iso_now)
+  if expires=$(date -u -d "+$hours hours" +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null); then :; else
+    expires=$(python -c "import datetime; print((datetime.datetime.utcnow()+datetime.timedelta(hours=$hours)).strftime('%Y-%m-%dT%H:%M:%SZ'))" 2>/dev/null) || {
+      echo "qa-sdk fallback.approve: cannot compute expires_at (date -d failed and python not available)" >&2; exit 1; }
+  fi
+  approver="${USER:-${USERNAME:-unknown}}"
+  local scope_json
+  scope_json=$(printf '%s' "$scope" | awk -F, '{out="[";for(i=1;i<=NF;i++){gsub(/^[[:space:]]+|[[:space:]]+$/,"",$i);gsub(/"/,"\\\"",$i);out=out (i>1?",":"") "\"" $i "\""} print out "]"}')
+  local reason_json
+  reason_json=$(printf '%s' "$reason" | python -c "import sys,json; print(json.dumps(sys.stdin.read()))" 2>/dev/null || printf '"%s"' "${reason//\"/\\\"}")
+  cat > "$PROJECT_ROOT/.qa/fallback-approval.json" <<EOF
+{
+  "approver": "$approver",
+  "approved_at": "$now",
+  "expires_at": "$expires",
+  "scope": $scope_json,
+  "reason": $reason_json,
+  "human_attested": true
+}
+EOF
+  echo "$PROJECT_ROOT/.qa/fallback-approval.json"
+}
+
+# ───── level.select / tasklist.write — entry substitute files (P4 soft gate, 2026-06-16) ─────
+# The platform cannot force "ask first" (hooks can't see AskUserQuestion / the active skill),
+# so SKILL §6 Step 0/0.5 write these substitute files; qa-entry-ask-required / qa-tasklist-required
+# gate/remind off their presence. level.select is the UNBLOCKING action (never gated).
+cmd_level_select() {
+  ensure_project_root
+  local level="${1:-}"; [[ "${1:-}" == --* ]] || shift || true
+  local run_id=""
+  while (( "$#" )); do case "$1" in --run-id) run_id="${2:-}"; shift 2;; *) shift;; esac; done
+  case "$level" in
+    L1|L2|L3|L4) :;;
+    *) echo "qa-sdk level.select: level must be L1|L2|L3|L4 (got '$level'); L0 (intake-only) is folded into Step 1.7" >&2; exit 2;;
+  esac
+  mkdir -p "$PROJECT_ROOT/.qa/state"
+  if [[ -z "$run_id" && -f "$PROJECT_ROOT/.qa/state.json" ]]; then
+    run_id=$(node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{process.stdout.write(JSON.parse(s).active_release_tag||'')}catch{}})" < "$PROJECT_ROOT/.qa/state.json" 2>/dev/null)
+  fi
+  printf '{"level":"%s","run_id":"%s","answered_at":"%s"}\n' "$level" "$run_id" "$(iso_now)" > "$PROJECT_ROOT/.qa/state/level-selected.json"
+  echo "$PROJECT_ROOT/.qa/state/level-selected.json"
+}
+cmd_tasklist_write() {
+  ensure_project_root
+  local file="${1:-}"
+  mkdir -p "$PROJECT_ROOT/.qa/state"
+  local out="$PROJECT_ROOT/.qa/state/tasklist.json"
+  if [[ -n "$file" ]]; then
+    [[ -f "$file" ]] || { echo "qa-sdk tasklist.write: file not found: $file" >&2; exit 1; }
+    cat "$file" > "$out"
+  else
+    cat > "$out"
+  fi
+  if ! node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$out" 2>/dev/null; then
+    echo "qa-sdk tasklist.write: BLOCKED — not valid JSON" >&2; exit 2
+  fi
+  echo "$out"
+}
+
 # ───── Workflow-Spec Launch helpers (SKILL §18.5, B.1.g 2026-05-29) ─────
 #
 # These commands let the Skill main thread perform the canonical workflow-spec
@@ -880,12 +1138,16 @@ main() {
     init)                         cmd_init "$@";;
     set-active)                   cmd_set_active "$@";;
     evidence.append)              cmd_evidence_append "$@";;
+    evidence.run)                 cmd_evidence_run "$@";;
     evidence.list)                cmd_evidence_list "$@";;
     evidence.validate-presence)   cmd_evidence_validate_presence "$@";;
     gate.check)                   cmd_gate_check "$@";;
     finding.add)                  cmd_finding_add "$@";;
     quarantine.add)               cmd_quarantine_add "$@";;
     approve.snapshot)             cmd_approve_snapshot "$@";;
+    fallback.approve)             cmd_fallback_approve "$@";;
+    level.select)                 cmd_level_select "$@";;
+    tasklist.write)               cmd_tasklist_write "$@";;
     spec.hash)                    cmd_spec_hash "$@";;
     sentinel.write)               cmd_sentinel_write "$@";;
     sentinel.show)                cmd_sentinel_show "$@";;

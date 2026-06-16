@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/TEST_PLAN_SCHEMA.v1",
+  "title": "Architecture Intake — Test Plan (path → test matrix)",
+  "description": "Synthesis output of §6 Step 1.7 Architecture Intake: maps runtime targets + critical paths to the REQUIRED test layers, each with an expected artifact + run command, so downstream gates can prove 'tested the right thing for the right target type'. Written to .qa/evidence/<tag>/00-test-plan.yaml. Consumed by qa-required-layer-gate.js (required:true layer with no artifact => BLOCK) and qa-runtime-mismatch-gate.js (runtime_targets[].kind vs produced E2E artifact). DOWNSTREAM TEST AGENTS DO NOT START until this three-piece (runtime + path-graph + test-plan) exists.",
+  "type": "object",
+  "required": ["release_tag", "runtime_ref", "path_graph_ref", "required_layers", "critical_release_paths", "runtime_targets"],
+  "additionalProperties": false,
+  "properties": {
+    "release_tag": { "type": "string" },
+    "runtime_ref": { "type": "string", "description": "relative path to 00-runtime.json" },
+    "path_graph_ref": { "type": "string", "description": "relative path to path-graph.json" },
+    "required_layers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["layer", "required", "reason", "expected_artifact"],
+        "additionalProperties": false,
+        "properties": {
+          "layer": { "type": "string", "enum": ["Static", "Unit-TDD", "Component", "Integration", "Contract", "E2E", "Visual", "A11y", "Perf", "Load", "Mutation", "Mobile", "Resilience", "Smoke"] },
+          "required": { "type": "boolean", "description": "true => qa-required-layer-gate BLOCKs the release if this layer produces no artifact." },
+          "reason": { "type": "string", "description": "Which critical path / risk drives this requirement." },
+          "critical_path_ref": { "type": "string", "description": "id from path-graph critical_paths[]." },
+          "expected_artifact": { "type": "string", "description": "e.g. .qa/evidence/<tag>/e2e.json — the file whose presence the required-layer gate checks." },
+          "run_command": { "type": "string", "description": "The qa-sdk evidence.run invocation (or raw command) that produces the artifact." },
+          "target_kind": { "type": "string", "description": "Which runtime target this layer exercises (mirror of runtimes[].kind) — feeds runtime-mismatch gate." }
+        }
+      }
+    },
+    "critical_release_paths": {
+      "type": "array",
+      "description": "The path ids that gate the release — copied verbatim into recompute-context.json so the recompute gate's critical-path-coverage check matches.",
+      "items": { "type": "string" }
+    },
+    "runtime_targets": {
+      "type": "array",
+      "description": "Mirror of resolved runtimes (kind + host_capable) for the runtime-mismatch gate: a mobile/api target must NOT be 'covered' only by web Playwright artifacts.",
+      "items": {
+        "type": "object",
+        "required": ["kind", "host_capable"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "type": "string" },
+          "host_capable": { "type": "boolean" },
+          "expected_e2e_kind": { "type": "string", "enum": ["web-playwright", "mobile-maestro", "api-contract", "desktop", "none"], "description": "What KIND of E2E artifact legitimately covers this target." }
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reason", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "reason": { "type": "string" },
+          "evidence": { "type": "string" }
+        }
+      }
+    },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}

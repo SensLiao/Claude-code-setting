@@ -56,6 +56,18 @@ If `baseline_present == true`, compute `baseline_hash = sha256(baseline_bytes)` 
 - `pixel_diff_count > 0` AND `pixel_diff_pct < tool_default_threshold` → `decision_hint: WARN`
 - `pixel_diff_count > 0` AND `pixel_diff_pct ≥ tool_default_threshold` → `decision_hint: FAIL`
 
+## Evidence capture protocol (v2 tamper-evident — MANDATORY)
+
+NEVER hand-type stdout, exit codes, or metric numbers. For EVERY command, capture it through the SDK wrapper, which writes raw stdout to `.qa/runs/<tag>/raw/`, hashes the bytes (SHA256), runs a named deterministic parser, binds git HEAD + dirty-tree, and appends a tamper-evident record to the machine evidence file `.qa/evidence/<tag>/<LAYER>.json`:
+
+```bash
+bash "$HOME/.claude/scripts/qa-sdk.sh" evidence.run <release_tag> <LAYER> \
+  --command-id <unique-id> [--parser <PARSER>] [--parser-input stdout|artifact] [--artifact <path>] \
+  -- <the real command>
+```
+
+Then read back `.qa/evidence/<tag>/<LAYER>.json` and emit its `command_evidence[]` array VERBATIM in your StructuredOutput — it already carries `stdout_path` + `stdout_sha256` + `parser` + `parser_input_sha256` + `parse_status` + `parsed_metrics`. `qa-recompute-gate.js` re-reads, re-hashes and re-parses every record, so a hand-edited number BLOCKs the release. A command with no metric to parse (build/setup) omits `--parser` and is recorded `parse_status: SKIPPED` (still hash-verified). Preferred parser(s) for this layer: (none — SKIPPED; pixel_diff_count read from reporter artifact).
+
 ## Output (StructuredOutput tool)
 
 Return JSON validating against `qa/VISUAL_AUDIT_SCHEMA.v1`:
@@ -70,7 +82,21 @@ Return JSON validating against `qa/VISUAL_AUDIT_SCHEMA.v1`:
   "baseline_present": true,
   "baseline_hash": "sha256:a1b2c3...",
   "command_evidence": [
-    { "cmd": "npx playwright test --grep checkout-page --reporter=json", "exit_code": 0 }
+    {
+      "command_id": "playwright-visual-001",
+      "command": "npx playwright test --grep checkout-page --reporter=json",
+      "exit_code": 0,
+      "duration_ms": 12450,
+      "stdout_path": ".qa/runs/<tag>/raw/playwright-visual-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "SKIPPED",
+      "parsed_metrics": null,
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    }
   ],
   "pixel_diff_count": 0,
   "pixel_diff_pct": 0.0,

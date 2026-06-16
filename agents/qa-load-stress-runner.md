@@ -75,6 +75,18 @@ While reading the k6 script / config diff, flag and surface (do not act on):
 
 Record each in `notes[]` with a `THRESHOLD_WEAKENED:` prefix.
 
+## Evidence capture protocol (v2 tamper-evident — MANDATORY)
+
+NEVER hand-type stdout, exit codes, or metric numbers. For EVERY command, capture it through the SDK wrapper, which writes raw stdout to `.qa/runs/<tag>/raw/`, hashes the bytes (SHA256), runs a named deterministic parser, binds git HEAD + dirty-tree, and appends a tamper-evident record to the machine evidence file `.qa/evidence/<tag>/<LAYER>.json`:
+
+```bash
+bash "$HOME/.claude/scripts/qa-sdk.sh" evidence.run <release_tag> <LAYER> \
+  --command-id <unique-id> [--parser <PARSER>] [--parser-input stdout|artifact] [--artifact <path>] \
+  -- <the real command>
+```
+
+Then read back `.qa/evidence/<tag>/<LAYER>.json` and emit its `command_evidence[]` array VERBATIM in your StructuredOutput — it already carries `stdout_path` + `stdout_sha256` + `parser` + `parser_input_sha256` + `parse_status` + `parsed_metrics`. `qa-recompute-gate.js` re-reads, re-hashes and re-parses every record, so a hand-edited number BLOCKs the release. A command with no metric to parse (build/setup) omits `--parser` and is recorded `parse_status: SKIPPED` (still hash-verified). Preferred parser(s) for this layer: `qa-parse-k6@1` (thresholds_ok/p95_ms/error_rate — reads thresholds.ok NOT exit code).
+
 ## Output (StructuredOutput tool)
 
 Return JSON validating against `qa/LOAD_TEST_SCHEMA.v1`:
@@ -82,8 +94,37 @@ Return JSON validating against `qa/LOAD_TEST_SCHEMA.v1`:
 ```json
 {
   "command_evidence": [
-    { "cmd": "k6 version", "exit_code": 0, "duration_ms": 120 },
-    { "cmd": "k6 run --summary-export=rc1-load-summary.json load.js", "exit_code": 0, "duration_ms": 610000 }
+    {
+      "command_id": "k6-version-001",
+      "command": "k6 version",
+      "exit_code": 0,
+      "duration_ms": 120,
+      "stdout_path": ".qa/runs/<tag>/raw/k6-version-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "SKIPPED",
+      "parsed_metrics": null,
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    },
+    {
+      "command_id": "k6-run-001",
+      "command": "k6 run --summary-export=rc1-load-summary.json load.js",
+      "exit_code": 0,
+      "duration_ms": 610000,
+      "stdout_path": ".qa/runs/<tag>/raw/k6-run-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser": "qa-parse-k6@1",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "OK",
+      "parsed_metrics": { "thresholds_ok": true, "p95_ms": 240, "error_rate": 0.001 },
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    }
   ],
   "environment": { "target": "https://staging.example.com/api", "is_production": false, "environment_confirmed_by": "ci-staging-deploy" },
   "profiles_run": [

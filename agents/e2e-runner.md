@@ -98,6 +98,18 @@ Common causes: race conditions (use auto-wait locators), network timing (wait fo
 - Test duration < 10 minutes
 - Artifacts uploaded and accessible
 
+## QA evidence capture (only when dispatched by enterprise-qa-testing E2E layer)
+
+When invoked by the `enterprise-qa-testing` orchestrator (E2E layer, via the `qa-e2e-coverage-gate` bridge), your StructuredOutput must satisfy `qa/E2E_SCENARIO_SCHEMA.v1`, whose `command_evidence[]` is the **v2 tamper-evident** shape. Do NOT hand-type stdout, exit codes, or counts. Capture every Playwright / Agent-Browser command through the SDK wrapper, which writes raw stdout to `.qa/runs/<tag>/raw/`, hashes the bytes (SHA256), runs a named parser, binds git HEAD + dirty-tree, and appends the record to `.qa/evidence/<tag>/e2e.json`:
+
+```bash
+bash "$HOME/.claude/scripts/qa-sdk.sh" evidence.run <release_tag> e2e \
+  --command-id <scenario-id> --parser qa-parse-playwright@1 --parser-input artifact \
+  --artifact <playwright-json-report> -- npx playwright test <spec> --reporter=json
+```
+
+Emit the resulting `command_evidence[]` verbatim; `qa-recompute-gate.js` re-reads, re-hashes and re-parses every record, so a hand-edited number BLOCKs the release. This section applies ONLY in QA-orchestrator context — it does not change your general (non-QA) E2E behavior.
+
 ## Reference
 
 For detailed Playwright patterns, Page Object Model examples, configuration templates, CI/CD workflows, and artifact management strategies, see skill: `e2e-testing`.

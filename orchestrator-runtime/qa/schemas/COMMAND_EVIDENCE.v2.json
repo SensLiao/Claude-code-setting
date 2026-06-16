@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/COMMAND_EVIDENCE.v2",
+  "title": "Tamper-evident command evidence item (v2)",
+  "description": "Canonical shape for ONE recorded command in a QA layer's command_evidence[]. v2 replaces the v1 fabricatable inline `stdout` STRING with a path + SHA256 of the raw captured output, plus a named-parser provenance chain (parser + parser_input_sha256 + parsed_metrics) so a downstream gate can RE-READ the raw file, RE-HASH it, and RE-PARSE it instead of trusting model-typed numbers. Produced by `qa-sdk evidence.run` (the SDK fills every field; the model never types a metric). NOTE: verdict-validator.js has no $ref support, so layer schemas INLINE this item shape (do not $ref it); this file is the canonical definition + the parser/lint source of truth. Legacy v1 items (cmd+exit_code only) remain readable — qa-recompute-gate treats an item WITHOUT stdout_sha256 as UNVERIFIABLE (cannot confirm its numbers), never as verified.",
+  "type": "object",
+  "required": ["command_id", "command", "exit_code", "stdout_path", "stdout_sha256", "parser_input", "parser_input_sha256", "parse_status"],
+  "additionalProperties": false,
+  "properties": {
+    "command_id": { "type": "string", "pattern": "^[a-zA-Z0-9._-]+$", "description": "Unique within the layer." },
+    "command": { "type": "string", "minLength": 1, "description": "The literal command line that ran (verbatim, for audit)." },
+    "exit_code": { "type": "integer", "description": "Exit status of the COMMAND (PIPESTATUS[0]), not the tee/pipe." },
+    "started_at": { "type": "string", "format": "date-time" },
+    "duration_ms": { "type": "integer", "minimum": 0 },
+    "stdout_path": { "type": "string", "pattern": "^\\.qa/runs/[^\\\\/]+/raw/[^\\\\/]+\\.stdout$", "description": "Relative path to the raw captured stdout file under .qa/runs/<tag>/raw/." },
+    "stdout_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA256 of the raw stdout file BYTES (newlines NOT normalized)." },
+    "stderr_path": { "type": "string" },
+    "stderr_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "artifact_path": { "type": "string", "description": "Optional structured parser input (junit.xml, coverage-summary.json, k6 summary.json…)." },
+    "artifact_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "parser": { "type": "string", "pattern": "^[a-zA-Z0-9._-]+@[0-9]+$", "description": "Named deterministic parser that produced parsed_metrics, e.g. qa-parse-tsc@1." },
+    "parser_input": { "type": "string", "enum": ["artifact", "stdout", "stderr"], "description": "Which captured file the parser consumed." },
+    "parser_input_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA256 of the exact bytes fed to the parser (== artifact_sha256 when parser_input=artifact, else == stdout/stderr_sha256). The gate re-derives and compares." },
+    "parse_status": { "type": "string", "enum": ["OK", "PARSER_FAILED", "INPUT_MISSING", "SKIPPED"], "description": "OK = parser ran clean and produced parsed_metrics (parser then required). SKIPPED = no parser requested (the raw stdout is still hashed + re-verifiable; no metric derived — valid for setup/non-metric commands). PARSER_FAILED / INPUT_MISSING on a selected GATING layer is treated as BLOCK by the recompute gate." },
+    "parsed_metrics": { "type": ["object", "null"], "description": "SDK/parser-DERIVED metrics (line_pct, tsc_errors, lcp_ms, …). The gate re-runs the parser over parser_input and deep-compares; a hand-edited value mismatches and BLOCKs." },
+    "git_head": { "type": "string", "description": "G2 binding: `git rev-parse HEAD` at capture time — ties evidence to a commit." },
+    "git_dirty_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "G2 binding: SHA256 of `git status --porcelain` — proves whether the tree was clean. The gate cross-checks this against the release commit to catch stash/edit tricks (audit G2)." },
+    "captured_by": { "type": "string", "description": "Provenance stamp, e.g. qa-sdk@3.2.0 evidence.run." }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "parser_input": { "const": "artifact" } } },
+      "then": { "required": ["artifact_path", "artifact_sha256"] }
+    },
+    {
+      "if": { "properties": { "parse_status": { "const": "OK" } } },
+      "then": { "required": ["parser", "parsed_metrics"], "properties": { "parsed_metrics": { "type": "object" } } }
+    }
+  ]
+}

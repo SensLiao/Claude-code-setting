@@ -56,6 +56,18 @@ If no framework resolves the surface → `decision: MISSING` with a `command_evi
 - Tests pass BUT coverage below project threshold (when policy exposes `coverage_floor`) → `decision: CONDITIONAL_PASS`
 - Tests pass BUT a precondition error occurred (e.g. database not available, network missing) → `decision: BLOCKED`
 
+## Evidence capture protocol (v2 tamper-evident — MANDATORY)
+
+NEVER hand-type stdout, exit codes, or metric numbers. For EVERY command, capture it through the SDK wrapper, which writes raw stdout to `.qa/runs/<tag>/raw/`, hashes the bytes (SHA256), runs a named deterministic parser, binds git HEAD + dirty-tree, and appends a tamper-evident record to the machine evidence file `.qa/evidence/<tag>/<LAYER>.json`:
+
+```bash
+bash "$HOME/.claude/scripts/qa-sdk.sh" evidence.run <release_tag> <LAYER> \
+  --command-id <unique-id> [--parser <PARSER>] [--parser-input stdout|artifact] [--artifact <path>] \
+  -- <the real command>
+```
+
+Then read back `.qa/evidence/<tag>/<LAYER>.json` and emit its `command_evidence[]` array VERBATIM in your StructuredOutput — it already carries `stdout_path` + `stdout_sha256` + `parser` + `parser_input_sha256` + `parse_status` + `parsed_metrics`. `qa-recompute-gate.js` re-reads, re-hashes and re-parses every record, so a hand-edited number BLOCKs the release. A command with no metric to parse (build/setup) omits `--parser` and is recorded `parse_status: SKIPPED` (still hash-verified). Preferred parser(s) for this layer: `qa-parse-junit@1` or `qa-parse-playwright@1` (passed/failed/skipped), `qa-parse-coverage@1` (line_pct).
+
 ## Output (StructuredOutput tool)
 
 Return JSON validating against `qa/COMPONENT_TEST_SCHEMA.v1`:
@@ -64,7 +76,22 @@ Return JSON validating against `qa/COMPONENT_TEST_SCHEMA.v1`:
 {
   "surface": { "path": "src/components/Checkout.tsx", "kind": "component" },
   "command_evidence": [
-    { "cmd": "npx vitest run --reporter=json src/components/Checkout.test.tsx", "exit_code": 0, "duration_ms": 4230 }
+    {
+      "command_id": "vitest-001",
+      "command": "npx vitest run --reporter=json src/components/Checkout.test.tsx",
+      "exit_code": 0,
+      "duration_ms": 4230,
+      "stdout_path": ".qa/runs/<tag>/raw/vitest-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser": "qa-parse-junit@1",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "OK",
+      "parsed_metrics": { "passed": 12, "failed": 0, "skipped": 0 },
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    }
   ],
   "passed": 12,
   "failed": 0,

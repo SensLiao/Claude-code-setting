@@ -38,12 +38,56 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "_purpose": "承重柱 2 (P1): subagent-only test execution — block test-runner commands on the main thread (no agent_id), allow subagent runs (agent_id present). strict=block, warn=advisory.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-main-thread-test-guard.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "_purpose": "P4 soft entry gate (2026-06-16): block qa-sdk evidence.run/evidence.append/gate.check until a QA level is selected (.qa/state/level-selected.json). NARROW — only those commands; fail-open.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-entry-ask-required.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "_purpose": "P4 soft reminder (2026-06-16): advisory nudge to write a durable .qa/state/tasklist.json before QA evidence/gate commands. Never blocks.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-tasklist-required.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit|MultiEdit",
         "_purpose": "D1 verdict write-guard: block direct non-SDK writes to .qa/evidence/<tag>/ verdict files (qa_evidence_bundle / gate-result / release-decision). Matcher MUST include MultiEdit (HOOK-BYPASS-MATRIX).",
         "hooks": [
           {
             "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-bundle-write-guard.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "_purpose": "P3 (2026-06-16): block writing fallback_used:true into .qa/** without a valid .qa/fallback-approval.json (human attestation). Same hook also runs at Stop.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-no-silent-fallback.js\"",
             "timeout": 5
           }
         ]
@@ -116,6 +160,39 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-evidence-required.js\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "_purpose": "P3 (2026-06-16): fail-closed — required:true layers in 00-test-plan.json must have evidence; additive NO-OP without intake.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-required-layer-gate.js\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "_purpose": "P3 (2026-06-16): fail-closed — mobile/API/desktop target not covered by matching E2E kind (web-only fallback); additive NO-OP without intake.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-runtime-mismatch-gate.js\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "_purpose": "P3 (2026-06-16): fail-closed — fallback_used:true evidence without human attestation; additive NO-OP without fallback markers.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/qa-no-silent-fallback.js\"",
             "timeout": 10
           }
         ]
