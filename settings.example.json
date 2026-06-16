@@ -340,6 +340,15 @@
     ],
     "PreToolUse": [
       {
+        "matcher": "Agent|Task|Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/hooks/plan-card-reminder.js\""
+          }
+        ]
+      },
+      {
         "matcher": "Workflow",
         "hooks": [
           {
@@ -532,6 +541,15 @@
       }
     ],
     "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"__CLAUDE_HOME_JSON__/hooks/report-gate.js\""
+          }
+        ]
+      },
       {
         "matcher": "*",
         "hooks": [
