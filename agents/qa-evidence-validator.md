@@ -2,7 +2,7 @@
 name: qa-evidence-validator
 description: QA evidence validator — reads the entire .qa/evidence/<release-tag>/ directory, validates against enterprise-qa-testing Hard Rules (§2), schema registry (§16), and per-layer §6 acceptance criteria. Returns PASS / FAIL / BLOCKED / CONDITIONAL_PASS per layer plus overall release_decision_input. Use PROACTIVELY at §6 Step 7 of enterprise-qa-testing. Never grant PASS without command_evidence; never silently downgrade.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: opus
 color: yellow
 ---
 

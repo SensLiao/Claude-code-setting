@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "qa/PATH_GRAPH_SCHEMA.v1",
+  "title": "Architecture Intake — Path Graph Output",
+  "description": "Output of qa-path-graph-miner (§6 Step 1.7). Dependency + route graph with per-edge provenance (source_tool + confidence), and changed-file → reverse-reachable → entrypoint → forward-to-sink critical_paths. HONESTY CEILING: static graphs miss dynamic import / reflection / DI / runtime-registered routes / config-driven routes / cross-process edges — those edges are marked confidence:inferred|reduced, NEVER static-proven. Graph tool missing => graph_status=BLOCKED => downstream coverage claims drop to UNVERIFIED (never silent full-coverage). Written to .qa/evidence/<tag>/path-graph.json (+ critical_paths.yaml summary). Consumed by test-plan synthesis + qa-required-layer-gate.js.",
+  "type": "object",
+  "required": ["graph_status", "tools_used", "critical_paths", "changed_files"],
+  "additionalProperties": false,
+  "properties": {
+    "graph_status": {
+      "type": "string",
+      "enum": ["COMPLETE", "REDUCED", "BLOCKED"],
+      "description": "COMPLETE = graph tool ran clean; REDUCED = fell back to AST/regex (lower confidence); BLOCKED = no usable graph tool → downstream coverage UNVERIFIED."
+    },
+    "tools_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["tool", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "tool": { "type": "string", "description": "dependency-cruiser / madge / jdeps / pydeps / go-list / cargo-modules / roslyn / ast-fallback / regex-fallback" },
+          "language": { "type": "string" },
+          "status": { "type": "string", "enum": ["ok", "missing", "partial", "error"] }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "path", "kind"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "path": { "type": "string" },
+          "kind": { "type": "string", "enum": ["entrypoint", "route", "module", "component", "sink"] },
+          "confidence": { "type": "string", "enum": ["static-proven", "inferred", "reduced"] }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "source_tool", "confidence"],
+        "additionalProperties": false,
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "source_tool": { "type": "string" },
+          "confidence": { "type": "string", "enum": ["static-proven", "inferred", "reduced"] }
+        }
+      }
+    },
+    "sinks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "kind"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string" },
+          "kind": { "type": "string", "enum": ["db", "queue", "third-party", "file", "network", "payment", "auth", "cache", "email"] }
+        }
+      }
+    },
+    "critical_paths": {
+      "type": "array",
+      "description": "Changed-file-reachable entry→sink paths that should gate release.",
+      "items": {
+        "type": "object",
+        "required": ["id", "entry", "sinks", "changed", "required_layers", "confidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "Stable id, also used as the critical_release_paths token (recompute-context)." },
+          "entry": { "type": "string" },
+          "sinks": { "type": "array", "items": { "type": "string" } },
+          "changed": { "type": "boolean", "description": "true when a changed file is reverse-reachable to this entry." },
+          "required_layers": { "type": "array", "items": { "type": "string", "enum": ["Static", "Unit-TDD", "Component", "Integration", "Contract", "E2E", "Visual", "A11y", "Perf", "Load", "Smoke"] } },
+          "coverage_status": { "type": "string", "enum": ["covered", "uncovered", "UNVERIFIED"], "description": "UNVERIFIED when graph_status=BLOCKED/REDUCED — never claim covered without a static-proven edge." },
+          "confidence": { "type": "string", "enum": ["static-proven", "inferred", "reduced"] }
+        }
+      }
+    },
+    "changed_files": { "type": "array", "items": { "type": "string" } },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reason", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "reason": { "type": "string" },
+          "evidence": { "type": "string" }
+        }
+      }
+    },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}

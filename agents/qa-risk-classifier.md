@@ -57,6 +57,9 @@ Cite the exact file:line that drove the score.
 
 Cite git diff size and complexity as evidence.
 
+**Churn anchor (machine, audit I-8) — bind Likelihood to measured churn, not impression**:
+run `git diff --numstat <base>...HEAD` (or `--cached`) and read the real numbers — added/deleted lines, files touched, hunk count. Cite them verbatim (e.g. "+312/-47 across 9 files, 14 hunks"). A Likelihood ≥ 4 MUST be backed by concrete churn/complexity numbers (high LOC delta, many files, async/concurrency hunks, migration files), never a vibe. If git is unavailable, say so and lower Evidence Confidence — do not invent a churn figure.
+
 ### 4. Apply Modifier Attribution Rubric (§3.4.1)
 
 For each modifier candidate, classify the change:

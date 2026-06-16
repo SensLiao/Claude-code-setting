@@ -1,10 +1,10 @@
 ---
 name: enterprise-qa-testing
-version: 3.2.0
+version: 3.3.0
 status: stable
 created_date: 2026-05-23
-updated_date: 2026-05-29
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, Agent, AskUserQuestion
+updated_date: 2026-06-16
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Skill, Agent, AskUserQuestion, Task
 mode: execution  # execution | plan-only | design-only — 详见 §1.5
 parent: null  # 本 skill 自身是 5 大主线 orchestrator 之一
 children:
@@ -17,6 +17,10 @@ children:
   - qa-visual-regression
   - qa-a11y-compliance
   - qa-performance-reliability
+  - qa-load-stress-reliability
+  - qa-mutation-effectiveness
+  - qa-mobile-native-e2e
+  - qa-resilience-fault-injection
   - qa-test-data-environment
   - qa-flaky-governance
   - qa-smoke-release-safety
@@ -44,7 +48,7 @@ execution_modes:
 
 # enterprise-qa-testing
 
-> **Changelog** → [`references/CHANGELOG.md`](references/CHANGELOG.md)。当前：**v3.2** (workflow-spec dual-mode, §18 + §18.5 launch contract) · **v3.1** (GSD 化：真 dispatch + evidence 验收 + 阻断假通过) · **v3.0** (调度中枢 + 13 QA-owned child skills 网络)。
+> **Changelog** → [`references/CHANGELOG.md`](references/CHANGELOG.md)。当前：**v3.3** (默认模式真反算落地：§6 Step 1.7 Architecture Intake + Step 6.5 recompute-context + 9 deterministic parsers + COMMAND_EVIDENCE.v2 全 11 层 + 3 fail-closed gates[required-layer/runtime-mismatch/no-silent-fallback] + 入口 ask L1-L4/tasklist 软 gate) · **v3.2** (workflow-spec dual-mode, §18 + §18.5 launch contract) · **v3.1** (GSD 化：真 dispatch + evidence 验收 + 阻断假通过) · **v3.0** (调度中枢 + 13 QA-owned child skills 网络)。
 
 ---
 
@@ -162,7 +166,7 @@ project-root/
 
 ### 1.6.2 Agent Binding（3 orchestration agents 必须 present）
 
-本 skill 强依赖以下 3 个 orchestration agents（risk / evidence / flaky 决策层；另有 6 个 dedicated runners 见 §17.1，合计 9 个）：
+本 skill 强依赖以下 3 个 orchestration agents（risk / evidence / flaky 决策层；另有 10 个 dedicated runners + 2 个 Architecture-Intake agents（`qa-runtime-detector` / `qa-path-graph-miner`，§6 Step 1.7）见 §17.1，合计 15 个）：
 
 | Agent | Model | Dispatch 时机 | 失败处理 |
 |---|---|---|---|
@@ -243,6 +247,16 @@ Preflight：§6 Step 1 必须 `Glob ~/.claude/agents/qa-*.md` 确认 3 个 agent
 8. **No AppSec bypass**
    If auth, API, secrets, permissions, payments, uploads, data export, or cross-tenant access is touched, trigger AppSec handoff or explicitly mark it as unavailable.
    触及安全敏感面必须 handoff appsec-security-orchestrator，跳过必须显式声明。
+
+9. **No test execution on the main thread — dispatch to subagents (承重柱 2)**
+   The main orchestrator thread is DISPATCH-ONLY: it asks → tracks → dispatches subagents → reads evidence → lets the script aggregate. It must NOT run test-runner commands itself (vitest / jest / playwright / k6 / pytest / go test / npm test / …).
+   主线程只编排、不亲自跑测试；每个测试层必须派 `qa-*` runner subagent 执行（独立 context + 产出 hashed evidence）。
+   **Enforced** by `qa-main-thread-test-guard.js` (PreToolUse[Bash]): a test command with NO `agent_id` (main thread) is BLOCKED (exit 2); a subagent run (`agent_id` present, harness-set) is allowed. Use the Agent tool with named subagents — NOT `fork`/`--agent` (the allow-path needs `agent_id`).
+
+10. **No self-declared verdict — evidence recompute is authoritative (承重柱 1)**
+    The release verdict is NEVER whatever the model wrote into `release_decision`. In BOTH workflow-spec mode and DEFAULT (prompt-only) mode, the decision is RE-DERIVED from per-layer evidence by deterministic code (canonical `orchestrator-runtime/shared/qa-aggregate-decision.js`), and the per-command numbers are re-hashed + re-parsed from raw stdout.
+    verdict 由证据反算，不是模型自填；数字由 raw stdout 重 hash + 重 parse 核对，改 YAML 数字当场抓。
+    **Enforced** by `qa-recompute-gate.js` (invoked by `qa-sdk gate.check`): if the declared `release_decision` is MORE LENIENT than the evidence-computed decision, or any `command_evidence` hash / parse integrity check fails → BLOCKED. Machine evidence is produced by `qa-sdk evidence.run` (the SDK derives every metric; the model never types one).
 
 ---
 
@@ -442,6 +456,33 @@ Decision Tree 是层选择启发式，**最终选层必须经过 §3 Risk Model 
 每次 QA 任务**按此 9 步顺序执行**，每步必须输出结构化结果。前一步未输出，不进入下一步。
 v3.0 关键变化：Step 5/6 不再是"自己写测试 / 自己跑 fast lane"，而是**dispatch QA-owned skills + dispatch reference agents**；Step 7 是**验收 dispatch 返回的 evidence**。
 
+### Step 0 — Select QA Level（v3.3 新增 — 入口先问，软 gate）
+
+**第一个动作**应是 `AskUserQuestion` 问 QA 级别。**诚实边界**（CLAUDE.md §0.1）：hook 看不见 `AskUserQuestion`、看不见激活的 skill，所以平台**无法硬锁"ask 必须第一"**——改用 substitute 文件 + 窄 gate 兜底。L0（只挖架构不测）已并入 **Step 1.7 强制前置**，故只问 L1-L4（正好 ≤4 选项）：
+
+| 级别 | 用途 | 大致对应 preset |
+|---|---|---|
+| **L1** Quick self-check | dev 分支提交前自检：Static + risk-selected 关键层，fail-fast | quick-check |
+| **L2** PR-review gate | PR 门禁：按 risk 在 changed surfaces 上铺层 | focused-qa-gate |
+| **L3** Release readiness | 发布就绪：完整 evidence bundle | release-readiness |
+| **L4** Commercial cert | 客户可见/合规：+Visual/A11y/Perf，**强制 budget approval** | commercial-cert |
+
+答完立即 `bash "$HOME/.claude/scripts/qa-sdk.sh" level.select L<n>` 写 `.qa/state/level-selected.json`（`qa-entry-ask-required.js` 据此放行 evidence/gate 命令；窄 gate 只拦 `qa-sdk evidence.run/evidence.append/gate.check`，不碰其它 Bash，fail-open）。
+
+**级别是意图，risk 是真相**：L<n> 只设下限，Step 2 `qa-risk-classifier` + Floor Rules（§3.6）只能把级别**往高抬**不能往低压——auth/payment 即使选 L1 也会被 floor 抬到 High/Critical。
+
+### Step 0.5 — Build durable to-do（v3.3 新增 — 账本兜底 /clear）
+
+`TaskCreate` 拆 QA 步骤（实时 UI 视图）**并**写持久账本 `.qa/state/tasklist.json`（`TaskCreate` 绕过 hook、扛不住 `/clear`，账本才是被拦物 + 跨 session 续点）：
+
+```
+（先 TaskCreate 建实时清单）
+echo '{"release_tag":"<tag>","level":"L<n>","tasks":[{"id":1,"title":"Step 1 Discover","status":"pending"}, ...]}' \
+  | bash "$HOME/.claude/scripts/qa-sdk.sh" tasklist.write
+```
+
+`qa-tasklist-required.js` 无账本时**软提醒**（advisory，永不阻断）。
+
 ### Step 1 — Discover
 
 Output:
@@ -453,6 +494,36 @@ Output:
 - affected files（本次变更涉及的源码文件）
 - changed user journeys（变更影响的用户流程）
 - **preflight**：Glob `~/.claude/agents/*.md` + 检查 available-skills 列表，确认 13 个 QA child skill 与 reference agent（tdd-guide / e2e-runner / code-reviewer / appsec-security-orchestrator）present
+  - **+ intake（v3.3）**：Glob 确认 `qa-runtime-detector` / `qa-path-graph-miner` present；缺失则 Step 1.7 BLOCKED（不允许跳过 intake 跑 web-only 默认）
+
+### Step 1.7 — Architecture Intake（v3.3 新增 — prompt-only 优先，先挖架构再测）
+
+**目的**：先弄清"这项目到底是什么、改动碰到哪些关键路径"，让下游"按目标类型测、按关键路径测"，不再 web-only 猜。本阶段在 Step 1（Discover）之后、Step 2（Risk）之前跑——runtime + critical_paths 同时喂给 risk 打分。
+
+**三件套（缺一不可；未全部落盘前，Step 5/6 测试层 agent 一律不开工）**：
+
+1. **00-runtime.json** ← 派 `qa-runtime-detector`（opus, read-only）。marker-bound 判定每个可运行目标（web/api/mobile/desktop/cli/library/multi-service）+ start/health-probe。`decision: BLOCKED`（no_marker / confidence_conflict / type_known_no_entrypoint / only_low_confidence / host_incapable）→ 停下问用户，**绝不默认成 web app**。
+   ```
+   runtime = Agent(subagent_type=qa-runtime-detector, model=opus,
+                   prompt={release_tag, repo_root, changed_files, host_os})
+   bash "$HOME/.claude/scripts/qa-sdk.sh" evidence.append <tag> 00-runtime.json <runtime_structuredoutput>
+   ```
+
+2. **path-graph.json** ← 派 `qa-path-graph-miner`（opus, read-only）。依赖图+路由图（每边带 source_tool+confidence）→ changed→反向可达→entrypoint→正向到 sink 的 critical_paths + 每路径 required_layers。`graph_status: BLOCKED/REDUCED` → 下游 coverage 降 `UNVERIFIED`，**不号称全覆盖**。
+   ```
+   graph = Agent(subagent_type=qa-path-graph-miner, model=opus,
+                 prompt={release_tag, repo_root, changed_files, runtime:<00-runtime summary>, risk_level})
+   bash "$HOME/.claude/scripts/qa-sdk.sh" evidence.append <tag> path-graph.json <graph_structuredoutput>
+   ```
+
+3. **00-test-plan.json** ← 主线程综合（读 00-runtime.json + path-graph.json，按 `TEST_PLAN_SCHEMA.v1` 产 `required_layers[]`（每层 required + expected_artifact + run_command + target_kind）+ `critical_release_paths[]` + `runtime_targets[]`）。
+   ```
+   bash "$HOME/.claude/scripts/qa-sdk.sh" evidence.append <tag> 00-test-plan.json <test_plan_json>
+   ```
+
+**Intake Gate（instruction-layer）**：三件套未全落盘 → 不进 Step 5/6。**Mode 适配**：plan-only/design-only 时 intake 仍跑（纯静态分析，无需运行环境）；host_capable=false 的 target 标 `NOT_APPLICABLE` + `RUNTIME_HOST_INCAPABLE`（不双重 BLOCK，也绝不算 PASS）。
+
+**Schema**：`RUNTIME_DETECTION_SCHEMA.v1` / `PATH_GRAPH_SCHEMA.v1` / `TEST_PLAN_SCHEMA.v1`（`~/.claude/orchestrator-runtime/qa/schemas/`）。**本版 intake 只做 prompt-only**，不接 workflow-spec 指纹/resume cache（§18.5 14-step 不变）。三件套是下游 P3 fail-closed gate（`qa-runtime-mismatch-gate` / `qa-required-layer-gate`）的事实源——intake 未跑时那些 gate additive NO-OP（与 legacy 兼容）。
 
 ### Step 2 — Risk Score
 
@@ -581,6 +652,23 @@ reference_agent_dispatch_results:
 ```
 
 **调用方常见错误已被本 skill 自动规避**：本 skill 现在自己跑 stage (b)(c)(d)，不会出现"跳过 stage (d) 拿 agent stdout 当 evidence"。
+
+### Step 6.5 — Assemble recompute-context.json（v3.3 新增 — 让默认模式真反算 verdict）
+
+承重柱 1（§2 Hard Rule #10）的**默认模式**落地：把反算门所需上下文落盘，使 Step 9 `qa-sdk gate.check` 调用的 `qa-recompute-gate.js` 能从机器证据反算 verdict、与模型自填值比对，偏松即 BLOCK。
+
+```
+recompute_context = {
+  selected_layers:           <Step 3 选定层名>,
+  policy:                    <floors: static_floor / a11y_floor / perf_floor / visual_floor（preset 自带 + 项目收紧项 merge，绝不放宽）>,
+  risk_snapshot:             <Step 2 qa-risk-classifier 输出>,
+  critical_release_paths:    <00-test-plan.json.critical_release_paths>,
+  declared_release_decision: null,   # Step 9 gate.check 用 --declared 传模型自填值
+}
+bash "$HOME/.claude/scripts/qa-sdk.sh" evidence.append <tag> recompute-context.json <recompute_context_json>
+```
+
+**机器证据来源（关键）**：执行层（Component/Integration/Contract/E2E/Visual/A11y/Perf/Load/Mutation/Resilience）的测试**必须**由对应 `qa-*` runner subagent 经 `qa-sdk evidence.run` 跑——它落 raw stdout + SHA256 + 命名 parser → `<layer>.json`（主线程绝不亲跑测试命令，§2 Hard Rule #9 由 `qa-main-thread-test-guard.js` 硬拦）。反算门重读 `<layer>.json` 重 hash + 重 parse + 重判；无机器证据时 NO-OP（additive 回退，legacy 兼容）。
 
 ### Step 7 — Validate Evidence via qa-evidence-validator Agent（v3.1 真验收）
 
@@ -1045,7 +1133,7 @@ schema_registry:
   qa-test-design-tdd-bridge:    { schema_section: "§6", path: "~/.claude/skills/qa-test-design-tdd-bridge/SKILL.md",          output_key: "test_design", bridges_agent: "tdd-guide" }
   qa-component-behavior:        { schema_section: "§6", path: "~/.claude/skills/qa-component-behavior/SKILL.md",              output_key: "component" }
   qa-integration-service-virtualization: { schema_section: "§6", path: "~/.claude/skills/qa-integration-service-virtualization/SKILL.md", output_key: "integration" }
-  qa-contract-api:              { schema_section: "§6", path: "~/.claude/skills/qa-contract-api/SKILL.md",                    output_key: "contract" }
+  qa-contract-api:              { schema_section: "§6", path: "~/.claude/skills/qa-contract-api/SKILL.md",                    output_key: "contract", runner_agent: "qa-contract-runner", output_schema: "~/.claude/orchestrator-runtime/qa/schemas/CONTRACT_TEST_SCHEMA.v1.json" }
   qa-e2e-coverage-gate:         { schema_section: "§6", path: "~/.claude/skills/qa-e2e-coverage-gate/SKILL.md",               output_key: "e2e", bridges_agent: "e2e-runner" }
   qa-visual-regression:         { schema_section: "§6", path: "~/.claude/skills/qa-visual-regression/SKILL.md",               output_key: "visual" }
   qa-a11y-compliance:           { schema_section: "§6", path: "~/.claude/skills/qa-a11y-compliance/SKILL.md",                 output_key: "a11y" }
@@ -1071,10 +1159,10 @@ schema_registry:
 > **SEMI-CRIB 骨架**：绑定的 NAMES 留在此处（`preflight-check.sh` / `qa-sdk init` 据此校验与注册）；完整 `settings.json` snippet + qa-sdk 逐命令契约 + exit-code 表 + Windows 路径注意 + GSD bash 例 见 [`references/enforcement-registration.md`](references/enforcement-registration.md)（init 时按需读取）。
 
 ### 17.1 Agents（`~/.claude/agents/`，frontmatter `name:` 必须匹配 — preflight Check 1 据此）
-**3 orchestration agents + 10 dedicated runners = 13**：orchestration = `qa-risk-classifier`(opus) · `qa-evidence-validator`(sonnet) · `qa-flaky-triager`(sonnet)（即 §1.6.2 binding 三件套）；runners（B.1.f R2 dedicated）= `qa-static-baseline-runner` · `qa-component-runner` · `qa-contract-runner`(预备) · `qa-visual-runner` · `qa-a11y-runner` · `qa-perf-runner`；runners（CAPABILITY-UPGRADE Wave A）= `qa-load-stress-runner` · `qa-mutation-runner` · `qa-mobile-e2e-runner`(DORMANT/备选 — 仅 mobile-app marker present 时激活)；runner（CAPABILITY-UPGRADE Wave B）= `qa-resilience-runner`（RED-LINE — gated behind parent planning-first double-gate，**不 auto-dispatch**：仅在 staging 目标 + High/Critical resilience surface + 人审通过后由 `qa-resilience-fault-injection` 桥接）。每个必须输出 §16 schema YAML（或 workflow-spec 对应 `*_SCHEMA.v1`），否则视为 dispatch 失败。
+**3 orchestration agents + 10 dedicated runners + 2 Architecture-Intake agents = 15**（intake = `qa-runtime-detector` · `qa-path-graph-miner`，opus read-only，§6 Step 1.7，输出 `RUNTIME_DETECTION_SCHEMA.v1` / `PATH_GRAPH_SCHEMA.v1`，并由主线程综合 `TEST_PLAN_SCHEMA.v1`）：orchestration = `qa-risk-classifier`(opus) · `qa-evidence-validator`(sonnet) · `qa-flaky-triager`(sonnet)（即 §1.6.2 binding 三件套）；runners（B.1.f R2 dedicated）= `qa-static-baseline-runner` · `qa-component-runner` · `qa-contract-runner`(已接线 — schema_registry.qa-contract-api.runner_agent) · `qa-visual-runner` · `qa-a11y-runner` · `qa-perf-runner`；runners（CAPABILITY-UPGRADE Wave A）= `qa-load-stress-runner` · `qa-mutation-runner` · `qa-mobile-e2e-runner`(DORMANT/备选 — 仅 mobile-app marker present 时激活)；runner（CAPABILITY-UPGRADE Wave B）= `qa-resilience-runner`（RED-LINE — gated behind parent planning-first double-gate，**不 auto-dispatch**：仅在 staging 目标 + High/Critical resilience surface + 人审通过后由 `qa-resilience-fault-injection` 桥接）。每个必须输出 §16 schema YAML（或 workflow-spec 对应 `*_SCHEMA.v1`），否则视为 dispatch 失败。
 
 ### 17.2 / 17.3 Hooks（脚本 `~/.claude/hooks/qa-*.js`；**项目级** `.claude/settings.json` 注册，经 `qa-sdk init`，不污染全局）
-5 个：`qa-block-update-snapshots`(PreToolUse Bash) · `qa-floor-rule-prompt`(PostToolUse Edit|Write) · `qa-detect-internal-mock`(PostToolUse Edit|Write) · `qa-quarantine-accountability`(PreToolUse Bash) · `qa-evidence-required`(Stop)。**+ workflow-spec mode 必装** `qa-preview-gate`(PreToolUse Workflow)。每 hook 第一步 `_qa-common.preflight`：无 `.qa/config.json` → silent exit 0；解析失败 → fail-closed；`off`/`warn`/`strict` 分级。**注册铁律**：Stop 不带 `async:true`（异步无法 block）；PreToolUse exit 2 = hard block / exit 0 = allow；PostToolUse 只 advisory；`Edit|Write|MultiEdit` 全 match。完整 snippet + 绝对路径展开见 reference。
+5 个：`qa-block-update-snapshots`(PreToolUse Bash) · `qa-floor-rule-prompt`(PostToolUse Edit|Write) · `qa-detect-internal-mock`(PostToolUse Edit|Write) · `qa-quarantine-accountability`(PreToolUse Bash) · `qa-evidence-required`(Stop)。**+ workflow-spec mode 必装** `qa-preview-gate`(PreToolUse Workflow)。**+ v3.3 additive gates（随 init 装，非 QA 项目 silent）**：`qa-main-thread-test-guard`(PreToolUse Bash, 承重柱2 真锁) · `qa-required-layer-gate`(Stop, fail-closed) · `qa-runtime-mismatch-gate`(Stop, fail-closed) · `qa-no-silent-fallback`(PreToolUse Write|Edit|MultiEdit + Stop, fail-closed) · `qa-entry-ask-required`(PreToolUse Bash, 软 gate, fail-open) · `qa-tasklist-required`(PreToolUse Bash, advisory)。完整 NAMES + trigger 单一真相源 = `manifests/hook-registry.json` qa subsystem。每 hook 第一步 `_qa-common.preflight`：无 `.qa/config.json` → silent exit 0；解析失败 → fail-closed；`off`/`warn`/`strict` 分级。**注册铁律**：Stop 不带 `async:true`（异步无法 block）；PreToolUse exit 2 = hard block / exit 0 = allow；PostToolUse 只 advisory；`Edit|Write|MultiEdit` 全 match。完整 snippet + 绝对路径展开见 reference。
 
 ### 17.4 qa-sdk 命令（`~/.claude/scripts/qa-sdk.sh`；§6 各 Step **必经**，不许 `echo > file`）
 `init` / `set-active` / `evidence.append` / `evidence.list` / `evidence.validate-presence` / `gate.check` / `finding.add` / `quarantine.add`(8字段) / `approve.snapshot`(`--human-attested` 强制) / `spec.hash` / `sentinel.write` / `sentinel.show`。**gate.check 严格表**：`PASS`→0 · `STRATEGY_READY`→0 仅 `--mode design-only` · `CONDITIONAL_PASS`→需 `.qa/risk-acceptance.yaml` 完整且未过期否则 2 · `FAIL`→1 · `BLOCKED`→2 · 未识别→2。逐命令 exit code 见 reference。

@@ -56,6 +56,18 @@ If the mutation tool is absent and the dispatch did not stage it → record `com
 8. If a module has near-zero test coverage → surviving mutants reflect MISSING TESTS, not "ineffective tests": say so in `notes[]`, do not silently report a low score as if tests exist.
 9. NEVER mention models, token budgets, or workflow internals in output.
 
+## Evidence capture protocol (v2 tamper-evident — MANDATORY)
+
+NEVER hand-type stdout, exit codes, or metric numbers. For EVERY command, capture it through the SDK wrapper, which writes raw stdout to `.qa/runs/<tag>/raw/`, hashes the bytes (SHA256), runs a named deterministic parser, binds git HEAD + dirty-tree, and appends a tamper-evident record to the machine evidence file `.qa/evidence/<tag>/<LAYER>.json`:
+
+```bash
+bash "$HOME/.claude/scripts/qa-sdk.sh" evidence.run <release_tag> <LAYER> \
+  --command-id <unique-id> [--parser <PARSER>] [--parser-input stdout|artifact] [--artifact <path>] \
+  -- <the real command>
+```
+
+Then read back `.qa/evidence/<tag>/<LAYER>.json` and emit its `command_evidence[]` array VERBATIM in your StructuredOutput — it already carries `stdout_path` + `stdout_sha256` + `parser` + `parser_input_sha256` + `parse_status` + `parsed_metrics`. `qa-recompute-gate.js` re-reads, re-hashes and re-parses every record, so a hand-edited number BLOCKs the release. A command with no metric to parse (build/setup) omits `--parser` and is recorded `parse_status: SKIPPED` (still hash-verified). Preferred parser(s) for this layer: `qa-parse-stryker@1` (mutation_score/killed/survived).
+
 ## Output (StructuredOutput tool)
 
 Return JSON validating against `qa/MUTATION_SCHEMA.v1`:
@@ -63,8 +75,37 @@ Return JSON validating against `qa/MUTATION_SCHEMA.v1`:
 ```json
 {
   "command_evidence": [
-    { "cmd": "git diff origin/main...HEAD > /tmp/diff.patch", "exit_code": 0, "duration_ms": 80 },
-    { "cmd": "cargo mutants --in-diff /tmp/diff.patch --file src/billing.rs", "exit_code": 0, "duration_ms": 240000 }
+    {
+      "command_id": "git-diff-001",
+      "command": "git diff origin/main...HEAD > /tmp/diff.patch",
+      "exit_code": 0,
+      "duration_ms": 80,
+      "stdout_path": ".qa/runs/<tag>/raw/git-diff-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "SKIPPED",
+      "parsed_metrics": null,
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    },
+    {
+      "command_id": "cargo-mutants-001",
+      "command": "cargo mutants --in-diff /tmp/diff.patch --file src/billing.rs",
+      "exit_code": 0,
+      "duration_ms": 240000,
+      "stdout_path": ".qa/runs/<tag>/raw/cargo-mutants-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser": "qa-parse-stryker@1",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "OK",
+      "parsed_metrics": { "mutation_score": 78.5, "killed": 40, "survived": 11 },
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    }
   ],
   "language": "rust",
   "tool": "cargo-mutants",

@@ -58,6 +58,18 @@ While reading the diff, flag:
 
 Record each finding in `eslint_findings.samples[]` or `tsc_error_samples[]` (whichever fits) with a `THRESHOLD_WEAKENED:` prefix so the parent skill's policy can refuse the PR.
 
+## Evidence capture protocol (v2 tamper-evident — MANDATORY)
+
+NEVER hand-type stdout, exit codes, or metric numbers. For EVERY command, capture it through the SDK wrapper, which writes raw stdout to `.qa/runs/<tag>/raw/`, hashes the bytes (SHA256), runs a named deterministic parser, binds git HEAD + dirty-tree, and appends a tamper-evident record to the machine evidence file `.qa/evidence/<tag>/<LAYER>.json`:
+
+```bash
+bash "$HOME/.claude/scripts/qa-sdk.sh" evidence.run <release_tag> <LAYER> \
+  --command-id <unique-id> [--parser <PARSER>] [--parser-input stdout|artifact] [--artifact <path>] \
+  -- <the real command>
+```
+
+Then read back `.qa/evidence/<tag>/<LAYER>.json` and emit its `command_evidence[]` array VERBATIM in your StructuredOutput — it already carries `stdout_path` + `stdout_sha256` + `parser` + `parser_input_sha256` + `parse_status` + `parsed_metrics`. `qa-recompute-gate.js` re-reads, re-hashes and re-parses every record, so a hand-edited number BLOCKs the release. A command with no metric to parse (build/setup) omits `--parser` and is recorded `parse_status: SKIPPED` (still hash-verified). Preferred parser(s) for this layer: `qa-parse-tsc@1` (tsc_errors), `qa-parse-eslint@1` (eslint_findings), `qa-parse-npm-audit@1` (npm_audit_critical_count/high_count).
+
 ## Output (StructuredOutput tool)
 
 Return JSON validating against `qa/STATIC_BASELINE_SCHEMA.v1`:
@@ -65,8 +77,22 @@ Return JSON validating against `qa/STATIC_BASELINE_SCHEMA.v1`:
 ```json
 {
   "command_evidence": [
-    { "cmd": "npx tsc --noEmit --pretty false", "exit_code": 0, "duration_ms": 12450 },
-    { "cmd": "npx eslint . --format json", "exit_code": 0, "duration_ms": 8230 }
+    {
+      "command_id": "tsc-001",
+      "command": "npx tsc --noEmit --pretty false",
+      "exit_code": 0,
+      "duration_ms": 12450,
+      "stdout_path": ".qa/runs/<tag>/raw/tsc-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser": "qa-parse-tsc@1",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "OK",
+      "parsed_metrics": { "tsc_errors": 0 },
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    }
   ],
   "tsc_errors": 0,
   "tsc_error_samples": [],

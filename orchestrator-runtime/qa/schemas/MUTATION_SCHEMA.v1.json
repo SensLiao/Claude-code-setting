@@ -11,14 +11,33 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["cmd", "exit_code"],
+        "required": ["command_id", "command", "exit_code", "stdout_path", "stdout_sha256", "parser_input", "parser_input_sha256", "parse_status"],
+        "additionalProperties": false,
         "properties": {
-          "cmd": { "type": "string" },
-          "stdout": { "type": "string" },
-          "stderr": { "type": "string" },
+          "command_id": { "type": "string", "pattern": "^[a-zA-Z0-9._-]+$" },
+          "command": { "type": "string", "minLength": 1 },
           "exit_code": { "type": "integer" },
-          "duration_ms": { "type": "integer" }
-        }
+          "started_at": { "type": "string", "format": "date-time" },
+          "duration_ms": { "type": "integer", "minimum": 0 },
+          "stdout_path": { "type": "string", "pattern": "^\\.qa/runs/[^\\\\/]+/raw/[^\\\\/]+\\.stdout$" },
+          "stdout_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "stderr_path": { "type": "string" },
+          "stderr_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "artifact_path": { "type": "string" },
+          "artifact_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "parser": { "type": "string", "pattern": "^[a-zA-Z0-9._-]+@[0-9]+$" },
+          "parser_input": { "type": "string", "enum": ["artifact", "stdout", "stderr"] },
+          "parser_input_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "parse_status": { "type": "string", "enum": ["OK", "PARSER_FAILED", "INPUT_MISSING", "SKIPPED"] },
+          "parsed_metrics": { "type": ["object", "null"] },
+          "git_head": { "type": "string" },
+          "git_dirty_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "captured_by": { "type": "string" }
+        },
+        "allOf": [
+          { "if": { "properties": { "parser_input": { "const": "artifact" } } }, "then": { "required": ["artifact_path", "artifact_sha256"] } },
+          { "if": { "properties": { "parse_status": { "const": "OK" } } }, "then": { "required": ["parser", "parsed_metrics"], "properties": { "parsed_metrics": { "type": "object" } } } }
+        ]
       }
     },
     "language": { "type": "string", "enum": ["js", "ts", "rust", "python", "java"] },

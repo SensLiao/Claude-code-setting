@@ -109,6 +109,18 @@ While reading the experiment / config, flag and surface (do not act on):
 
 Record each in `notes[]` with a `SCOPE_CREEP:` or `THRESHOLD_WEAKENED:` prefix.
 
+## Evidence capture protocol (v2 tamper-evident — MANDATORY)
+
+NEVER hand-type stdout, exit codes, or metric numbers. For EVERY command, capture it through the SDK wrapper, which writes raw stdout to `.qa/runs/<tag>/raw/`, hashes the bytes (SHA256), runs a named deterministic parser, binds git HEAD + dirty-tree, and appends a tamper-evident record to the machine evidence file `.qa/evidence/<tag>/<LAYER>.json`:
+
+```bash
+bash "$HOME/.claude/scripts/qa-sdk.sh" evidence.run <release_tag> <LAYER> \
+  --command-id <unique-id> [--parser <PARSER>] [--parser-input stdout|artifact] [--artifact <path>] \
+  -- <the real command>
+```
+
+Then read back `.qa/evidence/<tag>/<LAYER>.json` and emit its `command_evidence[]` array VERBATIM in your StructuredOutput — it already carries `stdout_path` + `stdout_sha256` + `parser` + `parser_input_sha256` + `parse_status` + `parsed_metrics`. `qa-recompute-gate.js` re-reads, re-hashes and re-parses every record, so a hand-edited number BLOCKs the release. A command with no metric to parse (build/setup) omits `--parser` and is recorded `parse_status: SKIPPED` (still hash-verified). Preferred parser(s) for this layer: (none — SKIPPED; steady-state + rollback measured, not parsed from one stdout).
+
 ## Output (StructuredOutput tool)
 
 Return JSON validating against `qa/RESILIENCE_SCHEMA.v1`:
@@ -116,12 +128,96 @@ Return JSON validating against `qa/RESILIENCE_SCHEMA.v1`:
 ```json
 {
   "command_evidence": [
-    { "cmd": "toxiproxy-cli list", "exit_code": 0, "duration_ms": 90 },
-    { "cmd": "<steady-state baseline probe>", "exit_code": 0, "duration_ms": 30000 },
-    { "cmd": "toxiproxy-cli toxic add payment-proxy -t latency -a latency=2000 --toxicity 0.5", "exit_code": 0, "duration_ms": 120 },
-    { "cmd": "<steady-state probe during injection>", "exit_code": 0, "duration_ms": 30000 },
-    { "cmd": "toxiproxy-cli toxic remove payment-proxy -n latency_downstream", "exit_code": 0, "duration_ms": 110 },
-    { "cmd": "<steady-state probe after rollback>", "exit_code": 0, "duration_ms": 30000 }
+    {
+      "command_id": "toxiproxy-list-001",
+      "command": "toxiproxy-cli list",
+      "exit_code": 0,
+      "duration_ms": 90,
+      "stdout_path": ".qa/runs/<tag>/raw/toxiproxy-list-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "SKIPPED",
+      "parsed_metrics": null,
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    },
+    {
+      "command_id": "steady-state-baseline-001",
+      "command": "<steady-state baseline probe>",
+      "exit_code": 0,
+      "duration_ms": 30000,
+      "stdout_path": ".qa/runs/<tag>/raw/steady-state-baseline-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "SKIPPED",
+      "parsed_metrics": null,
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    },
+    {
+      "command_id": "toxiproxy-inject-001",
+      "command": "toxiproxy-cli toxic add payment-proxy -t latency -a latency=2000 --toxicity 0.5",
+      "exit_code": 0,
+      "duration_ms": 120,
+      "stdout_path": ".qa/runs/<tag>/raw/toxiproxy-inject-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "SKIPPED",
+      "parsed_metrics": null,
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    },
+    {
+      "command_id": "steady-state-during-001",
+      "command": "<steady-state probe during injection>",
+      "exit_code": 0,
+      "duration_ms": 30000,
+      "stdout_path": ".qa/runs/<tag>/raw/steady-state-during-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "SKIPPED",
+      "parsed_metrics": null,
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    },
+    {
+      "command_id": "toxiproxy-rollback-001",
+      "command": "toxiproxy-cli toxic remove payment-proxy -n latency_downstream",
+      "exit_code": 0,
+      "duration_ms": 110,
+      "stdout_path": ".qa/runs/<tag>/raw/toxiproxy-rollback-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "SKIPPED",
+      "parsed_metrics": null,
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    },
+    {
+      "command_id": "steady-state-after-001",
+      "command": "<steady-state probe after rollback>",
+      "exit_code": 0,
+      "duration_ms": 30000,
+      "stdout_path": ".qa/runs/<tag>/raw/steady-state-after-001.stdout",
+      "stdout_sha256": "<64-hex filled by evidence.run>",
+      "parser_input": "stdout",
+      "parser_input_sha256": "<64-hex>",
+      "parse_status": "SKIPPED",
+      "parsed_metrics": null,
+      "git_head": "<sha>",
+      "git_dirty_sha256": "<64-hex>",
+      "captured_by": "qa-sdk@3.2.0 evidence.run"
+    }
   ],
   "environment": { "target": "https://staging.example.com", "is_production": false, "environment_confirmed_by": "ci-staging-deploy", "isolation": "docker-network" },
   "gates": { "gate1_experiment_approved": true, "gate1_approved_by": "release-owner", "gate2_execution_mode": "execution" },
