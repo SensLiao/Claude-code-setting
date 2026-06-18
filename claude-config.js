@@ -1,47 +1,55 @@
 #!/usr/bin/env node
 /**
- * claude-config.js — unified installer + updater for the Claude-code-setting repo.
- * Cross-platform (Windows PowerShell / cmd / Git Bash / macOS / Linux) — needs only Node.
+ * claude-config.js — unified installer + updater + hook-wirer for the Claude-code-setting repo.
+ * Cross-platform (Windows PowerShell / cmd / Git Bash / macOS / Linux) — needs only Node + git.
  *
  *   node claude-config.js status              show install pin, repo HEAD, drift (read-only)
- *   node claude-config.js install [--apply]   first-time deploy (additive: never overwrite existing)
- *   node claude-config.js update  [--apply]   sync to repo (force-overwrite managed files) + clean orphans + re-pin
+ *   node claude-config.js install [--apply]   deploy files (additive) + interactively offer hook wiring
+ *   node claude-config.js update  [--apply]   force-sync managed dirs + clean orphans + re-pin
+ *   node claude-config.js wire    [--apply]   (re-)wire hooks into settings.json (interactive or --hooks)
  *
  * Flags:
- *   --apply        actually write (default = DRY RUN — prints what it would do, changes nothing)
- *   --no-clean     (update) keep orphan files instead of deleting them
- *   --pull         (update) git fetch + autostash + pull --ff-only before syncing
- *   --target DIR   target dir (default: <home>/.claude)
+ *   --apply              actually write (default = DRY RUN — prints what it would do)
+ *   --no-clean           (update) keep orphan files instead of deleting them
+ *   --pull               (update) git fetch + autostash + pull --ff-only first
+ *   --target DIR         target dir (default: <home>/.claude)
+ *   --wire / --no-wire   force/skip hook wiring non-interactively
+ *   --hooks=A,B          which batches to wire (implies --wire); default = all batches
+ *   --yes                accept defaults, no prompts
  *
- * Never written or deleted: settings.json, .credentials.json, memory, projects, sessions,
- * tasks, history.jsonl, plugins, AND your custom files (from .config-source.json custom_files,
- * plus hooks/gitnexus/** and skills/{gitnexus*,learned}/**).
+ * Interactive prompts only run in a real terminal (TTY). When piped / headless / via an agent,
+ * the script never blocks: it wires only if --wire/--hooks is given, otherwise prints a hint.
+ *
+ * Never written or deleted: settings.json (only hooks MERGED on wire), .credentials.json, memory,
+ * projects, sessions, tasks, history.jsonl, plugins, and anything in custom_files.
  */
 'use strict';
-const fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process');
+const fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process'), readline = require('readline');
 
 const REPO = __dirname;
 const args = process.argv.slice(2);
 const cmd = args.find(a => !a.startsWith('-')) || 'status';
 const has = f => args.includes(f);
 const APPLY = has('--apply'), NOCLEAN = has('--no-clean'), PULL = has('--pull');
+const NOWIRE = has('--no-wire'), WIRE = has('--wire'), YES = has('--yes');
 const tIdx = args.indexOf('--target');
 const TARGET = tIdx >= 0 ? args[tIdx + 1] : path.join(os.homedir(), '.claude');
+const hooksArg = args.find(a => a.startsWith('--hooks='));
+const HOOKS_FLAG = hooksArg ? hooksArg.split('=')[1] : (args.indexOf('--hooks') >= 0 ? args[args.indexOf('--hooks') + 1] : null);
 
 const SKIP = new Set(['install.ps1', 'install.sh', 'README.md', '.gitignore', '.gitattributes',
-  'settings.example.json', '.git', '.github', '.claude', 'claude-config.js', 'claude-config.ps1']);
+  'settings.example.json', '.git', '.github', '.claude', 'claude-config.js', 'claude-config.ps1', 'wire-manifest.json']);
 const PRESERVE = new Set(['.credentials.json', 'settings.json', 'settings.local.json',
   'memory', 'projects', 'sessions', 'tasks', 'history.jsonl', 'plugins']);
 const MANAGED = ['agents', 'commands', 'skills', 'hooks', 'scripts', 'rules', 'docs', 'manifests',
   'schemas', 'templates', 'orchestrator-runtime', 'get-shit-done', 'workflows', 'mcp-servers', 'mcp-configs', 'tools'];
 const TEXT = new Set(['.md', '.json', '.js', '.cjs', '.mjs', '.sh', '.ps1', '.py', '.yaml', '.yml', '.toml', '.txt', '.bak']);
 
-// placeholder substitution (matches install.sh / install.ps1 intent)
+// placeholder substitution (OS-aware: posix paths on macOS/Linux, backslash on Windows)
 const home = os.homedir();
 const isWin = process.platform === 'win32';
 const winp = s => s.replace(/\//g, '\\');
 const toPosix = s => { let p = s.replace(/\\/g, '/'); const m = p.match(/^([A-Za-z]):(.*)$/); return m ? '/' + m[1].toLowerCase() + m[2] : p; };
-// On Windows the *_WIN_/*_JSON_ forms are backslash paths; on macOS/Linux they are the native posix path.
 const nativeT = isWin ? winp(TARGET) : TARGET;
 const nativeH = isWin ? winp(home) : home;
 const SUBST = {
@@ -78,8 +86,7 @@ let _customCache;
 function customExcludes() {
   if (_customCache) return _customCache;
   const pin = readPin();
-  _customCache = new Set((pin && pin.custom_files) ||
-    ['hooks/block-no-verify.js', 'commands/typecheck.md', 'commands/format.md', 'commands/sync-config.md']);
+  _customCache = new Set((pin && pin.custom_files) || []);
   return _customCache;
 }
 function isUserOwned(r, custom) {
@@ -128,8 +135,7 @@ function writePin() {
     installed_at: new Date().toISOString(),
     install_mode: cmd,
     custom_files: [...customExcludes()],
-    settings_merge: pin.settings_merge || 'hand-merged hooks; not managed by this script (preserved)',
-    notes: 'settings.json / .credentials.json / memory / projects / sessions / tasks / plugins + custom_files are never written or deleted by claude-config.js.',
+    notes: 'settings.json / .credentials.json / memory / projects / sessions / tasks / plugins + custom_files are never written or deleted by claude-config.js (settings.json hooks are only MERGED via `wire`).',
   };
   if (APPLY) fs.writeFileSync(pinPath(), JSON.stringify(out, null, 2) + '\n');
   return out;
@@ -156,55 +162,132 @@ function doPull() {
   } catch (e) { console.log('  git pull failed: ' + e.message); }
 }
 
-console.log(`claude-config: ${cmd}${APPLY ? '' : '  (DRY RUN — add --apply to write)'}`);
-console.log(`  repo   : ${REPO}`);
-console.log(`  target : ${TARGET}`);
+// ---- hook wiring ----
+const NODE_BIN = process.execPath.replace(/\\/g, '/');
+function loadManifest() { try { return JSON.parse(fs.readFileSync(path.join(REPO, 'wire-manifest.json'), 'utf8')); } catch { return { batches: {} }; } }
+function entryCommand(e) {
+  const p = TARGET.replace(/\\/g, '/') + '/' + e.script;
+  return e.runner === 'bash' ? `bash "${p}"` : `"${NODE_BIN}" "${p}"`;
+}
+function eventHasScript(settings, event, base) {
+  return (settings.hooks?.[event] || []).some(g => (g.hooks || []).some(h => (h.command || '').includes(base)));
+}
+function ask(q) {
+  return new Promise(res => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(q, a => { rl.close(); res(a.trim()); });
+  });
+}
+const yesNo = (ans, def) => ans === '' ? def : /^y(es)?$/i.test(ans);
 
-if (cmd === 'status') {
-  const pin = readPin();
-  console.log(`  pinned installed_sha : ${pin ? pin.installed_sha : '(none — never installed via claude-config)'}`);
-  console.log(`  repo HEAD            : ${gitHead()}`);
-  const c = classify();
-  console.log(`\n  SAME=${c.same}  STALE=${c.stale}  MISSING=${c.missing}  ORPHAN=${c.orphans.length}`);
-  if (c.stale) console.log('  stale e.g.: ' + c.staleL.slice(0, 8).join(', '));
-  if (c.missing) console.log('  missing e.g.: ' + c.missL.slice(0, 8).join(', '));
-  if (c.orphans.length) console.log('  orphan e.g.: ' + c.orphans.slice(0, 8).join(', '));
+async function doWire(fromInstall) {
+  if (NOWIRE) { if (!fromInstall) console.log('  --no-wire: skipping wiring'); return; }
+  const man = loadManifest();
+  const allKeys = Object.keys(man.batches);
+  if (!allKeys.length) { console.log('  (no wire-manifest batches found)'); return; }
+
+  let selected = [];
+  const tty = !!process.stdin.isTTY;
+  if (HOOKS_FLAG) {
+    const want = HOOKS_FLAG.split(',').map(x => x.trim().toUpperCase()).filter(Boolean);
+    selected = allKeys.filter(k => want.includes(k));
+  } else if (WIRE) {
+    selected = allKeys; // --wire without --hooks = all batches
+  } else if (tty && !YES) {
+    if (!yesNo(await ask('\n  Wire hooks into settings.json now? [y/N] '), false)) { console.log('  skipped wiring.'); return; }
+    for (const k of allKeys) {
+      const b = man.batches[k];
+      const def = b.default !== false;
+      const want = yesNo(await ask(`  Install Batch ${k} — ${b.label}? [${def ? 'Y/n' : 'y/N'}] `), def);
+      if (want) selected.push(k);
+    }
+  } else {
+    if (fromInstall) console.log('\n  hooks NOT wired (non-interactive). To wire: node claude-config.js wire --apply --hooks=A,B');
+    return;
+  }
+  if (!selected.length) { console.log('  no batches selected — nothing wired.'); return; }
+
+  const sp = path.join(TARGET, 'settings.json');
+  let settings = {};
+  try { settings = JSON.parse(fs.readFileSync(sp, 'utf8')); } catch { settings = {}; }
+  settings.hooks = settings.hooks || {};
+
+  const added = [], missingFiles = [];
+  for (const k of selected) {
+    for (const e of man.batches[k].entries) {
+      const base = e.script.split('/').pop();
+      if (!fs.existsSync(path.join(TARGET, e.script))) { missingFiles.push(e.script); continue; } // don't wire a hook whose file isn't deployed
+      settings.hooks[e.event] = settings.hooks[e.event] || [];
+      if (eventHasScript(settings, e.event, base)) continue; // idempotent
+      const group = e.matcher ? { matcher: e.matcher, hooks: [] } : { hooks: [] };
+      group.hooks.push({ type: 'command', command: entryCommand(e), ...(e.timeout ? { timeout: e.timeout } : {}) });
+      settings.hooks[e.event].push(group);
+      added.push(`${e.event} [${e.matcher || '-'}] ${base}`);
+    }
+  }
+
+  console.log(`\n  wire (batches ${selected.join(',')}): ${added.length} entr${added.length === 1 ? 'y' : 'ies'} to add`);
+  added.forEach(a => console.log('    + ' + a));
+  if (!added.length) console.log('    (all selected hooks already wired — no change)');
+  if (missingFiles.length) console.log('    skipped (file not deployed): ' + missingFiles.join(', '));
+  if (APPLY) { fs.writeFileSync(sp, JSON.stringify(settings, null, 2) + '\n'); console.log('  settings.json updated.'); }
+  else console.log('  (dry run — re-run with --apply to write settings.json)');
   const v = verifyHooks(); if (v) console.log(`  settings.json hooks: ${v.ref} refs, ${v.broken.length} broken`);
-  process.exit(0);
 }
 
-if (cmd === 'install' || cmd === 'update') {
-  doPull();
-  const force = cmd === 'update';
-  let added = 0, updated = 0, skipped = 0, protectedN = 0;
-  for (const r of repoFiles()) {
-    const res = deployFile(r, force);
-    if (res === 'added' || res === 'would-add') added++;
-    else if (res === 'updated' || res === 'would-update') updated++;
-    else if (res === 'protected') protectedN++;
-    else skipped++;
-  }
-  console.log(`\n  ${APPLY ? 'deployed' : 'would deploy'}: +${added} new, ~${updated} ${force ? 'overwritten' : '(existing skipped)'}, ${skipped} unchanged, ${protectedN} custom-protected`);
+// ---- dispatch ----
+(async () => {
+  console.log(`claude-config: ${cmd}${APPLY ? '' : '  (DRY RUN — add --apply to write)'}`);
+  console.log(`  repo   : ${REPO}`);
+  console.log(`  target : ${TARGET}`);
 
-  if (cmd === 'update' && !NOCLEAN) {
-    const { orphans } = classify();
-    console.log(`\n  orphans (local-only, removed upstream): ${orphans.length}`);
-    orphans.slice(0, 60).forEach(o => console.log('    - ' + o));
-    if (APPLY) {
-      let d = 0; for (const o of orphans) { try { fs.unlinkSync(path.join(TARGET, o)); d++; } catch {} }
-      const ds = [...new Set(orphans.map(o => path.dirname(o)))].sort((a, b) => b.length - a.length);
-      for (const dd of ds) { try { const full = path.join(TARGET, dd); if (fs.existsSync(full) && fs.readdirSync(full).length === 0) fs.rmdirSync(full); } catch {} }
-      console.log(`  deleted ${d} orphan(s)`);
-    } else if (orphans.length) console.log('  (dry run — would delete the above)');
+  if (cmd === 'status') {
+    const pin = readPin();
+    console.log(`  pinned installed_sha : ${pin ? pin.installed_sha : '(none — never installed via claude-config)'}`);
+    console.log(`  repo HEAD            : ${gitHead()}`);
+    const c = classify();
+    console.log(`\n  SAME=${c.same}  STALE=${c.stale}  MISSING=${c.missing}  ORPHAN=${c.orphans.length}`);
+    if (c.stale) console.log('  stale e.g.: ' + c.staleL.slice(0, 8).join(', '));
+    if (c.missing) console.log('  missing e.g.: ' + c.missL.slice(0, 8).join(', '));
+    if (c.orphans.length) console.log('  orphan e.g.: ' + c.orphans.slice(0, 8).join(', '));
+    const v = verifyHooks(); if (v) console.log(`  settings.json hooks: ${v.ref} refs, ${v.broken.length} broken`);
+    return;
   }
 
-  const pin = writePin();
-  console.log(`\n  pin: ${APPLY ? 'written' : 'would write'} .config-source.json @ ${pin.installed_sha ? pin.installed_sha.slice(0, 8) : '?'}`);
-  const v = verifyHooks();
-  if (v) console.log(`  settings.json hooks: ${v.ref} refs, ${v.broken.length} broken` + (v.broken.length ? '\n    ' + v.broken.join('\n    ') : ''));
-  if (!APPLY) console.log('\n  DRY RUN. Re-run with --apply to make changes.');
-  process.exit(0);
-}
+  if (cmd === 'install' || cmd === 'update') {
+    doPull();
+    const force = cmd === 'update';
+    let added = 0, updated = 0, skipped = 0, protectedN = 0;
+    for (const r of repoFiles()) {
+      const res = deployFile(r, force);
+      if (res === 'added' || res === 'would-add') added++;
+      else if (res === 'updated' || res === 'would-update') updated++;
+      else if (res === 'protected') protectedN++;
+      else skipped++;
+    }
+    console.log(`\n  ${APPLY ? 'deployed' : 'would deploy'}: +${added} new, ~${updated} ${force ? 'overwritten' : '(existing skipped)'}, ${skipped} unchanged, ${protectedN} custom-protected`);
 
-console.log(`unknown command: ${cmd}. Use: status | install | update`);
-process.exit(1);
+    if (cmd === 'update' && !NOCLEAN) {
+      const { orphans } = classify();
+      console.log(`\n  orphans (local-only, removed upstream): ${orphans.length}`);
+      orphans.slice(0, 60).forEach(o => console.log('    - ' + o));
+      if (APPLY) {
+        let d = 0; for (const o of orphans) { try { fs.unlinkSync(path.join(TARGET, o)); d++; } catch {} }
+        const ds = [...new Set(orphans.map(o => path.dirname(o)))].sort((a, b) => b.length - a.length);
+        for (const dd of ds) { try { const full = path.join(TARGET, dd); if (fs.existsSync(full) && fs.readdirSync(full).length === 0) fs.rmdirSync(full); } catch {} }
+        console.log(`  deleted ${d} orphan(s)`);
+      } else if (orphans.length) console.log('  (dry run — would delete the above)');
+    }
+
+    const pin = writePin();
+    console.log(`\n  pin: ${APPLY ? 'written' : 'would write'} .config-source.json @ ${pin.installed_sha ? pin.installed_sha.slice(0, 8) : '?'}`);
+    await doWire(true);
+    if (!APPLY) console.log('\n  DRY RUN. Re-run with --apply to make changes.');
+    return;
+  }
+
+  if (cmd === 'wire') { await doWire(false); if (!APPLY) console.log('\n  DRY RUN. Re-run with --apply to write settings.json.'); return; }
+
+  console.log(`unknown command: ${cmd}. Use: status | install | update | wire`);
+  process.exitCode = 1;
+})();
