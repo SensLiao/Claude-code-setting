@@ -38,13 +38,17 @@ const TEXT = new Set(['.md', '.json', '.js', '.cjs', '.mjs', '.sh', '.ps1', '.py
 
 // placeholder substitution (matches install.sh / install.ps1 intent)
 const home = os.homedir();
+const isWin = process.platform === 'win32';
 const winp = s => s.replace(/\//g, '\\');
 const toPosix = s => { let p = s.replace(/\\/g, '/'); const m = p.match(/^([A-Za-z]):(.*)$/); return m ? '/' + m[1].toLowerCase() + m[2] : p; };
+// On Windows the *_WIN_/*_JSON_ forms are backslash paths; on macOS/Linux they are the native posix path.
+const nativeT = isWin ? winp(TARGET) : TARGET;
+const nativeH = isWin ? winp(home) : home;
 const SUBST = {
-  '__CLAUDE_HOME_JSON__': winp(TARGET).replace(/\\/g, '\\\\'),
-  '__USER_HOME_JSON__': winp(home).replace(/\\/g, '\\\\'),
-  '__CLAUDE_HOME_WIN__': winp(TARGET),
-  '__USER_HOME_WIN__': winp(home),
+  '__CLAUDE_HOME_JSON__': nativeT.replace(/\\/g, '\\\\'),
+  '__USER_HOME_JSON__': nativeH.replace(/\\/g, '\\\\'),
+  '__CLAUDE_HOME_WIN__': nativeT,
+  '__USER_HOME_WIN__': nativeH,
   '__CLAUDE_HOME_POSIX__': toPosix(TARGET),
   '__USER_HOME_POSIX__': toPosix(home),
 };
@@ -70,10 +74,13 @@ const pinPath = () => path.join(TARGET, '.config-source.json');
 const readPin = () => { try { return JSON.parse(fs.readFileSync(pinPath(), 'utf8')); } catch { return null; } };
 const gitHead = () => { try { return cp.execSync('git rev-parse HEAD', { cwd: REPO }).toString().trim(); } catch { return null; } };
 
+let _customCache;
 function customExcludes() {
+  if (_customCache) return _customCache;
   const pin = readPin();
-  return new Set((pin && pin.custom_files) ||
+  _customCache = new Set((pin && pin.custom_files) ||
     ['hooks/block-no-verify.js', 'commands/typecheck.md', 'commands/format.md', 'commands/sync-config.md']);
+  return _customCache;
 }
 function isUserOwned(r, custom) {
   return custom.has(r) || /^hooks\/gitnexus\//.test(r) || /^skills\/(gitnexus|learned)/.test(r);
@@ -99,6 +106,7 @@ function classify() {
   return { files, same, stale, missing, staleL, missL, orphans };
 }
 function deployFile(r, force) {
+  if (customExcludes().has(r)) return 'protected'; // never overwrite a user-registered custom file, even on --force
   const src = path.join(REPO, r), dst = path.join(TARGET, r);
   const exists = fs.existsSync(dst);
   if (exists && !force) return 'skip';
@@ -132,7 +140,7 @@ function verifyHooks() {
   for (const ev of Object.keys(st.hooks || {}))
     for (const g of st.hooks[ev] || [])
       for (const h of (g.hooks || [])) {
-        const m = (h.command || '').match(/"([A-Za-z]:[\/\\][^"]+\.(?:js|cjs|sh))"/g);
+        const m = (h.command || '').match(/"([^"]+\.(?:js|cjs|sh))"/g);
         if (m) for (const q of m) { const p = q.replace(/"/g, ''); ref++; if (!fs.existsSync(p)) broken.push(`${ev}: ${p}`); }
       }
   return { ref, broken };
@@ -168,14 +176,15 @@ if (cmd === 'status') {
 if (cmd === 'install' || cmd === 'update') {
   doPull();
   const force = cmd === 'update';
-  let added = 0, updated = 0, skipped = 0;
+  let added = 0, updated = 0, skipped = 0, protectedN = 0;
   for (const r of repoFiles()) {
     const res = deployFile(r, force);
     if (res === 'added' || res === 'would-add') added++;
     else if (res === 'updated' || res === 'would-update') updated++;
+    else if (res === 'protected') protectedN++;
     else skipped++;
   }
-  console.log(`\n  ${APPLY ? 'deployed' : 'would deploy'}: +${added} new, ~${updated} ${force ? 'overwritten' : '(existing skipped)'}, ${skipped} unchanged`);
+  console.log(`\n  ${APPLY ? 'deployed' : 'would deploy'}: +${added} new, ~${updated} ${force ? 'overwritten' : '(existing skipped)'}, ${skipped} unchanged, ${protectedN} custom-protected`);
 
   if (cmd === 'update' && !NOCLEAN) {
     const { orphans } = classify();
