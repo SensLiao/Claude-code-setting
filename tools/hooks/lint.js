@@ -450,7 +450,11 @@ function main() {
   // --- 5. Orphan detection: every .js/.sh under hooks/ and
   //         templates/<subsystem>/hooks/ must be classified --------------
   const hookFileExtensions = /\.(js|sh|cjs|mjs)$/i;
-  const isHookSource = (f) => hookFileExtensions.test(f);
+  // Test files (e.g. hooks/test/foo.test.js) are self-tests FOR hooks — they live
+  // beside the hook they exercise (via a relative require) but are NOT deployable
+  // hooks themselves, so they are not subject to registry classification.
+  const isTestFile = (f) => /\.test\.(js|sh|cjs|mjs)$/i.test(path.basename(f));
+  const isHookSource = (f) => hookFileExtensions.test(f) && !isTestFile(f);
 
   const globalHooksDir = path.join(claudeRoot, 'hooks');
   const templatesDir = path.join(claudeRoot, 'templates');
