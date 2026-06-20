@@ -92,13 +92,24 @@ function customExcludes() {
 function isUserOwned(r, custom) {
   return custom.has(r) || /^hooks\/gitnexus\//.test(r) || /^skills\/(gitnexus|learned)/.test(r);
 }
+// exact bytes deployFile would write for repo-relative path r (text files get OS-aware SUBST,
+// so a deployed placeholder file compares equal to source — no false "stale").
+function expectedBytes(r) {
+  const src = path.join(REPO, r);
+  if (TEXT.has(path.extname(src).toLowerCase())) {
+    let c = fs.readFileSync(src, 'utf8');
+    for (const k of Object.keys(SUBST)) if (c.includes(k)) c = c.split(k).join(SUBST[k]);
+    return Buffer.from(c, 'utf8');
+  }
+  return fs.readFileSync(src);
+}
 function classify() {
   const files = repoFiles();
   let same = 0, stale = 0, missing = 0; const staleL = [], missL = [];
   for (const r of files) {
-    const a = path.join(REPO, r), b = path.join(TARGET, r);
+    const b = path.join(TARGET, r);
     if (!fs.existsSync(b)) { missing++; missL.push(r); continue; }
-    if (Buffer.compare(fs.readFileSync(a), fs.readFileSync(b)) === 0) same++;
+    if (Buffer.compare(expectedBytes(r), fs.readFileSync(b)) === 0) same++;
     else { stale++; staleL.push(r); }
   }
   const repoSet = new Set(files), custom = customExcludes(), orphans = [];
@@ -119,11 +130,8 @@ function deployFile(r, force) {
   if (exists && !force) return 'skip';
   if (!APPLY) return exists ? 'would-update' : 'would-add';
   fs.mkdirSync(path.dirname(dst), { recursive: true });
-  if (TEXT.has(path.extname(src).toLowerCase())) {
-    let c = fs.readFileSync(src, 'utf8');
-    for (const k of Object.keys(SUBST)) if (c.includes(k)) c = c.split(k).join(SUBST[k]);
-    fs.writeFileSync(dst, c);
-  } else fs.copyFileSync(src, dst);
+  if (TEXT.has(path.extname(src).toLowerCase())) fs.writeFileSync(dst, expectedBytes(r));
+  else fs.copyFileSync(src, dst);
   return exists ? 'updated' : 'added';
 }
 function writePin() {
