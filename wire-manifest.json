@@ -26,6 +26,13 @@
         { "event": "PostToolUse", "matcher": "Edit|Write|MultiEdit", "runner": "node", "script": "scripts/hooks/post-edit-format.js", "timeout": 15 },
         { "event": "PostToolUse", "matcher": "Edit|Write|MultiEdit", "runner": "node", "script": "scripts/hooks/design-quality-check.js", "timeout": 10 }
       ]
+    },
+    "C": {
+      "label": "Progress-ledger discipline (Stop) — §0.7 durable-ledger reminder (SOFT, one-shot, fail-open)",
+      "default": true,
+      "entries": [
+        { "event": "Stop", "runner": "node", "script": "hooks/ledger-reminder.js", "timeout": 5 }
+      ]
     }
   }
 }
