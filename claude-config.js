@@ -7,6 +7,7 @@
  *   node claude-config.js install [--apply]   deploy files (additive) + interactively offer hook wiring
  *   node claude-config.js update  [--apply]   force-sync managed dirs + clean orphans + re-pin
  *   node claude-config.js wire    [--apply]   (re-)wire hooks into settings.json (interactive or --hooks)
+ *   node claude-config.js export-profile [name] [--apply]   record wired hooks -> profiles/<name>.json; `status` then reports drift
  *
  * Flags:
  *   --apply              actually write (default = DRY RUN — prints what it would do)
@@ -36,9 +37,10 @@ const tIdx = args.indexOf('--target');
 const TARGET = tIdx >= 0 ? args[tIdx + 1] : path.join(os.homedir(), '.claude');
 const hooksArg = args.find(a => a.startsWith('--hooks='));
 const HOOKS_FLAG = hooksArg ? hooksArg.split('=')[1] : (args.indexOf('--hooks') >= 0 ? args[args.indexOf('--hooks') + 1] : null);
+const PROFILE_NAME = args.filter(a => !a.startsWith('-'))[1] || 'default';
 
 const SKIP = new Set(['install.ps1', 'install.sh', 'README.md', '.gitignore', '.gitattributes',
-  'settings.example.json', '.git', '.github', '.claude', 'claude-config.js', 'claude-config.ps1', 'wire-manifest.json']);
+  'settings.example.json', '.git', '.github', '.claude', 'claude-config.js', 'claude-config.ps1', 'wire-manifest.json', 'profiles']);
 const PRESERVE = new Set(['.credentials.json', 'settings.json', 'settings.local.json',
   'memory', 'projects', 'sessions', 'tasks', 'history.jsonl', 'plugins']);
 const MANAGED = ['agents', 'commands', 'skills', 'hooks', 'scripts', 'rules', 'docs', 'manifests',
@@ -159,6 +161,43 @@ function verifyHooks() {
       }
   return { ref, broken };
 }
+// ---- hook profile (light): record wired hooks as a portable allow-list + drift check ----
+const TARGET_FWD = TARGET.replace(/\\/g, '/');
+const HOME_FWD = home.replace(/\\/g, '/');
+function templatize(cmd) {
+  let c = cmd || '';
+  c = c.split(NODE_BIN).join('__NODE_BIN__');             // node path, forward-slash form (entryCommand)
+  c = c.split(process.execPath).join('__NODE_BIN__');     // node path, native form
+  c = c.split(TARGET_FWD).join('__CLAUDE_HOME__');        // ~/.claude, forward-slash
+  c = c.split(TARGET).join('__CLAUDE_HOME__');            // ~/.claude, native backslash
+  c = c.split(toPosix(TARGET)).join('__CLAUDE_HOME__');   // ~/.claude, posix /c/...
+  c = c.split(HOME_FWD).join('__USER_HOME__');
+  c = c.split(home).join('__USER_HOME__');
+  c = c.split(toPosix(home)).join('__USER_HOME__');
+  return c;
+}
+function liveHookEntries() {
+  let st; try { st = JSON.parse(fs.readFileSync(path.join(TARGET, 'settings.json'), 'utf8')); } catch { return null; }
+  const out = [];
+  for (const event of Object.keys(st.hooks || {}))
+    for (const g of st.hooks[event] || [])
+      for (const h of (g.hooks || []))
+        out.push({ event, matcher: g.matcher || null, command: templatize(h.command || ''), ...(h.timeout ? { timeout: h.timeout } : {}) });
+  out.sort((a, b) => (a.event + '|' + a.command).localeCompare(b.event + '|' + b.command));
+  return out;
+}
+const profileKey = e => `${e.event}|${e.matcher || '-'}|${e.command}`;
+function profileDrift(name) {
+  const p = path.join(REPO, 'profiles', name + '.json');
+  if (!fs.existsSync(p)) return null;
+  let prof; try { prof = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; }
+  const live = liveHookEntries() || [];
+  const liveSet = new Set(live.map(profileKey)), profSet = new Set((prof.hooks || []).map(profileKey));
+  return {
+    missing: (prof.hooks || []).filter(e => !liveSet.has(profileKey(e))),  // in profile, not live
+    extra: live.filter(e => !profSet.has(profileKey(e))),                  // in live, not in profile (snuck in)
+  };
+}
 function doPull() {
   if (!PULL) return;
   try {
@@ -259,6 +298,13 @@ async function doWire(fromInstall) {
     if (c.missing) console.log('  missing e.g.: ' + c.missL.slice(0, 8).join(', '));
     if (c.orphans.length) console.log('  orphan e.g.: ' + c.orphans.slice(0, 8).join(', '));
     const v = verifyHooks(); if (v) console.log(`  settings.json hooks: ${v.ref} refs, ${v.broken.length} broken`);
+    const d = profileDrift('default');
+    if (d) {
+      console.log(`\n  profile (default): ${d.missing.length} missing, ${d.extra.length} unexpected`);
+      d.missing.forEach(e => console.log(`    - missing    : ${e.event} ${e.command}`));
+      d.extra.forEach(e => console.log(`    + unexpected : ${e.event} ${e.command}`));
+      if (!d.missing.length && !d.extra.length) console.log('    live wiring matches profile.');
+    }
     return;
   }
 
@@ -296,6 +342,24 @@ async function doWire(fromInstall) {
 
   if (cmd === 'wire') { await doWire(false); if (!APPLY) console.log('\n  DRY RUN. Re-run with --apply to write settings.json.'); return; }
 
-  console.log(`unknown command: ${cmd}. Use: status | install | update | wire`);
+  if (cmd === 'export-profile') {
+    const entries = liveHookEntries();
+    if (!entries) { console.log('  no settings.json found — nothing to export'); return; }
+    const profile = {
+      name: PROFILE_NAME,
+      exported_at: new Date().toISOString(),
+      source_sha: gitHead(),
+      note: 'Allow-list of this machine\'s wired hooks (paths templatized to __CLAUDE_HOME__ / __NODE_BIN__ / __USER_HOME__). Exclusions = hooks absent from this list. Run `status` to see drift (missing or unexpected). Re-run export-profile after changing wiring, then commit to version it.',
+      hooks: entries,
+    };
+    const dst = path.join(REPO, 'profiles', PROFILE_NAME + '.json');
+    console.log(`  ${APPLY ? 'writing' : 'would write'} ${entries.length} hook entries -> profiles/${PROFILE_NAME}.json`);
+    entries.forEach(e => console.log(`    ${e.event}${e.matcher ? ' [' + e.matcher + ']' : ''}  ${e.command}`));
+    if (APPLY) { fs.mkdirSync(path.dirname(dst), { recursive: true }); fs.writeFileSync(dst, JSON.stringify(profile, null, 2) + '\n'); console.log('  written.'); }
+    else console.log('  (dry run — add --apply to write the profile)');
+    return;
+  }
+
+  console.log(`unknown command: ${cmd}. Use: status | install | update | wire | export-profile`);
   process.exitCode = 1;
 })();
