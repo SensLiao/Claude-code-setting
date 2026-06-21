@@ -378,7 +378,28 @@ for sub in $selected_subsystems:   # appsec / qa / uiux / discoverability
 
 # 7. 生成 CLAUDE.md(用 templates/CLAUDE-MD-TEMPLATE.md)
 # 8. 生成 manifest.json v2(含 selector_evidence)
+
+# 9. seed §0.7 持久账本的固定入口 .goals/LEDGER.md —— 让跨-session 目标从第一天就有固定的家。
+#    NEVER clobber:已存在就跳过(项目可能已自带 ledger / 自己的重定向)。内容 = 最小 stub。
+mkdir -p .goals
+if [ ! -f .goals/LEDGER.md ]; then cat > .goals/LEDGER.md <<'LEDGER_STUB'
+# Goals / durable ledgers — FIXED ENTRY (global CLAUDE.md §0.7)
+
+> The single fixed entry point for this repo's cross-session goals — a new session reads THIS first.
+> Each active initiative lives here (a section) or redirects to a project-owned ledger; pair each with
+> a `project` memory pointer in ~/.claude/projects/<slug>/memory/ so a /clear-resume finds it.
+
+## Active initiatives
+
+_(none yet — the first multi-phase work records its goal + 断点 + next-step here.)_
+LEDGER_STUB
+fi
 ```
+
+> **§0.7 seed (step 9):** EXECUTE drops a `.goals/LEDGER.md` stub so every bootstrapped repo has the §0.7
+> durable-ledger fixed entry from day one (kills the "现编文件名/位置" ad-hoc). It is **never-clobber** —
+> an existing `.goals/LEDGER.md` is left untouched. The `ledger-reminder.js` Stop hook (wire-manifest batch
+> C) is the runtime backstop for repos that predate this or that skip it.
 
 > Windows 兼容:用 `cp -r` 不用 symlink。
 
