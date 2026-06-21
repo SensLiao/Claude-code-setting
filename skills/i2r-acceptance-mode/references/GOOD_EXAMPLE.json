@@ -1,0 +1,16 @@
+{
+  "_comment": "GOOD EXAMPLE — anchored on examples/good-run/06-acceptance.json AC-ORDER-01-01. Shows: arrays for G/W/T, single-behaviour scenario, prose matches schema, ID format correct.",
+  "id": "AC-ORDER-01-01",
+  "requirement_id": "ORDER-01",
+  "scenario": "Lookup returns recent orders",
+  "given": [
+    "a customer has orders within the last 90 days"
+  ],
+  "when": [
+    "the agent submits that customer's email"
+  ],
+  "then": [
+    "the tool lists those orders"
+  ],
+  "prose": "Passes when submitting a known customer's email lists that customer's orders from the last 90 days."
+}

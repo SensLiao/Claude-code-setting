@@ -4,24 +4,25 @@
 > Cross-references: [CLAUDE.md](../CLAUDE.md) §1 + §3 | [SKILLS-INDEX.md](../SKILLS-INDEX.md) | [L12-DISCOVERABILITY.md](L12-DISCOVERABILITY.md) | [HANDOFFS.md](HANDOFFS.md)
 > Last reviewed: 2026-06-10 (was 2026-05-25 v4). 2026-06-10 refresh: AppSec sub-skill table → 16 skills (+security-app-api / security-platform-supply-chain / security-compliance-privacy); removed all dead `templates/<sub>/hooks/` + `settings.json.snippet` path descriptions (hook enumeration/triggers/install now point to `manifests/hook-registry.json` + `orchestrator-runtime/shared/install-subsystem-hooks.js`, per-family counts no longer hardcoded); route count aligned to SKILLS-INDEX 20-Route.
 
-This document is the architectural reference for the 5 primary orchestrators and the L12 downstream gate. Use it to decide which entry point to call for a given task and to understand the boundaries between subsystems.
+This document is the architectural reference for the 6 primary orchestrators and the L12 downstream gate. Use it to decide which entry point to call for a given task and to understand the boundaries between subsystems.
 
 ---
 
 ## 1. Overview
 
-The harness is organized around **five primary orchestrators** plus **one downstream release gate** (L12 Discoverability). Three of the primary orchestrators map to "mainline" delivery work, and two are setup/safety bookends.
+The harness is organized around **six primary orchestrators** plus **one downstream release gate** (L12 Discoverability). Three of the primary orchestrators map to "mainline" delivery work; one is the requirements front-end feeding the spine (I2R); two are setup/safety bookends.
 
 ### 1.1 The 3-mainline mental model
 
 ```
-Project setup ──► PM delivery ──┬──► UIUX main-line ──► L12 release gate
-                                ├──► QA main-line
-                                └──► AppSec main-line
+Project setup ──► I2R (idea→PRD) ──► PM delivery ──┬──► UIUX main-line ──► L12 release gate
+                                                   ├──► QA main-line
+                                                   └──► AppSec main-line
 ```
 
 - **Project setup** runs once per project (manual-first bootstrap).
-- **PM delivery (GSD)** is the spine — every non-trivial task enters here.
+- **I2R (idea-to-requirements)** is the requirements front-end **upstream of GSD** — it turns a raw/messy idea into a GSD-ready PRD (WHAT/WHY only; never HOW/tasks/architecture/UI), then hands off to GSD.
+- **PM delivery (GSD)** is the spine — every non-trivial task enters here (directly, or via I2R when the idea is still raw).
 - **UIUX / QA / AppSec** are co-equal main-lines fanning out from GSD per phase.
 - **L12 Discoverability** is a UIUX-downstream release readiness gate, not a separate main-line.
 
@@ -30,10 +31,11 @@ Project setup ──► PM delivery ──┬──► UIUX main-line ──► 
 | # | Orchestrator | Role | Activation | Evidence sink | Hook scope |
 |---|---|---|---|---|---|
 | 1 | `claude-env-bootstrap` | Project setup | manual-first (disable-model-invocation: true) | `.claude/` install report | n/a (one-shot) |
-| 2 | `gsd-pipeline-orchestrator` | PM delivery main-line | auto | `.planning/` | global (GSD hooks always on) |
-| 3 | `uiux-product-orchestrator` | UIUX main-line | auto | `.planning/<phase>/ui/` | project-installed (uiux-sdk init) |
-| 4 | `enterprise-qa-testing` | QA main-line | auto | `.qa/` | project-installed (qa-sdk init) |
-| 5 | `appsec-security-orchestrator` v3.0 | AppSec main-line | auto when triggers | `.appsec/evidence/<tag>/` | project-installed (appsec-sdk init) |
+| 2 | `idea-to-requirements-orchestrator` (I2R) | Requirements front-end (GSD-upstream) | auto (raw idea / requirements / PRD intent) | `runs/i2r/<slug>/<timestamp>/` | project-installed (`i2r.py install`; gated on `runs/i2r/` presence, **no config file**) |
+| 3 | `gsd-pipeline-orchestrator` | PM delivery main-line | auto | `.planning/` | global (GSD hooks always on) |
+| 4 | `uiux-product-orchestrator` | UIUX main-line | auto | `.planning/<phase>/ui/` | project-installed (uiux-sdk init) |
+| 5 | `enterprise-qa-testing` | QA main-line | auto | `.qa/` | project-installed (qa-sdk init) |
+| 6 | `appsec-security-orchestrator` v3.0 | AppSec main-line | auto when triggers | `.appsec/evidence/<tag>/` | project-installed (appsec-sdk init) |
 | — | `discoverability-orchestrator` | L12 release gate (UIUX-downstream) | auto when public surface present | `evidence/discoverability/<tag>/` | project-installed (discoverability-sdk init) |
 
 > **Convention** — "Primary" means the entry point a user calls directly. "Downstream gate" means the entry point another orchestrator calls as a release-readiness child, not a top-level invocation.
@@ -56,6 +58,24 @@ Project setup ──► PM delivery ──┬──► UIUX main-line ──► 
 **Why manual-first:** automated install would mutate user-trusted config without consent. The SessionStart hook (`detect-bootstrap-needed.js`) only **prompts once** — the actual install requires explicit `/claude-env-bootstrap` invocation.
 
 **Hand-off**: emits `bootstrap_complete` → GSD picks up on next phase.
+
+---
+
+### 2.1b `idea-to-requirements-orchestrator` (I2R) — requirements front-end (GSD-upstream)
+
+| Field | Value |
+|---|---|
+| Layer | Requirements front-end (upstream of the spine) |
+| Activation | **auto** — when the request is a raw/messy idea needing requirements, not yet a built spec |
+| Trigger phrases | "clarify an idea / define requirements / functional requirements / non-functional requirements / acceptance criteria / scope / PRD / prepare for GSD / turn idea into requirements / 需求 / 想法转需求 / 写 PRD" |
+| Does NOT trigger | implementation / coding / debugging / UI design / roadmap / tasks / architecture (the HOW/WHEN/WHO — those are GSD's) |
+| Owns | `runs/i2r/<slug>/<timestamp>/` requirements run folder, 9 `i2r-*` agents (all opus), 10 mode subskills, the `i2r.py` SDK ($0, 16 commands), dual independent review (santa-loop) + bounded repair loop (max 3 iters), the WHAT/WHY firewall (stack-swap test: any HOW leakage = hard FAIL) |
+| Hook footprint | **Project-installed only** — 8 hooks + 1 shared lib (`i2r-session-context` / `i2r-auto-trigger-boundary` / `i2r-write-boundary` / `i2r-mode-gate` / `i2r-mark-stale` / `i2r-subagent-output-gate` / `i2r-citation-gate` / `i2r-handoff-gate` + `_i2r-common.js` lib) registered via `python ~/.claude/templates/i2r/scripts/i2r.py install --project .`. **Intentional variant:** gated on `runs/i2r/` run-folder presence, **not** a config file (no `.i2r/config.json`); fail-open/silent on non-i2r projects. Registration is done by `i2r.py install` (NOT `init`, which only scaffolds the run folder). |
+| Evidence | `runs/i2r/<slug>/<timestamp>/` (PRD.md + requirements.json + gate-result.yaml + per-stage JSON) |
+
+**Why upstream of GSD, not inside it:** GSD assumes a known WHAT and re-derives HOW/WHEN/WHO. I2R exists for the step *before* that — converting a raw idea into a rigorous, GSD-ready PRD. It produces **WHAT + WHY + CONSTRAINTS + LOCKED DECISIONS only**, never phases/architecture/tasks/UI.
+
+**Hand-off**: emits a GSD-ready `PRD.md` → GSD ingests via `/gsd:ingest-docs` or `/gsd:plan-phase --prd PRD.md`. Gate verdicts: `READY` / `NEEDS_REVIEW` / `BLOCKED` (the `i2r-handoff-gate` hook blocks "ready for GSD" unless both reviews PASS + gate ∈ {READY, NEEDS_REVIEW} + no open BLOCKER).
 
 ---
 
@@ -164,14 +184,17 @@ Use this when deciding which orchestrator to invoke first.
                               │ User Input       │
                               └────────┬─────────┘
                                        │
-                  ┌────────────────────┼────────────────────────┐
-                  │                    │                        │
-                  ▼                    ▼                        ▼
-        "init / bootstrap"      "non-trivial work"       "trivial 1-3 line"
-                  │                    │                        │
-                  ▼                    ▼                        ▼
-       claude-env-bootstrap   gsd-pipeline-orchestrator    direct execute
-       (manual /command)             │                     (no orchestrator)
+                  ┌──────────────┬─────┼────────────────────────┐
+                  │              │     │                        │
+                  ▼              ▼     ▼                        ▼
+        "init / bootstrap"  "raw idea /  "non-trivial work"  "trivial 1-3 line"
+                  │          requirements"      │                 │
+                  ▼              │              ▼                 ▼
+       claude-env-bootstrap      ▼      gsd-pipeline-orchestrator  direct execute
+       (manual /command)  idea-to-requirements-  │            (no orchestrator)
+                          orchestrator (I2R)     │
+                          │ (PRD READY)          │
+                          └──► GSD ◄─────────────┘
                                      │
                 ┌────────────────────┼────────────────────────┐
                 │                    │                        │
@@ -207,6 +230,7 @@ See [HANDOFFS.md](HANDOFFS.md) for payload schemas. Summary:
 
 | From | To | When | Payload |
 |---|---|---|---|
+| I2R | GSD | requirements run reaches `READY`/`NEEDS_REVIEW` (GSD-ready PRD produced) | `PRD.md` (+ requirements.json) via `/gsd:ingest-docs` or `/gsd:plan-phase --prd PRD.md` |
 | GSD | UIUX | phase has UI surface | `gsd_to_uiux` |
 | GSD | QA | phase reaches verify | `gsd_to_qa` |
 | GSD | AppSec | phase touches sensitive surface | `gsd_to_appsec` |
