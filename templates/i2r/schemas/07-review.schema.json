@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "i2r/07-review",
+  "title": "I2R Review (santa-loop reviewer A/B findings + reader test + GSD ambiguity precheck)",
+  "type": "object",
+  "required": ["_meta", "reviewer", "verdict", "iteration", "findings"],
+  "properties": {
+    "_meta": { "$ref": "#/definitions/meta" },
+    "reviewer": { "type": "string", "enum": ["claude", "codex", "fallback-critic"] },
+    "verdict": { "type": "string", "enum": ["PASS", "FAIL"] },
+    "failed_stage": {
+      "type": "string",
+      "enum": ["00-mode-routing", "01-intake", "02-context", "02b-evidence", "03-scope", "03b-scope-debate", "04-functional", "05-nfr", "06-acceptance", "handoff", "none"]
+    },
+    "iteration": { "type": "integer", "minimum": 1 },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["defect_class", "severity", "evidence"],
+        "properties": {
+          "requirement_id": { "type": "string" },
+          "defect_class": {
+            "type": "string",
+            "enum": ["AMBIGUITY", "UNTESTABLE", "UNSOURCED", "SCOPE_LEAK", "IMPLEMENTATION_LEAK", "DUPLICATE", "CONFLICT", "NFR_MISSING", "ACCEPTANCE_GAP", "GSD_INCOMPATIBLE", "DOWNSTREAM_REINTERPRETATION_RISK", "READER_TEST_FAIL", "PLACEHOLDER"]
+          },
+          "severity": { "type": "string", "enum": ["BLOCKER", "MAJOR", "MINOR"] },
+          "evidence": { "type": "string" },
+          "suggested_fix": { "type": "string" }
+        }
+      }
+    },
+    "gsd_ambiguity_precheck": {
+      "type": "object",
+      "required": ["goal", "boundary", "constraint", "acceptance", "score"],
+      "properties": {
+        "goal": { "type": "number", "minimum": 0, "maximum": 1 },
+        "boundary": { "type": "number", "minimum": 0, "maximum": 1 },
+        "constraint": { "type": "number", "minimum": 0, "maximum": 1 },
+        "acceptance": { "type": "number", "minimum": 0, "maximum": 1 },
+        "score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "downstream_ai_ambiguity_risk": { "type": "boolean" }
+      }
+    },
+    "reader_test": {
+      "type": "object",
+      "required": ["verdict"],
+      "properties": {
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] },
+        "inferred_goals": { "type": "string" },
+        "inferred_boundary": { "type": "string" },
+        "inferred_constraints": { "type": "string" },
+        "inferred_acceptance": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    }
+  },
+  "definitions": {
+    "meta": {
+      "type": "object",
+      "required": ["artifact_version", "stage", "run_id", "generated_by_agent", "created_at"],
+      "properties": {
+        "artifact_version": { "type": "string" },
+        "stage": { "type": "string" },
+        "run_id": { "type": "string" },
+        "generated_by_agent": { "type": "string" },
+        "created_at": { "type": "string" },
+        "input_hashes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "sha256"],
+            "properties": { "file": { "type": "string" }, "sha256": { "type": "string" } }
+          }
+        },
+        "skills_used": { "type": "array", "items": { "type": "string" } },
+        "tools_used": { "type": "array", "items": { "type": "string" } },
+        "mode_context": { "type": "object" }
+      }
+    }
+  }
+}

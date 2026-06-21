@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "i2r/02-context",
+  "title": "I2R Context (actors, JTBD, glossary, success metrics, constraints)",
+  "type": "object",
+  "required": ["_meta", "actors", "jobs_to_be_done", "glossary", "success_metrics", "constraints"],
+  "properties": {
+    "_meta": { "$ref": "#/definitions/meta" },
+    "actors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "source_ref"],
+        "properties": { "name": { "type": "string" }, "description": { "type": "string" }, "source_ref": { "type": "string" } }
+      }
+    },
+    "personas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": { "name": { "type": "string" }, "goals": { "type": "string" }, "context": { "type": "string" }, "source_ref": { "type": "string" } }
+      }
+    },
+    "jobs_to_be_done": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["job", "source_ref"],
+        "properties": { "id": { "type": "string" }, "job": { "type": "string" }, "source_ref": { "type": "string" } }
+      }
+    },
+    "glossary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["term", "definition"],
+        "properties": { "term": { "type": "string" }, "definition": { "type": "string" }, "source_ref": { "type": "string" } }
+      }
+    },
+    "success_metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["metric", "target"],
+        "properties": { "metric": { "type": "string" }, "target": { "type": "string" }, "source_ref": { "type": "string" } }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "what", "source_ref"],
+        "properties": {
+          "type": { "type": "string" },
+          "what": { "type": "string" },
+          "why": { "type": "string" },
+          "source_ref": { "type": "string" }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "meta": {
+      "type": "object",
+      "required": ["artifact_version", "stage", "run_id", "generated_by_agent", "created_at"],
+      "properties": {
+        "artifact_version": { "type": "string" },
+        "stage": { "type": "string" },
+        "run_id": { "type": "string" },
+        "generated_by_agent": { "type": "string" },
+        "created_at": { "type": "string" },
+        "input_hashes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "sha256"],
+            "properties": { "file": { "type": "string" }, "sha256": { "type": "string" } }
+          }
+        },
+        "skills_used": { "type": "array", "items": { "type": "string" } },
+        "tools_used": { "type": "array", "items": { "type": "string" } },
+        "mode_context": { "type": "object" }
+      }
+    }
+  }
+}

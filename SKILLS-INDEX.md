@@ -1,25 +1,28 @@
 # SKILLS-INDEX — v4 (2026-05-23)
 
-> 13-Layer Skill Taxonomy + 5 Primary Orchestrators + 20-Route UIUX Pipeline
+> 13-Layer Skill Taxonomy + 6 Primary Orchestrators + 20-Route UIUX Pipeline
 > 配套：[~/.claude/CLAUDE.md](CLAUDE.md) / [docs/native-capabilities.md](docs/native-capabilities.md) / [docs/ORCHESTRATOR-MAP.md](docs/ORCHESTRATOR-MAP.md)
 > 安装日志：[~/.claude/.planning/phases/skills-ui-ux-expansion-20260521/INSTALL-LOG.md](.planning/phases/skills-ui-ux-expansion-20260521/INSTALL-LOG.md)
 > 备份：`~/.claude/_backup-20260522-v3/`
 
 ---
 
-## Primary Orchestrator Layer (v1.1 — 2026-05-23 新增)
+## Primary Orchestrator Layer (v1.1 — 2026-05-23 新增；2026-06-22 +I2R = 6 个)
 
-> 这一层是 commercial-grade 系统的 5 个主入口。所有底层 13 Layer skill 都通过这 5 个 orchestrator 路由，避免散件直接抢入口。
+> 这一层是 commercial-grade 系统的 6 个主入口。所有底层 13 Layer skill 都通过这些 orchestrator 路由，避免散件直接抢入口。
 
-### 5 个 Primary Orchestrator 速查
+### 6 个 Primary Orchestrator 速查
 
 | # | Orchestrator | 主线 | trigger | disable-model-invocation |
 |---|---|---|---|---|
 | 1 | `claude-env-bootstrap` | Project Bootstrap | manual-first | **true** |
-| 2 | `gsd-pipeline-orchestrator` | GSD Delivery (PM) | auto | false |
-| 3 | `uiux-product-orchestrator` | UIUX Product | auto | false |
-| 4 | `enterprise-qa-testing` | Enterprise QA / SDET | auto | false |
-| 5 | `appsec-security-orchestrator` | AppSec | auto when triggers present | false |
+| 2 | `idea-to-requirements-orchestrator`（I2R） | 需求前端（GSD 上游：raw idea → GSD-ready PRD，只产 WHAT/WHY） | auto | false |
+| 3 | `gsd-pipeline-orchestrator` | GSD Delivery (PM) | auto | false |
+| 4 | `uiux-product-orchestrator` | UIUX Product | auto | false |
+| 5 | `enterprise-qa-testing` | Enterprise QA / SDET | auto | false |
+| 6 | `appsec-security-orchestrator` | AppSec | auto when triggers present | false |
+
+> **I2R（requirements front-end，UPSTREAM of GSD）**：把一个 raw/messy idea 变成 GSD-ready PRD（WHAT + WHY + CONSTRAINTS + LOCKED DECISIONS，**绝不**产 HOW / tasks / architecture / UI / roadmap——GSD 再 re-derive）。all-opus，SKILL-direct，9 个 i2r-* agent + 10 mode subskill + project-local `i2r.py` SDK（$0，16 命令）+ 8 个 project-installed hooks + 1 个 shared lib（`_i2r-common.js`）（gate 在 `runs/i2r/` 存在与否，无 config 文件，刻意变体）。经 `/gsd:ingest-docs` 或 `/gsd:plan-phase --prd PRD.md` 交棒 GSD。**不**触发于实现 / coding / debug / UI / roadmap。
 
 ### Pentest 双 gate (security testing 特殊路径)
 

@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "i2r/requirements-handoff",
+  "title": "I2R Requirements Handoff (the bundle assemble validates)",
+  "type": "object",
+  "required": ["_meta", "project", "artifacts", "requirements_summary", "traceability", "handoff_status"],
+  "properties": {
+    "_meta": { "$ref": "#/definitions/meta" },
+    "project": {
+      "type": "object",
+      "required": ["name", "slug", "run_id"],
+      "properties": { "name": { "type": "string" }, "slug": { "type": "string" }, "run_id": { "type": "string" } }
+    },
+    "artifacts": {
+      "type": "object",
+      "description": "stage -> relative path",
+      "additionalProperties": { "type": "string" }
+    },
+    "requirements_summary": {
+      "type": "object",
+      "required": ["fr_count", "nfr_count", "ac_count"],
+      "properties": {
+        "fr_count": { "type": "integer", "minimum": 0 },
+        "nfr_count": { "type": "integer", "minimum": 0 },
+        "ac_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "traceability": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["fr_id"],
+        "properties": {
+          "goal": { "type": "string" },
+          "story": { "type": "string" },
+          "fr_id": { "type": "string" },
+          "ac_ids": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "constraints": { "type": "array", "items": { "type": "string" } },
+    "locked_decisions": { "type": "array", "items": { "type": "string" } },
+    "gate_ref": { "type": "string" },
+    "handoff_status": { "type": "string", "enum": ["READY", "NEEDS_REVIEW", "BLOCKED"] }
+  },
+  "definitions": {
+    "meta": {
+      "type": "object",
+      "required": ["artifact_version", "stage", "run_id", "generated_by_agent", "created_at"],
+      "properties": {
+        "artifact_version": { "type": "string" },
+        "stage": { "type": "string" },
+        "run_id": { "type": "string" },
+        "generated_by_agent": { "type": "string" },
+        "created_at": { "type": "string" },
+        "input_hashes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "sha256"],
+            "properties": { "file": { "type": "string" }, "sha256": { "type": "string" } }
+          }
+        },
+        "skills_used": { "type": "array", "items": { "type": "string" } },
+        "tools_used": { "type": "array", "items": { "type": "string" } },
+        "mode_context": { "type": "object" }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "i2r/08-repair-notes",
+  "title": "I2R Repair Notes (bounded review loop — rerun failed stage only)",
+  "type": "object",
+  "required": ["_meta", "iteration", "failed_stage", "findings", "repair_prompt", "new_attempt_required"],
+  "properties": {
+    "_meta": { "$ref": "#/definitions/meta" },
+    "iteration": { "type": "integer", "minimum": 1, "maximum": 3 },
+    "failed_stage": {
+      "type": "string",
+      "enum": ["00-mode-routing", "01-intake", "02-context", "02b-evidence", "03-scope", "03b-scope-debate", "04-functional", "05-nfr", "06-acceptance", "handoff"]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["defect_class", "severity"],
+        "properties": {
+          "requirement_id": { "type": "string" },
+          "defect_class": { "type": "string" },
+          "severity": { "type": "string", "enum": ["BLOCKER", "MAJOR", "MINOR"] },
+          "evidence": { "type": "string" },
+          "suggested_fix": { "type": "string" }
+        }
+      }
+    },
+    "repair_prompt": { "type": "string" },
+    "previous_attempt_hash": { "type": "string" },
+    "new_attempt_required": { "type": "boolean" }
+  },
+  "definitions": {
+    "meta": {
+      "type": "object",
+      "required": ["artifact_version", "stage", "run_id", "generated_by_agent", "created_at"],
+      "properties": {
+        "artifact_version": { "type": "string" },
+        "stage": { "type": "string" },
+        "run_id": { "type": "string" },
+        "generated_by_agent": { "type": "string" },
+        "created_at": { "type": "string" },
+        "input_hashes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "sha256"],
+            "properties": { "file": { "type": "string" }, "sha256": { "type": "string" } }
+          }
+        },
+        "skills_used": { "type": "array", "items": { "type": "string" } },
+        "tools_used": { "type": "array", "items": { "type": "string" } },
+        "mode_context": { "type": "object" }
+      }
+    }
+  }
+}

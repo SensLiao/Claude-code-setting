@@ -3,7 +3,7 @@
   "schema_version": "2.0.0",
   "generated_date": "2026-06-14",
   "generated_by": "harness drift normalization Wave 2 Agent A2 (PR-1)",
-  "description": "Comprehensive structured registry of the ~/.claude/ harness control surface: 5 primary orchestrators, 1 downstream gate (L12), subsystem agents/hooks/SDKs/evidence-roots/schemas/handoff-schemas/decision-semantics, and the safety-critical name freeze list. v2.0.0 declares AppSec v3.0 GSD-lite execution engine + L12 v1.2 tag-scoped evidence + per-project hook install pattern (D3 canonical).",
+  "description": "Comprehensive structured registry of the ~/.claude/ harness control surface: 6 primary orchestrators (incl. idea-to-requirements-orchestrator / I2R, the requirements front-end upstream of GSD), 1 downstream gate (L12), subsystem agents/hooks/SDKs/evidence-roots/schemas/handoff-schemas/decision-semantics, and the safety-critical name freeze list. v2.0.0 declares AppSec v3.0 GSD-lite execution engine + L12 v1.2 tag-scoped evidence + per-project hook install pattern (D3 canonical).",
 
   "primary_orchestrators": [
     {
@@ -60,7 +60,77 @@
       "sdk": null,
       "downstream_gates": [],
       "evidence_root": ".planning/<milestone>/<phase>/",
-      "notes": "Default entry for non-trivial work. Dispatches phase commands (spec / discuss / plan / execute / verify / ship)."
+      "notes": "Default entry for non-trivial work. Dispatches phase commands (spec / discuss / plan / execute / verify / ship). Upstream requirements clarification (raw idea → PRD) is owned by idea-to-requirements-orchestrator (I2R)."
+    },
+    {
+      "name": "idea-to-requirements-orchestrator",
+      "tier": "primary",
+      "trigger_mode": "auto",
+      "disable_model_invocation": false,
+      "version": "1.0",
+      "role": "Idea-to-Requirements Orchestrator (requirements front-end, UPSTREAM of GSD)",
+      "execution_mode": "SKILL-direct only (NOT workflow-spec)",
+      "model_routing": "all-opus (lead + all 9 i2r-* agents; the $0 i2r.py SDK is no-LLM)",
+      "agents": [
+        "i2r-orchestrator",
+        "i2r-intake-clarifier",
+        "i2r-context-analyst",
+        "i2r-evidence-researcher",
+        "i2r-scope-architect",
+        "i2r-functional-author",
+        "i2r-nfr-author",
+        "i2r-acceptance-author",
+        "i2r-completeness-critic"
+      ],
+      "mode_subskills": [
+        "i2r-skill-quality-mode",
+        "i2r-elicitation-mode",
+        "i2r-search-mode",
+        "i2r-discussion-mode",
+        "i2r-scope-mode",
+        "i2r-fr-authoring-mode",
+        "i2r-nfr-authoring-mode",
+        "i2r-acceptance-mode",
+        "i2r-debate-review-mode",
+        "i2r-gsd-projection-mode"
+      ],
+      "hooks": {
+        "global_live": [],
+        "project_installed": [
+          "i2r-session-context.js",
+          "i2r-auto-trigger-boundary.js",
+          "i2r-write-boundary.js",
+          "i2r-mode-gate.js",
+          "i2r-mark-stale.js",
+          "i2r-subagent-output-gate.js",
+          "i2r-citation-gate.js",
+          "i2r-handoff-gate.js"
+        ]
+      },
+      "hook_scope": "project-installed via `python ~/.claude/templates/i2r/scripts/i2r.py install --project .` — INTENTIONAL VARIANT: gated on run-folder presence (runs/i2r/), NOT a config file. No .i2r/config.json exists; fail-open/silent on non-i2r projects. Hooks registered by `i2r.py install` (NOT `init`, which only scaffolds the run folder).",
+      "sdk": "templates/i2r/scripts/i2r.py (project-local; copied into <project> by `i2r.py install`)",
+      "sdk_commands": [
+        "init",
+        "install",
+        "status",
+        "route",
+        "validate --stage N",
+        "mode.check",
+        "evidence.validate",
+        "discuss.record",
+        "repair.plan",
+        "assemble",
+        "gate.check",
+        "mark-stale",
+        "unstale",
+        "diff",
+        "explain-fail",
+        "evals.run"
+      ],
+      "downstream": ["gsd-pipeline-orchestrator"],
+      "evidence_root": "runs/i2r/<slug>/<timestamp>/",
+      "toolchain_template": "templates/i2r/{scripts,schemas,hooks}",
+      "notes": "Requirements front-end UPSTREAM of GSD. Produces WHAT + WHY + CONSTRAINTS + LOCKED DECISIONS only (NEVER WHEN/HOW/WHO-BUILDS-WHAT — GSD re-derives phases/architecture/tasks). Hands off to GSD via `/gsd:ingest-docs` or `/gsd:plan-phase --prd PRD.md`. Gate verdicts: READY / NEEDS_REVIEW / BLOCKED. Dual independent review (santa-loop: i2r-completeness-critic + Codex adversarial | fallback fresh critic), bounded to max 3 iterations. Trigger intent: clarify an idea / define requirements / functional+non-functional requirements / acceptance criteria / scope / PRD / prepare for GSD / 需求 / 想法转需求. Does NOT trigger on implementation/coding/debugging/UI/roadmap."
     },
     {
       "name": "uiux-product-orchestrator",
@@ -257,6 +327,22 @@
   ],
 
   "agents": {
+    "i2r": {
+      "members": [
+        "i2r-orchestrator",
+        "i2r-intake-clarifier",
+        "i2r-context-analyst",
+        "i2r-evidence-researcher",
+        "i2r-scope-architect",
+        "i2r-functional-author",
+        "i2r-nfr-author",
+        "i2r-acceptance-author",
+        "i2r-completeness-critic"
+      ],
+      "owner": "idea-to-requirements-orchestrator",
+      "location": "~/.claude/agents/i2r-*.md",
+      "model": "all-opus"
+    },
     "l12": {
       "members": [
         "disc-scope-classifier",
@@ -463,6 +549,31 @@
         "ledger.append"
       ],
       "evidence_root": "evidence/discoverability/<tag>/"
+    },
+    "i2r": {
+      "path": "templates/i2r/scripts/i2r.py",
+      "lang": "python",
+      "project_local": true,
+      "toolchain_template": "templates/i2r/",
+      "commands": [
+        "init",
+        "install",
+        "status",
+        "route",
+        "validate --stage N",
+        "mode.check",
+        "evidence.validate",
+        "discuss.record",
+        "repair.plan",
+        "assemble",
+        "gate.check",
+        "mark-stale",
+        "unstale",
+        "diff",
+        "explain-fail",
+        "evals.run"
+      ],
+      "evidence_root": "runs/i2r/<slug>/<timestamp>/"
     }
   },
 
@@ -475,7 +586,8 @@
       "migration_command": "appsec-sdk migrate-evidence"
     },
     "qa": ".qa/evidence/<tag>/",
-    "uiux": ".uiux/evidence/<tag>/"
+    "uiux": ".uiux/evidence/<tag>/",
+    "i2r": "runs/i2r/<slug>/<timestamp>/"
   },
 
   "schemas": {
@@ -494,6 +606,8 @@
     "uiux_to_discoverability": "../schemas/handoff.schema.yaml",
     "gsd_to_uiux": "../schemas/handoff.schema.yaml",
     "gsd_to_qa": "../schemas/handoff.schema.yaml",
+    "i2r_to_gsd": "../schemas/handoff.schema.yaml",
+    "i2r_to_gsd_note": "I2R (requirements front-end, GSD-upstream) emits a GSD-ready PRD.md → GSD ingests via `/gsd:ingest-docs` or `/gsd:plan-phase --prd PRD.md`.",
     "note": "All handoffs use unified handoff.schema.yaml. Owned by Wave 2 Agent A3 (PR-4)."
   },
 
@@ -512,9 +626,10 @@
       "qa": ["PASS", "WARN", "FAIL", "BLOCKED", "STALE"],
       "uiux": ["PASS", "WARN", "FAIL", "STRATEGY_READY"],
       "discoverability": ["PASS", "WARN", "FAIL", "BLOCKED", "STALE"],
-      "gsd": ["PASS", "FAIL"]
+      "gsd": ["PASS", "FAIL"],
+      "i2r": ["READY", "NEEDS_REVIEW", "BLOCKED"]
     },
-    "notes": "Canonical vocabulary from CANONICALS.md §3. Subsystem verdict sets are subsets of full vocabulary; QA omits CONDITIONAL_PASS by design (risk acceptance lives in AppSec layer)."
+    "notes": "Canonical vocabulary from CANONICALS.md §3. Subsystem verdict sets are subsets of full vocabulary; QA omits CONDITIONAL_PASS by design (risk acceptance lives in AppSec layer). I2R is the requirements front-end (GSD-upstream) and uses its own handoff-readiness verdict set (READY / NEEDS_REVIEW / BLOCKED), not the release-gate vocabulary."
   },
 
   "name_freeze": [
@@ -533,7 +648,13 @@
     {"name": "disc-evidence-required.js", "type": "hook", "category": "l12"},
     {"name": "disc-mark-stale.js", "type": "hook", "category": "l12"},
     {"name": "disc-robots-sitemap-guard.js", "type": "hook", "category": "l12"},
-    {"name": "disc-session-context.js", "type": "hook", "category": "l12"}
+    {"name": "disc-session-context.js", "type": "hook", "category": "l12"},
+    {"name": "idea-to-requirements-orchestrator", "type": "skill", "category": "i2r"},
+    {"name": "i2r-handoff-gate.js", "type": "hook", "category": "i2r_safety_gate"},
+    {"name": "i2r-mode-gate.js", "type": "hook", "category": "i2r_safety_gate"},
+    {"name": "i2r-subagent-output-gate.js", "type": "hook", "category": "i2r_safety_gate"},
+    {"name": "i2r-citation-gate.js", "type": "hook", "category": "i2r_safety_gate"},
+    {"name": "i2r-write-boundary.js", "type": "hook", "category": "i2r_safety_gate"}
   ],
 
   "see_also": [
