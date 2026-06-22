@@ -44,7 +44,7 @@ Every `assumed[]` entry must carry a structured risk assessment:
   "importance": "high",
   "evidence": "medium",
   "risk": "medium",
-  "source_ref": "00-raw/idea.md#L6"
+  "source_ref": "raw/idea.md#L6"
 }
 ```
 
@@ -58,7 +58,7 @@ Full assumption map model and risk escalation: `references/assumption-map.md`.
 
 ## Quick-reference filter rules
 
-1. **Keep as `stated`:** direct quote of past/specific behavior with a `source_ref` to `00-raw/`.
+1. **Keep as `stated`:** direct quote of past/specific behavior with a `source_ref` to `raw/`.
 2. **Demote to `assumed`:** any generic ("I usually do X"), future promise ("I will need Y"), or hypothetical ("I might want Z") — classify and risk-score.
 3. **Promote to `decisions`:** explicit scoping choice locked by the founder/brief that I2R must respect as a constraint.
 4. **Surface as `open_questions`:** riskiest assumptions (high importance + low evidence) and any information that would materially change `FR/NFR/scope` if wrong.
@@ -67,11 +67,12 @@ Full assumption map model and risk escalation: `references/assumption-map.md`.
 
 ## Output discipline
 
-- Every `stated[]` entry has a `source_ref` pointing into `00-raw/`.
+- Every `stated[]` entry has a `source_ref` pointing into `raw/`.
 - Every `assumed[]` entry has all four risk fields: `category`, `importance`, `evidence`, `risk`.
 - `open_questions[]` lists only blocking questions (non-blocking → resolved with an assumption, never asked).
 - `clarification_status` = `"needs_clarification"` if any open question is blocking; otherwise `"clear"`.
 - Never fabricate a `source_ref`. If evidence is absent, it is `assumed`, not `stated`.
+- When recording a `decisions[]` entry, also fill the OPTIONAL fields the raw idea actually grounds — `context` (what prompted it), `rationale` (why), `consequences` (what it implies), `reversibility` (can it be undone), and `alternatives`/`tradeoffs` — ONLY when the idea states or directly implies them. Omit any field the idea does not support; never fabricate a rationale. These project into the ADR body (`out/decisions/ADR-*.md`).
 
 ---
 

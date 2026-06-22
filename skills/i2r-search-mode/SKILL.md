@@ -35,7 +35,7 @@ Evidence is **not allowed** to:
 
 ## Output contract
 
-File: `runs/i2r/<slug>/<ts>/02b-evidence.json`
+File: `.i2r/runs/<slug>/<run-id>/internal/stages/02b-evidence.json`
 Owner agent: `i2r-evidence-researcher`
 Must include `_meta.skills_used: ["i2r-search-mode"]`.
 
@@ -52,7 +52,7 @@ L0 router decision
     |
     ├─ search_mode == "not_required"  → skip; 02b-evidence.json is NOT produced
     |
-    ├─ search_mode == "local"         → search only 00-raw/ + project docs
+    ├─ search_mode == "local"         → search only raw/ + project docs
     |
     ├─ search_mode == "web"           → external sources per source-policy
     |

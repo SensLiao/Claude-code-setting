@@ -1,108 +1,587 @@
-# PRD.md Shape (authoritative)
+# out/ Package Shape (authoritative)
 
-This is the exact section order that `i2r.py assemble` emits. No section may be added, removed, or
-reordered. Anchored on `examples/good-run/PRD.md`.
+This is the exact shape that `i2r.py assemble` + `i2r_render.py` emit for the full `out/` Markdown
+package. All 11 documents plus `decisions/ADR-*.md` are present every run, localized to `lang`.
+Anchored on `examples/good-run/` (generated to the v2 layout).
+
+No section may be added, removed, or reordered within any document. Agents may not deviate from
+this shape. The `i2r_render.py` `render_*()` functions are the canonical implementation.
 
 ---
 
-## Section order (must match exactly)
+## Package overview (all files under `out/`)
+
+| File | Purpose | Primary readers |
+|---|---|---|
+| `README.md` | Reading entry point | Humans + downstream AI |
+| `PRD.md` | Primary product document | PMs, engineers, downstream AI |
+| `REQUIREMENTS.md` | Full FR + NFR narrative | Engineers, QA |
+| `ACCEPTANCE.md` | Acceptance criteria (Gherkin + prose) | QA, PMs, stakeholders |
+| `DECISIONS.md` | Locked decisions + ADR index | All readers |
+| `CONSTRAINTS.md` | Hard limits | All readers |
+| `GLOSSARY.md` | Terms and definitions | All readers |
+| `QUESTIONS.md` | Open questions + assumptions | Lead + stakeholders |
+| `READINESS.md` | Gate verdict for humans | Lead + team |
+| `TRACEABILITY.md` | Source→req→acceptance trace | Lead + QA |
+| `CHANGELOG.md` | Per-run change notes | All readers |
+| `decisions/ADR-*.md` | One locked decision each | Architecture + team |
+
+**Hard package rules:**
+- `out/` contains only `*.md` files (+ `decisions/*.md`). No `.json` or `.yaml` — gate BLOCKER.
+- No downstream orchestration commands anywhere in `out/`: no `/gsd:*`, `plan-phase`, `ingest-docs`,
+  `next_command_hint`, `consumer_contract_version`, `handoff.gsd` — gate BLOCKER.
+- No machine-contract language in `out/` (no `consumer_contract_version`, `required_gsd_behavior`,
+  `next_command_hint`) — gate MAJOR.
+- Light frontmatter only: `title`, `source: i2r`, `run_id`, `readiness`, `lang`, `generated_at`.
+
+---
+
+## README.md
+
+**Purpose:** reading entry — the first document a human or downstream AI system encounters.
+
+**Required sections:**
 
 ```markdown
 ---
-type: prd
-source: idea-to-requirements-orchestrator
-handoff_status: <READY|NEEDS_REVIEW|BLOCKED>
+title: Requirements Package — <product name>
+source: i2r
+run_id: i2r-<slug>-<run-id>
+readiness: <READY|NEEDS_REVIEW|BLOCKED>
+lang: <zh|en>
+generated_at: <ISO-8601>
 ---
-# <name — the product/feature name from 01-intake.json>
+# Requirements Package — <product name>
 
-## Goals
-- <Primary goal — what the product does + why, one sentence per goal>
-- <Success metric — the measurable outcome if stated in intake>
+## Status
+<Readiness verdict + one-sentence summary of any blocking items>
 
-## Non-Goals / Out of Scope
-- <Explicit exclusion from 03-scope.json out_of_scope[]>
-- (deferred) <Item explicitly deferred — prefix with "(deferred)">
+## Reading order
+1. PRD.md — start here for goals and scope
+2. REQUIREMENTS.md — full functional and quality requirements
+3. ACCEPTANCE.md — acceptance criteria
+4. DECISIONS.md — locked decisions and ADRs
+5. CONSTRAINTS.md — hard limits
+6. GLOSSARY.md — terms
+7. QUESTIONS.md — open questions and assumptions
+8. READINESS.md — gate verdict detail
+9. TRACEABILITY.md — source-to-requirement-to-acceptance trace
 
-## Requirements
-### <CAT>
-<FR_ID>: <prose of the EARS-pattern FR — WHAT not HOW>
-<FR_ID>: <prose>
+## What this package is
+<Two or three sentences: what problem it addresses, who it is for, what stage of the work it
+covers (requirements definition — WHAT and WHY, not HOW or WHEN).>
 
-### <CAT2>
-<FR_ID>: <prose>
-
-## Acceptance Criteria
-- <AC-ID>: <prose from 06-acceptance.json scenario.prose — "Passes when …">
-- <AC-ID>: <prose>
-
-## Constraints
-- <NFR-ID> [<iso25010_category>]: <one-sentence statement of the NFR constraint — NOT the full fit_criterion; include the threshold in brackets if short>
-- <plain language constraint from 03-scope.json constraints[] that is not already an NFR>
-
-## Locked Decisions
-- <One-sentence statement of each locked decision — from 00-raw/ or recorded human sign-off>
-
-## Open Questions
-- <Question text from 01-intake.json items with clarification_status: needs_clarification>
-- (none)   ← use this if all questions resolved
-
-## How to feed GSD
-- /gsd:ingest-docs            (full bootstrap; classified as PRD)
-- /gsd:plan-phase --prd PRD.md (lightweight single-doc)
+## What this package does NOT contain
+- Implementation plans, phases, roadmap, or task breakdown
+- Architecture, database design, API routes, or file structures
+- Technology choices or build instructions
+- Downstream orchestration commands
 ```
 
 ---
 
-## Section-by-section rules
+## PRD.md
 
-### Frontmatter
-- `type: prd` is literal — do not change.
-- `handoff_status` must match `gate-result.yaml verdict` exactly.
-- `source: idea-to-requirements-orchestrator` is literal.
+**Purpose:** primary product document — the human-readable and AI-readable statement of WHAT and WHY.
 
-### `# <name>`
-- H1 heading is the feature/product name, not a sentence.
-- Source: `01-intake.json` product name / `02-context.json` summary.
+**Required section order (must match exactly; `i2r_render.py render_prd()`):**
 
-### `## Goals`
-- Plain English, one bullet per goal.
-- First bullet: WHAT the product does + WHY (user/business value). One sentence.
-- Subsequent bullets: measurable success metrics if stated in intake.
-- Never list implementation steps, phases, or technical architecture here.
+```markdown
+---
+title: <product name>
+source: i2r
+run_id: i2r-<slug>-<run-id>
+readiness: <READY|NEEDS_REVIEW|BLOCKED>
+lang: <zh|en>
+generated_at: <ISO-8601>
+---
+# <product name — from 01-intake.json>
 
-### `## Non-Goals / Out of Scope`
-- Source: `03-scope.json` `out_of_scope[]` items.
-- Items explicitly deferred get `(deferred)` prefix.
-- Items that were debated and ruled out get a brief reason in parentheses.
+## Executive Summary
 
-### `## Requirements`
-- Group by category (CAT) with `### <CAT>` subsections.
-- One line per FR: `<FR_ID>: <EARS prose>`.
-- FR prose is the **`rendered`** EARS sentence from `04-functional.json` (the assembler falls back to
-  `system_response` when `rendered` is absent) — there is no `description` field on a requirement.
-- Never include `source`, `priority`, or `ears_pattern` metadata in the PRD line (those are in
-  `requirements.json`). The PRD is a human-readable summary.
+| Field | Value |
+|---|---|
+| Problem | <one sentence> |
+| Desired outcome | <one sentence> |
+| Primary users | <role/persona> |
+| In scope | <core capability boundary> |
+| Out of scope | <explicit exclusions> |
+| Locked decisions | <or "(none)"> |
+| Main risks | <top 1–2 risks> |
+| Readiness | <READY|NEEDS_REVIEW|BLOCKED> |
 
-### `## Acceptance Criteria`
-- One bullet per scenario from `06-acceptance.json`.
-- Format: `- <AC-ID>: <prose>` — exactly as projected by assemble.
-- `prose` is taken verbatim from the `prose` field; do not paraphrase.
+## Goals
 
-### `## Constraints`
-- Source: `05-nfr.json` `required` NFRs + `03-scope.json` `constraints[]`.
-- NFR lines: `- <NFR-ID> [<iso25010_category>]: <one-sentence statement>` — human-readable, not raw JSON.
-- Include the threshold inline if brief (e.g., `p95 <= 2s`).
-- Non-NFR constraints (access, geography, regulatory): plain bullets without NFR ID.
+| Goal | Target | Source | Confidence |
+|---|---|---|---|
+| <goal phrase> | <measurable target> | <stated|assumed|decision> | <high|medium|low> |
 
-### `## Locked Decisions`
-- Source: `01-intake.json` items with `source: decision` + recorded human decisions.
-- One sentence per decision. No rationale unless the rationale is itself a constraint.
-- Never fabricate locked decisions.
+## Non-Goals
 
-### `## Open Questions`
-- Source: `01-intake.json` items with `clarification_status: needs_clarification`.
-- If all resolved: `- (none)`. The section is always present.
+- <explicit exclusion>
+- (deferred) <deferred item>
 
-### `## How to feed GSD`
-- Always exactly these two lines — do not modify.
-- GSD derives phases, tasks, architecture; I2R never tells GSD how to split the work.
+## Scope
+
+**In scope:** …
+
+**Out of scope:** …
+
+**Deferred:** …
+
+## Users, Actors, and Jobs-to-be-Done
+
+| Actor | Role | Primary job | Success condition |
+|---|---|---|---|
+| … | … | … | … |
+
+## Requirements Overview
+
+Detailed requirements and acceptance criteria: see [REQUIREMENTS.md](./REQUIREMENTS.md) and
+[ACCEPTANCE.md](./ACCEPTANCE.md). Decisions: see [DECISIONS.md](./DECISIONS.md).
+
+### <CAT>
+<FR_ID>: <EARS prose — WHAT not HOW>
+<FR_ID>: <EARS prose>
+
+### <CAT2>
+<FR_ID>: <EARS prose>
+
+**NFR summary:**
+- NFR-<ISOCAT>-01 [<iso25010_category>]: <one-sentence statement with threshold if brief>
+```
+
+**Section rules:**
+
+- `## Executive Summary`: MUST be the first section after the H1. Gate check: `prd_has_executive_summary`.
+  All 8 fields required. `Readiness` echoes `gate-result.yaml verdict`.
+- `## Goals`: structured table, NOT a prose sentence. Each row: one goal phrase + measurable target +
+  source (`stated|assumed|decision`) + confidence (`high|medium|low`). Source: `01-intake.json` /
+  `02-context.json` success metrics. Never list implementation steps, phases, or technical architecture.
+- `## Non-Goals`: source `03-scope.json out_of_scope[]`. Deferred items get `(deferred)` prefix.
+- `## Scope`: three labelled paragraphs (In scope / Out of scope / Deferred).
+- `## Users, Actors, and Jobs-to-be-Done`: source `02-context.json actors[]` + `jobs_to_be_done[]`.
+- `## Requirements Overview`: contains links to REQUIREMENTS.md and ACCEPTANCE.md, then a brief
+  `### <CAT>` subsection per category with FR summary lines (`<FR_ID>: <EARS prose>`) and an NFR summary.
+  This is a summary — full detail is in the sibling docs. No `source`, `priority`, or `ears_pattern`
+  metadata on the summary lines.
+
+---
+
+## REQUIREMENTS.md
+
+**Purpose:** narrative per-requirement sections with full detail for engineers and QA.
+
+**Required structure:**
+
+```markdown
+---
+title: Requirements — <product name>
+source: i2r
+…
+---
+# Requirements — <product name>
+
+## Functional Requirements
+
+### <CAT>-01: <requirement name>
+
+**Requirement:** <EARS prose sentence — WHAT not HOW>
+
+**Why:** <rationale — the user/business need this addresses>
+
+**Source:** <stated|assumed|decision> — <source_ref>
+
+**Priority:** <MUST|SHOULD|COULD|WONT>
+
+**Acceptance coverage:** <AC-CAT-01-01, AC-CAT-01-02, …>
+
+**Implementation boundary note:** <explicit note on what is out of I2R scope — e.g. "no DB choice made">
+
+---
+
+### <CAT>-02: <requirement name>
+…
+
+## Non-Functional Requirements
+
+### NFR-<ISOCAT>-01: <requirement name>
+
+**Quality attribute:** <ISO/IEC 25010:2023 category>
+
+**Requirement:** <one-sentence NFR statement>
+
+**Fit criterion:**
+- Threshold: <measurable threshold, e.g. "p95 response time ≤ 2 seconds">
+- Environment: <measurement environment, e.g. "production under normal load">
+- Period: <measurement period, e.g. "every release">
+
+**Why:** <rationale>
+
+**Source:** <stated|assumed|decision> — <source_ref>
+
+**Priority:** <MUST|SHOULD|COULD|WONT>
+
+**Acceptance coverage:** <AC-NFR-…>
+
+**Measurement context:** <how this will be measured — tool, signal, frequency>
+
+**Validation:** <how to validate the fit criterion is met>
+```
+
+Gate check: `requirements_are_narrative` — must have per-requirement sections, not a single table dump.
+
+---
+
+## ACCEPTANCE.md
+
+**Purpose:** acceptance criteria — Gherkin for machine parsers + plain language for humans.
+
+**Required structure per scenario:**
+
+```markdown
+---
+title: Acceptance Criteria — <product name>
+source: i2r
+…
+---
+# Acceptance Criteria — <product name>
+
+## <AC-ID>: <scenario name>
+
+**Covers:** <FR_ID or NFR_ID>
+
+**Type:** <functional|non-functional|edge-case|negative>
+
+```gherkin
+Given <context>
+When <action>
+Then <observable outcome>
+And <additional observable outcome, if needed>
+```
+
+**Plain-language explanation:** <One or two sentences explaining in plain English what this
+scenario tests and what observable evidence confirms it passed.>
+
+**Observable evidence:** <What a tester will actually see, measure, or check — no HOW.>
+
+**Not covered:** <AC IDs that cover related but distinct scenarios, if applicable — or "(none)".>
+```
+
+Gate check: `acceptance_has_plain_language` — every Gherkin block must be followed by a
+`**Plain-language explanation:**` paragraph.
+
+---
+
+## DECISIONS.md
+
+**Purpose:** locked decisions overview + separation of decisions vs preferences vs assumptions + ADR index.
+
+**Required structure:**
+
+```markdown
+---
+title: Decisions — <product name>
+source: i2r
+…
+---
+# Decisions — <product name>
+
+## Locked Decisions
+
+| Decision | Rationale | ADR | Affected requirements |
+|---|---|---|---|
+| <one-sentence decision> | <brief rationale> | [ADR-0001](./decisions/ADR-0001.md) | <CAT-01, …> |
+
+## Preferences (not locked)
+
+<Preferences noted during elicitation that are not binding. Downstream may follow them or not.>
+
+## Assumptions elevated to decisions
+
+<Assumptions that the team confirmed as decisions during review — with source_ref.>
+
+## Open (not yet decided)
+
+<Items that looked like decisions but remain open — with blocking/non-blocking flag.>
+
+## ADR Index
+
+- [ADR-0001](./decisions/ADR-0001.md): <title>
+```
+
+---
+
+## CONSTRAINTS.md
+
+**Purpose:** hard limits — product, quality, decision.
+
+**Required structure:**
+
+```markdown
+---
+title: Constraints — <product name>
+source: i2r
+…
+---
+# Constraints — <product name>
+
+## Product constraints
+<Explicit boundary conditions on what the product can/cannot do — access, geography, regulatory, etc.>
+
+## Quality constraints
+<Measurable quality limits — summarised from NFRs with thresholds. Full detail in REQUIREMENTS.md.>
+
+## Decision constraints
+<Constraints imposed by locked decisions — e.g. "tool is read-only per ADR-0001".>
+
+## Not constraints
+<Items that were raised as constraints but are actually implementation choices or preferences —
+explicitly excluded here so downstream does not treat them as blockers.>
+```
+
+Gate check: `constraints_visible` — file must be present and non-empty.
+
+---
+
+## GLOSSARY.md
+
+**Purpose:** terms, ambiguity resolutions, intentionally-undefined terms.
+
+**Required structure:**
+
+```markdown
+---
+title: Glossary — <product name>
+source: i2r
+…
+---
+# Glossary — <product name>
+
+## Terms
+
+| Term | Meaning | Notes | Source |
+|---|---|---|---|
+| <term> | <meaning> | <disambiguation if needed> | <stated|assumed|source_ref> |
+
+## Ambiguous terms resolved
+
+<Terms that appeared in intake with multiple possible meanings — how they are defined for this run.>
+
+## Intentionally undefined
+
+<Terms that are out of I2R scope to define — downstream will decide.>
+```
+
+---
+
+## QUESTIONS.md
+
+**Purpose:** open questions + carried-forward assumptions with risk and affected requirements.
+
+**Required structure:**
+
+```markdown
+---
+title: Open Questions and Assumptions — <product name>
+source: i2r
+…
+---
+# Open Questions and Assumptions — <product name>
+
+## Open questions
+
+| # | Question | Blocking? | Affected requirements |
+|---|---|---|---|
+| OQ-01 | <question text> | <yes|no> | <CAT-01, …> |
+
+## Carried-forward assumptions
+
+| ID | Assumption | Confidence | Risk if wrong | Affected requirements |
+|---|---|---|---|---|
+| ASSUMED-001 | <assumption text> | <high|medium|low> | <consequence> | <CAT-01, …> |
+
+## Resolved
+
+<Questions and assumptions that were resolved during the run, with the resolution.>
+```
+
+Gate check: `questions_assumptions_visible` — file must be present and non-empty.
+
+---
+
+## READINESS.md
+
+**Purpose:** human-readable gate verdict — written by `i2r.py gate.check`, not `assemble`.
+
+**Required structure:**
+
+```markdown
+---
+title: Readiness — <product name>
+source: i2r
+run_id: i2r-<slug>-<run-id>
+readiness: <READY|NEEDS_REVIEW|BLOCKED>
+lang: <zh|en>
+generated_at: <ISO-8601>
+---
+# Readiness — <product name>
+
+## Verdict: <READY | NEEDS_REVIEW | BLOCKED>
+
+<One-sentence summary of why this verdict was reached.>
+
+## Gate checks
+
+| Check | Result | Finding |
+|---|---|---|
+| out_markdown_only | PASS/FAIL | <detail if failed> |
+| no_downstream_commands | PASS/FAIL | <detail if failed> |
+| prd_has_executive_summary | PASS/FAIL | … |
+| requirements_are_narrative | PASS/FAIL | … |
+| acceptance_has_plain_language | PASS/FAIL | … |
+| readiness_markdown_exists | PASS/FAIL | … |
+| traceability_markdown_exists | PASS/FAIL | … |
+| constraints_visible | PASS/FAIL | … |
+| questions_assumptions_visible | PASS/FAIL | … |
+| no_machine_contract_language | PASS/FAIL | … |
+| both_reviews_pass | PASS/FAIL | … |
+| no_open_blocker | PASS/FAIL | … |
+| placeholder_scan | PASS/FAIL | … |
+| prd_grade | PASS/FAIL | <score / threshold> |
+| reader_test | PASS/FAIL | … |
+
+## Blocking findings
+<List of BLOCKER findings, if any — or "(none)".>
+
+## Major findings
+<List of MAJOR findings, if any — or "(none)".>
+
+## Reviewer notes
+<Summary of Reviewer A and Reviewer B findings.>
+
+## Remaining risks
+<Open questions or assumptions that could affect implementation — not "run this plan".>
+
+## Suggested follow-up
+<Human-language suggestions for what the team might do next — NOT downstream commands.>
+```
+
+Gate check: `readiness_markdown_exists` — file must be present and non-empty.
+Note: READINESS.md must NEVER contain downstream orchestration commands or machine-contract language.
+
+---
+
+## TRACEABILITY.md
+
+**Purpose:** human-readable source→requirement→acceptance trace.
+
+**Required structure:**
+
+```markdown
+---
+title: Traceability — <product name>
+source: i2r
+…
+---
+# Traceability — <product name>
+
+## Source → Requirement
+
+| Source ref | Claim type | Requirement(s) |
+|---|---|---|
+| <source_ref> | <STATED|ASSUMED|DECISION> | <CAT-01, NFR-REL-01, …> |
+
+## Requirement → Acceptance
+
+| Requirement | Acceptance criteria |
+|---|---|
+| <CAT-01> | <AC-CAT-01-01, AC-CAT-01-02> |
+
+## Decision → Impact
+
+| Decision (ADR) | Affected requirements | Constraint imposed |
+|---|---|---|
+| <ADR-0001> | <CAT-01, …> | <constraint text> |
+```
+
+Gate check: `traceability_markdown_exists` — file must be present and non-empty.
+
+---
+
+## CHANGELOG.md
+
+**Purpose:** per-run change notes.
+
+**Required structure:**
+
+```markdown
+---
+title: Changelog — <product name>
+source: i2r
+…
+---
+# Changelog — <product name>
+
+## Run <run_id> — <generated_at>
+
+### Added
+- <new requirement / document / decision>
+
+### Changed
+- <modified requirement — what changed and why>
+
+### Removed
+- <removed item — why>
+
+### Affected documents
+- <list of out/ files that changed>
+```
+
+---
+
+## decisions/ADR-*.md
+
+**Purpose:** one locked decision per file.
+
+**Required sections:**
+
+```markdown
+---
+title: <decision title>
+source: i2r
+run_id: i2r-<slug>-<run-id>
+lang: <zh|en>
+generated_at: <ISO-8601>
+---
+# ADR-<NNNN>: <decision title>
+
+**Status:** <Proposed|Accepted|Superseded|Deprecated>
+
+## Context
+<What situation or question required this decision.>
+
+## Decision
+<The decision itself — one clear statement.>
+
+## Rationale
+<Why this decision was made — evidence from intake / context / constraints.>
+
+## Alternatives considered
+<What else was considered and why it was not chosen.>
+
+## Tradeoffs
+<What is gained and what is given up.>
+
+## Consequences
+<What changes downstream as a result of this decision.>
+
+## Reversibility
+<Can this be changed later, and at what cost?>
+
+## Affected requirements
+<CAT-01, NFR-SEC-01, …>
+
+## Source
+<source_ref — where the decision was recorded in raw/ or by human sign-off.>
+```

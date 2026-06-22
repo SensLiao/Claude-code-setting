@@ -48,14 +48,14 @@ Every requirement must carry both `source` and `source_ref`.
 
 | `source` value | Meaning | `source_ref` format |
 |---|---|---|
-| `stated` | The requirement was explicitly articulated by the user/client | `00-raw/<filename>#L<line>` |
-| `assumed` | The requirement was inferred to prevent a gap; surfaced to the human | `00-raw/<filename>#L<line>` (best anchor) |
-| `decision` | A locked architectural or product decision (see 03-scope.json decisions[]) | `ADR-NNNN` or `00-raw/<filename>#L<line>` |
+| `stated` | The requirement was explicitly articulated by the user/client | `raw/<filename>#L<line>` |
+| `assumed` | The requirement was inferred to prevent a gap; surfaced to the human | `raw/<filename>#L<line>` (best anchor) |
+| `decision` | A locked architectural or product decision (see 03-scope.json decisions[]) | `ADR-NNNN` or `raw/<filename>#L<line>` |
 
 **Discipline:**
 - NEVER promote an `assumed` requirement to `stated` without explicit user confirmation.
-- NEVER write `source_ref: ""` or `source_ref: "inferred"` — use the closest anchor in `00-raw/`.
-- If the material has no line anchor, cite the file: `00-raw/idea.md`.
+- NEVER write `source_ref: ""` or `source_ref: "inferred"` — use the closest anchor in `raw/`.
+- If the material has no line anchor, cite the file: `raw/idea.md`.
 
 ---
 

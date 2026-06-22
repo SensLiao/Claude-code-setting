@@ -18,7 +18,7 @@ Each example shows the bad NFR, the defect class(es), why it is wrong, and the c
     "period": "always"
   },
   "priority": "MUST",
-  "source_ref": "00-raw/idea.md#L3"
+  "source_ref": "raw/idea.md#L3"
 }
 ```
 
@@ -45,7 +45,7 @@ Each example shows the bad NFR, the defect class(es), why it is wrong, and the c
   },
   "measurement_method": "timing instrumentation on the lookup action, sampled over 1 000 consecutive runs",
   "priority": "MUST",
-  "source_ref": "00-raw/idea.md#L3"
+  "source_ref": "raw/idea.md#L3"
 }
 ```
 
@@ -67,7 +67,7 @@ The business meaning ("within the time an agent holds a live call") is preserved
     "period": "at all times"
   },
   "priority": "MUST",
-  "source_ref": "00-raw/idea.md#L6"
+  "source_ref": "raw/idea.md#L6"
 }
 ```
 
@@ -94,7 +94,7 @@ The business meaning ("within the time an agent holds a live call") is preserved
     },
     "measurement_method": "access-control review plus random audit-log sampling of 50 requests per release",
     "priority": "MUST",
-    "source_ref": "00-raw/idea.md#L6"
+    "source_ref": "raw/idea.md#L6"
   },
   {
     "id": "NFR-SEC-02",
@@ -108,7 +108,7 @@ The business meaning ("within the time an agent holds a live call") is preserved
     },
     "measurement_method": "automated log-completeness script comparing event count against the transaction count in each release window",
     "priority": "MUST",
-    "source_ref": "00-raw/idea.md#L6"
+    "source_ref": "raw/idea.md#L6"
   }
 ]
 ```
@@ -124,7 +124,7 @@ The business meaning ("within the time an agent holds a live call") is preserved
   "coverage_status": "required",
   "description": "The PostgreSQL database must be highly available using a read-replica failover configuration",
   "priority": "MUST",
-  "source_ref": "00-raw/idea.md#L3"
+  "source_ref": "raw/idea.md#L3"
 }
 ```
 
@@ -150,7 +150,7 @@ The business meaning ("within the time an agent holds a live call") is preserved
   },
   "measurement_method": "uptime monitoring with 1-minute polling, automated monthly report",
   "priority": "MUST",
-  "source_ref": "00-raw/idea.md#L3"
+  "source_ref": "raw/idea.md#L3"
 }
 ```
 

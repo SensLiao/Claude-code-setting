@@ -16,7 +16,7 @@ Every `assumed[]` entry carries four structured fields:
   "importance": "<high|medium|low>",
   "evidence": "<high|medium|low>",
   "risk": "<high|medium|low>",
-  "source_ref": "<pointer into 00-raw/>"
+  "source_ref": "<pointer into raw/>"
 }
 ```
 
@@ -63,7 +63,7 @@ All other assumptions: proceed, document, do not block. The agent records them s
 This is the single most important split in I2R. Getting it wrong causes cascading defects downstream.
 
 ```
-STATED   ← direct evidence of past/specific behavior, citable from 00-raw/
+STATED   ← direct evidence of past/specific behavior, citable from raw/
 ASSUMED  ← inference or generic claim, risk-scored, may block or proceed
 DECISION ← explicit scoping lock from the founder/brief, respected as constraint
 ```
@@ -91,7 +91,7 @@ Conflating them causes:
   "importance": "high",
   "evidence": "low",
   "risk": "high",
-  "source_ref": "00-raw/idea.md#L2"
+  "source_ref": "raw/idea.md#L2"
 }
 ```
 
@@ -106,7 +106,7 @@ The founder said "we're targeting businesses" but no specific deal, customer, or
   "importance": "high",
   "evidence": "medium",
   "risk": "medium",
-  "source_ref": "00-raw/idea.md#L6"
+  "source_ref": "raw/idea.md#L6"
 }
 ```
 
@@ -121,7 +121,7 @@ From the good-run: inferred from context ("internal lookup tool"). Evidence is m
   "importance": "low",
   "evidence": "medium",
   "risk": "low",
-  "source_ref": "00-raw/idea.md#L1"
+  "source_ref": "raw/idea.md#L1"
 }
 ```
 

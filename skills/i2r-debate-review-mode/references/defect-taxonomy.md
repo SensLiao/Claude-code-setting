@@ -13,7 +13,7 @@ explain in `evidence`.
 |----------------|-----------------|------------|
 | `AMBIGUITY` | MAJOR | The requirement can be read in more than one way by a reasonable implementer. Includes vague intensifiers ("fast", "secure", "user-friendly"), pronoun ambiguity, and underspecified subjects. |
 | `UNTESTABLE` | BLOCKER | No objective pass/fail criterion exists. Reviewer cannot write a test that definitively passes or fails based on the requirement text alone. |
-| `UNSOURCED` | MAJOR | The requirement carries no `source_ref` tracing it to a user statement, `00-raw/` document, or `EV-NNN` evidence card. Assumptions silently promoted to stated facts. |
+| `UNSOURCED` | MAJOR | The requirement carries no `source_ref` tracing it to a user statement, `raw/` document, or `EV-NNN` evidence card. Assumptions silently promoted to stated facts. |
 | `SCOPE_LEAK` | BLOCKER | A capability or constraint appears in a requirement that is not present in `03-scope.json` `in_scope[]` or `capability_inventory[]`. The requirement extends scope without authorisation. |
 | `IMPLEMENTATION_LEAK` | BLOCKER | The requirement describes HOW to build rather than WHAT to deliver. Stack-swap test fails: if the DB or framework changed, this requirement would need rewriting. |
 | `DUPLICATE` | MINOR | Two or more requirements describe the same behaviour. One is redundant; keeping both creates maintenance risk and contradictions. |

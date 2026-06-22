@@ -104,7 +104,7 @@
         "i2r-debate-review-mode",
         "i2r-gsd-projection-mode"
       ],
-      "_note": "Requirements front-end UPSTREAM of GSD (raw idea → GSD-ready PRD: WHAT/WHY only, never HOW/tasks/architecture/UI). Auto-invocable, all-opus, SKILL-direct. Hooks are project-installed via `python ~/.claude/templates/i2r/scripts/i2r.py install --project .` (gated on runs/i2r/ presence — no config file; see §7.1a). Hands off to GSD via /gsd:ingest-docs or /gsd:plan-phase --prd PRD.md.",
+      "_note": "Requirements front-end UPSTREAM of GSD (raw idea -> Markdown-first requirements package under .i2r/runs/.../out/: WHAT/WHY only, never HOW/tasks/architecture/UI; one language per run, asked at start). Auto-invocable, all-opus, SKILL-direct, 4-module $0 SDK. Hooks are project-installed via `python ~/.claude/templates/i2r/scripts/i2r.py install --project .` (gated on .i2r/ presence; config optional; see §7.1a). Downstream (GSD etc.) reads the same Markdown and applies its own routing; I2R emits no /gsd command.",
       "priority": "high"
     },
 

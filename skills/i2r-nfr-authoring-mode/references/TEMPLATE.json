@@ -27,7 +27,7 @@
       },
       "measurement_method": "<How the threshold is observed — optional but strongly recommended>",
       "priority": "<MUST|SHOULD|COULD|WONT>",
-      "source_ref": "00-raw/<filename>#L<line>",
+      "source_ref": "raw/<filename>#L<line>",
       "na_reason": "<Required when coverage_status = not_applicable — explains WHY, not just asserts NA>",
       "deferred_missing_info": "<Required when coverage_status = deferred — names exactly what info is missing>"
     }

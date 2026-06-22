@@ -33,11 +33,11 @@ Forbidden phrases: "it seems", "probably", "might be", "best practice to".
 |-------|---------|
 | `official_doc` | Vendor documentation, RFC, ISO/IEC standard, regulatory text |
 | `repo` | Source code, commit history, CI config in a public repository |
-| `local_doc` | File inside `00-raw/` or a project-committed document |
+| `local_doc` | File inside `raw/` or a project-committed document |
 | `user_material` | Anything the user provided directly (briefs, transcripts, emails) |
 | `article` | Blog post, white paper, conference paper — always `confidence: low` unless corroborated |
 
-**`source_ref`** — A URI or `00-raw/<filename>#L<line>` pointer. Must be verifiable.
+**`source_ref`** — A URI or `raw/<filename>#L<line>` pointer. Must be verifiable.
 Never invent a URL. If the source is from memory or model training, do not include
 it — record a `GAP` instead.
 
@@ -89,7 +89,7 @@ Search is warranted when at least one of:
 - A regulatory or platform constraint is mentioned but not quantified
 - A terminology is ambiguous and has a published canonical definition
 - A comparable integration pattern exists in a widely-used open standard
-- An NFR threshold (latency, availability, compliance level) cannot be sourced from `00-raw/`
+- An NFR threshold (latency, availability, compliance level) cannot be sourced from `raw/`
 
 Search is NOT warranted for:
 - Product decisions (what to build, who to serve) — only the user decides

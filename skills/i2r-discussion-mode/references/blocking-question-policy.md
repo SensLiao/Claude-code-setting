@@ -65,7 +65,7 @@ Additionally check: does `03-scope.json` conflict with any `decisions[]` in `01-
 ## Non-blocking resolution (what to do instead of asking)
 
 When a question is non-blocking, the agent MUST:
-1. Choose the most reasonable assumption given `00-raw/` context.
+1. Choose the most reasonable assumption given `raw/` context.
 2. Add it to `assumed[]` with all four risk fields.
 3. Set `importance` and `evidence` accurately (do not under-score to avoid surfacing it).
 4. Do NOT mention the assumption to the user — it is documented in the artifact, not raised in conversation.
@@ -78,7 +78,7 @@ When a question is non-blocking, the agent MUST:
 
 | Anti-pattern | Why it is wrong | Correct action |
 |---|---|---|
-| Asking "just to confirm" something already in 00-raw/ | Wastes user time; agent already has the answer | Read 00-raw/ more carefully; don't ask |
+| Asking "just to confirm" something already in raw/ | Wastes user time; agent already has the answer | Read raw/ more carefully; don't ask |
 | Asking about HOW (technology, architecture, frameworks) | Outside I2R boundary | Never ask; if founder volunteers it, record as `decisions[]` |
 | Asking multiple non-MUST questions at once | Question overload; most are non-blocking | Apply blocking test; ask only if at least one is blocking |
 | Subagent surfaces a question directly to the user | Violates orchestration contract | Subagent writes to `open_questions[]`; orchestrator asks at checkpoint |

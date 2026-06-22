@@ -63,5 +63,5 @@ Every i2r-* skill's `description` and `when_to_use` must pass a trigger-accuracy
 ## What this mode does NOT do
 
 - Does not produce requirements (WHAT/WHY boundary holds).
-- Does not modify `00-raw/` or any run artifact.
+- Does not modify `raw/` or any run artifact.
 - Does not call external evals frameworks at runtime.

@@ -16,7 +16,7 @@ acceptance criterion. This skill is the firewall.
 
 ## Output contract
 
-File: `runs/i2r/<slug>/<ts>/03-scope.json`
+File: `.i2r/runs/<slug>/<run-id>/internal/stages/03-scope.json`
 Owner agent: `i2r-scope-architect`
 Must include `_meta.skills_used: ["i2r-scope-mode"]`.
 
@@ -55,7 +55,7 @@ must carry a `moscow` value. The seed is a starting point; downstream agents
 
 ### Step 4 — Source traceability
 
-Every `in_scope` entry must carry `source_ref` pointing into `00-raw/` or a
+Every `in_scope` entry must carry `source_ref` pointing into `raw/` or a
 clarification file. Capabilities with no traceable source → raise as
 `requires_discussion: blocking` in `01-intake.json` first; do not add to scope.
 

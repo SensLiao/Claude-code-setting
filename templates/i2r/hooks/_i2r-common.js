@@ -14,16 +14,16 @@ function projectRoot() {
   return process.env.CLAUDE_PROJECT_DIR || process.cwd();
 }
 
-// An I2R project has the skill installed, a runs/i2r tree, or the SDK present.
+// An I2R project has the skill installed, a .i2r workspace, or the SDK present.
 function isI2RProject(root) {
   return fs.existsSync(path.join(root, '.claude', 'skills', 'idea-to-requirements-orchestrator'))
-      || fs.existsSync(path.join(root, 'runs', 'i2r'))
+      || fs.existsSync(path.join(root, '.i2r'))
       || fs.existsSync(path.join(root, 'scripts', 'i2r.py'));
 }
 
-// Most-recently-touched run folder under runs/i2r/<slug>/<timestamp>/.
+// Most-recently-touched run folder under .i2r/runs/<slug>/<run-id>/ (a run dir holds raw/ + ops/).
 function findActiveRun(root) {
-  const base = path.join(root, 'runs', 'i2r');
+  const base = path.join(root, '.i2r', 'runs');
   if (!fs.existsSync(base)) return null;
   let latest = null, latestM = 0;
   try {
@@ -32,7 +32,7 @@ function findActiveRun(root) {
       if (!fs.statSync(sp).isDirectory()) continue;
       for (const ts of fs.readdirSync(sp)) {
         const rp = path.join(sp, ts);
-        if (!fs.existsSync(path.join(rp, '00-raw'))) continue;
+        if (!fs.existsSync(path.join(rp, 'raw')) || !fs.existsSync(path.join(rp, 'ops'))) continue;
         const m = fs.statSync(rp).mtimeMs;
         if (m > latestM) { latestM = m; latest = rp; }
       }

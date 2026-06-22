@@ -16,13 +16,13 @@
 | # | Orchestrator | 主线 | trigger | disable-model-invocation |
 |---|---|---|---|---|
 | 1 | `claude-env-bootstrap` | Project Bootstrap | manual-first | **true** |
-| 2 | `idea-to-requirements-orchestrator`（I2R） | 需求前端（GSD 上游：raw idea → GSD-ready PRD，只产 WHAT/WHY） | auto | false |
+| 2 | `idea-to-requirements-orchestrator`（I2R） | 需求前端（GSD 上游：raw idea → Markdown-first 需求包，只产 WHAT/WHY） | auto | false |
 | 3 | `gsd-pipeline-orchestrator` | GSD Delivery (PM) | auto | false |
 | 4 | `uiux-product-orchestrator` | UIUX Product | auto | false |
 | 5 | `enterprise-qa-testing` | Enterprise QA / SDET | auto | false |
 | 6 | `appsec-security-orchestrator` | AppSec | auto when triggers present | false |
 
-> **I2R（requirements front-end，UPSTREAM of GSD）**：把一个 raw/messy idea 变成 GSD-ready PRD（WHAT + WHY + CONSTRAINTS + LOCKED DECISIONS，**绝不**产 HOW / tasks / architecture / UI / roadmap——GSD 再 re-derive）。all-opus，SKILL-direct，9 个 i2r-* agent + 10 mode subskill + project-local `i2r.py` SDK（$0，16 命令）+ 8 个 project-installed hooks + 1 个 shared lib（`_i2r-common.js`）（gate 在 `runs/i2r/` 存在与否，无 config 文件，刻意变体）。经 `/gsd:ingest-docs` 或 `/gsd:plan-phase --prd PRD.md` 交棒 GSD。**不**触发于实现 / coding / debug / UI / roadmap。
+> **I2R（requirements front-end，UPSTREAM of GSD）**：把一个 raw/messy idea 变成 **Markdown-first 需求包**（`.i2r/runs/<slug>/<run-id>/out/` 下 README/PRD/REQUIREMENTS/ACCEPTANCE/DECISIONS/CONSTRAINTS/READINESS 等；WHAT + WHY + CONSTRAINTS + LOCKED DECISIONS，**绝不**产 HOW / tasks / architecture / UI / roadmap——GSD 再 re-derive）。运行开始先问中/英、**单语言**产出。all-opus，SKILL-direct，9 个 i2r-* agent + 10 mode subskill + project-local **4-module $0 SDK**（`i2r.py`+`i2r_core.py`+`i2r_render.py`+`i2r_validate.py`）+ 8 个 project-installed hooks + 1 个 shared lib（`_i2r-common.js`）（gate 在 `.i2r/` 存在与否，config 可选，刻意变体）。下游（GSD 等）读同一份 Markdown 并自行决定后续——I2R **不发**任何 `/gsd:` 命令。**不**触发于实现 / coding / debug / UI / roadmap。
 
 ### Pentest 双 gate (security testing 特殊路径)
 

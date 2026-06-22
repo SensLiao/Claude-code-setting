@@ -16,7 +16,7 @@ user-invocable: false
 1. **WHAT/WHY only — never HOW.** Apply the stack-swap test: if swapping the database, framework, or infrastructure provider forces an edit to the `description` or `fit_criterion`, rewrite. Naming Redis, S3, PostgreSQL, JWT, or any library inside an NFR = `IMPLEMENTATION_LEAK` (BLOCKER).
 2. **No vague adjectives without a number.** "Fast", "secure", "scalable", "robust" in `description` or `fit_criterion` → `PLACEHOLDER` (BLOCKER). Every `required` NFR must have a real `fit_criterion` with a measurable `threshold`.
 3. **No silent omission.** Every ISO 25010:2023 characteristic must be CONSIDERED and explicitly marked — `required` (with a real `fit_criterion`), `not_applicable` (with `na_reason`), or `deferred` (with `deferred_missing_info`). A characteristic SILENTLY omitted (neither addressed nor explicitly marked) = `MAJOR` gap, not BLOCKER. The intent is "no silently-empty category", not "all 9 must be `required`".
-4. **Source every NFR.** `source_ref` → pointer into `00-raw/` or a decision reference. Never fabricate.
+4. **Source every NFR.** `source_ref` → pointer into `raw/` or a decision reference. Never fabricate.
 
 ---
 
@@ -64,5 +64,6 @@ The output `05-nfr.json` must carry `_meta` (§4 of CONTRACT.md) plus `nfrs[]`. 
 - `fit_criterion` on a `required` NFR: all three of `threshold`, `environment`, `period` must be present and non-empty. Missing any one → gate blocks.
 - Never name a specific technology (framework, database, cloud provider, library) in `description` or `fit_criterion`.
 - Never emit phases, tasks, architecture, code, or UI.
+- Set each NFR's `source` ∈ {stated, assumed, decision}. If a threshold/number is NOT stated in the raw idea (an engineered default you chose to make the NFR testable), set `source: assumed` — never label an invented number as if the user stated it. (out/ surfaces an assumed threshold as 'assumed default — pending confirmation'.)
 
 Sources: ISO/IEC 25010:2023; Volere fit criterion (Robertson & Robertson); PM Skills constraints framework; product-on-purpose template + example anchoring.

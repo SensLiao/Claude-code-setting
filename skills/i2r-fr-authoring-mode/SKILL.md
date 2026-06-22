@@ -16,7 +16,7 @@ user-invocable: false
 1. **WHAT/WHY only — never HOW.** Apply the stack-swap test before finalising every requirement: if swapping the database or framework would force an edit to the `system_response`, delete the HOW and rewrite. Violation = `IMPLEMENTATION_LEAK` (BLOCKER).
 2. **One behaviour per requirement.** The word "and" or "or" in `system_response` is a signal to split. Violation = hidden conjunction; flag and split.
 3. **Every capability needs an unwanted-behaviour sibling.** For each happy-path requirement, write at least one `unwanted`-pattern sibling covering the error or edge condition (empty result, invalid input, timeout).
-4. **Source every requirement.** `source` ∈ `{stated, assumed, decision}`; `source_ref` → exact pointer into `00-raw/` (file + line). Never fabricate; never silently promote an assumption to `stated`.
+4. **Source every requirement.** `source` ∈ `{stated, assumed, decision}`; `source_ref` → exact pointer into `raw/` (file + line). Never fabricate; never silently promote an assumption to `stated`.
 
 ---
 

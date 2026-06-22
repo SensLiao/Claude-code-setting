@@ -18,7 +18,8 @@
           "given": { "type": "array", "items": { "type": "string" } },
           "when": { "type": "array", "items": { "type": "string" } },
           "then": { "type": "array", "items": { "type": "string" } },
-          "prose": { "type": "string" }
+          "prose": { "type": "string" },
+          "type": { "type": "string", "enum": ["happy_path", "negative", "edge_case", "regression"] }
         }
       }
     }

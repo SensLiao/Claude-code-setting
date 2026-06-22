@@ -18,7 +18,7 @@ substitute for a missing clarification.
 
 1. **`user_material`** — anything the user provided directly (always `confidence: high`)
 2. **`official_doc`** — vendor docs, RFCs, ISO/IEC/NIST standards, regulatory text
-3. **`local_doc`** — committed project documents, ADRs, existing specs in `00-raw/`
+3. **`local_doc`** — committed project documents, ADRs, existing specs in `raw/`
 4. **`repo`** — public source code or CI configs demonstrating a pattern
 5. **`article`** — blog posts, white papers, conference proceedings (lowest trust)
 
@@ -34,7 +34,7 @@ user — never silently prefer the official doc over stated user intent.
 |-------------|-------------------|------------------|
 | `user_material` | `high` | N/A — always high |
 | `official_doc` | `high` | — |
-| `local_doc` | `high` (if from `00-raw/`) / `medium` (if project doc) | — |
+| `local_doc` | `high` (if from `raw/`) / `medium` (if project doc) | — |
 | `repo` | `medium` | to `high` if the claim is directly in code (not inferred) |
 | `article` | `low` | to `medium` if corroborated by a second independent article |
 
@@ -74,7 +74,7 @@ non-existent URL or a file not present in the run folder.
 
 | `search_mode` | What may be searched |
 |---------------|----------------------|
-| `local` | Only `runs/i2r/<slug>/<ts>/00-raw/` and committed project docs |
+| `local` | Only `.i2r/runs/<slug>/<run-id>/raw/` and committed project docs |
 | `web` | External URLs, official vendor docs, RFCs, regulatory portals |
 | `mixed` | Local first; web only for questions that local docs cannot answer |
 | `unavailable` | No search; all open questions become GAPs |
