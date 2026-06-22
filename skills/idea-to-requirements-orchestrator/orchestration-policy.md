@@ -28,9 +28,9 @@ those that would change FR/NFR/scope. Subagents never ask the user. Non-blocking
 assumptions recorded in the artifacts.
 
 ## Repair loop (bounded)
-On any review FAIL: `i2r.py repair.plan <run>` writes `08-repair-notes.json`, marks the failed stage STALE,
-and you re-dispatch **only that stage's owner**, then re-review. Never re-run the whole pipeline. Max 3
-iterations; still failing → stop and surface to the human.
+On any review FAIL: `i2r.py repair.plan <run>` writes `internal/stages/08-repair-notes.json`, marks the
+failed stage STALE, and you re-dispatch **only that stage's owner**, then re-review. Never re-run the whole
+pipeline. Max 3 iterations; still failing → stop and surface to the human.
 
 ## Vendor-not-install
 The mode subskills vendor proven patterns from external projects (Spec Kit gates, doc-coauthoring reader
@@ -40,5 +40,8 @@ scope creep, and collision with GSD). Sources are tracked in `docs/I2R-LEDGER.md
 
 ## Honesty discipline
 Never self-declare READY; the gate + dual review decide. Never relax a check to make it pass — fix the root
-cause. Convert relative dates to absolute. Log decisions to `run-log.md`. Maintain the WHAT/WHY boundary at
-every step: the moment a draft names a framework/db/endpoint/file, it leaked HOW — send it back.
+cause. Convert relative dates to absolute. Log decisions to `ops/run-log.md`. Maintain the WHAT/WHY boundary
+at every step: the moment a draft names a framework/db/endpoint/file, it leaked HOW — send it back.
+Never emit downstream orchestration commands (`/gsd:*`, `plan-phase`, `ingest-docs`, `next_command_hint`,
+or any machine-contract field) in any `out/` document. I2R may state reading order, readiness, and locked
+decisions. Downstream systems read the `out/` package and apply their own routing and planning logic.

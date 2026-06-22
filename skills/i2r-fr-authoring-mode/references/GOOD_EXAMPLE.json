@@ -26,7 +26,7 @@
       "rendered": "When a support agent submits a customer email, the lookup tool shall return the orders associated with that email from the last 90 days.",
       "priority": "MUST",
       "source": "stated",
-      "source_ref": "00-raw/idea.md#L4",
+      "source_ref": "raw/idea.md#L4",
       "rationale": "Primary order-status call flow; support agents need immediate access to recent orders to resolve live calls.",
       "acceptance_ids": ["AC-ORDER-01-01"]
     },
@@ -41,7 +41,7 @@
       "rendered": "If a lookup finds no orders for the submitted email within the last 90 days, then the lookup tool shall show an explicit no-orders-found message rather than an empty screen.",
       "priority": "SHOULD",
       "source": "assumed",
-      "source_ref": "00-raw/idea.md#L4",
+      "source_ref": "raw/idea.md#L4",
       "rationale": "Unwanted-behaviour sibling for ORDER-01. An empty screen leaves the agent uncertain whether the lookup ran at all.",
       "acceptance_ids": ["AC-ORDER-03-01"]
     }

@@ -17,7 +17,7 @@ Each example shows the bad requirement, the defect class, why it is wrong, and t
   "rendered": "When a support agent submits a customer email, the lookup tool shall query the `orders` PostgreSQL table via the `/api/v2/orders?email=` endpoint and return matching rows as JSON.",
   "priority": "MUST",
   "source": "stated",
-  "source_ref": "00-raw/idea.md#L4",
+  "source_ref": "raw/idea.md#L4",
   "acceptance_ids": ["AC-ORDER-01-01"]
 }
 ```
@@ -52,7 +52,7 @@ The WHAT (return matching orders) is preserved. The HOW (table, engine, endpoint
   "rendered": "When an order status changes, the notification service shall send an email to the customer and update the order status badge in the agent dashboard.",
   "priority": "MUST",
   "source": "stated",
-  "source_ref": "00-raw/idea.md#L7",
+  "source_ref": "raw/idea.md#L7",
   "acceptance_ids": ["AC-NOTIF-01-01"]
 }
 ```
@@ -93,7 +93,7 @@ The WHAT (return matching orders) is preserved. The HOW (table, engine, endpoint
   "rendered": "When a support agent attempts to log in, the authentication system shall securely authenticate the agent and grant access quickly.",
   "priority": "MUST",
   "source": "stated",
-  "source_ref": "00-raw/idea.md#L2",
+  "source_ref": "raw/idea.md#L2",
   "acceptance_ids": ["AC-AUTH-01-01"]
 }
 ```
@@ -118,7 +118,7 @@ The WHAT (return matching orders) is preserved. The HOW (table, engine, endpoint
     "rationale": "Speed and security thresholds are captured as NFRs (NFR-PERF-xx, NFR-SEC-xx); this requirement states only the observable access outcome.",
     "priority": "MUST",
     "source": "stated",
-    "source_ref": "00-raw/idea.md#L2",
+    "source_ref": "raw/idea.md#L2",
     "acceptance_ids": ["AC-AUTH-01-01"]
   },
   {
@@ -130,7 +130,7 @@ The WHAT (return matching orders) is preserved. The HOW (table, engine, endpoint
     "rendered": "If a support agent submits invalid credentials, then the authentication system shall deny access and show a specific authentication-failure message without revealing which part of the credentials was wrong.",
     "priority": "MUST",
     "source": "assumed",
-    "source_ref": "00-raw/idea.md#L2",
+    "source_ref": "raw/idea.md#L2",
     "acceptance_ids": ["AC-AUTH-02-01"]
   }
 ]

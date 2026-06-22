@@ -17,8 +17,8 @@ const isReq = reqWords.some(w => p.includes(w));
 const isImpl = implWords.some(w => p.includes(w));
 
 if (isImpl && !isReq) {
-  process.stdout.write('[I2R hint] This reads as implementation/HOW — that is GSD/downstream. I2R only produces WHAT/WHY/constraints; it never writes code, architecture, tasks, or UI.');
+  process.stdout.write('[I2R hint] This reads as implementation/HOW — that is downstream work. I2R only produces WHAT/WHY/constraints; it never writes code, architecture, tasks, or UI.');
 } else if (isReq && !isImpl) {
-  process.stdout.write('[I2R hint] This reads as requirements work — consider idea-to-requirements-orchestrator: it turns the idea into a reviewed, GSD-ready PRD (WHAT/WHY only) before any build.');
+  process.stdout.write('[I2R hint] This reads as requirements work — consider idea-to-requirements-orchestrator: it turns the idea into a reviewed, downstream-ready requirements package (WHAT/WHY only) before any build.');
 }
 process.exit(0);

@@ -35,7 +35,16 @@
       "items": {
         "type": "object",
         "required": ["text", "source_ref"],
-        "properties": { "text": { "type": "string" }, "source_ref": { "type": "string" } }
+        "properties": {
+          "text": { "type": "string" },
+          "source_ref": { "type": "string" },
+          "context": { "type": "string" },
+          "rationale": { "type": "string" },
+          "alternatives": { "type": "string" },
+          "consequences": { "type": "string" },
+          "reversibility": { "type": "string" },
+          "tradeoffs": { "type": "string" }
+        }
       }
     },
     "surface_signals": {

@@ -18,12 +18,12 @@ A naive agent treats all of these as `stated` evidence. The result: requirements
 
 ## What counts as STATED evidence
 
-**Requirement:** the claim describes a **specific past behavior** or a **directly observable fact**, AND the agent can point to a concrete `source_ref` in `00-raw/`.
+**Requirement:** the claim describes a **specific past behavior** or a **directly observable fact**, AND the agent can point to a concrete `source_ref` in `raw/`.
 
 | Text | Classification | Why |
 |---|---|---|
 | "Last month three support agents spent 20 min each call looking up orders manually" | `stated` | Specific event, specific actor, measurable time, citable |
-| "The founder's demo shows a lookup screen used by 5 people" | `stated` | Observable from artifact in 00-raw/ |
+| "The founder's demo shows a lookup screen used by 5 people" | `stated` | Observable from artifact in raw/ |
 | "The brief states the system is read-only and never modifies orders" | `stated` (also `decisions`) | Explicit constraint, citable |
 
 ---
@@ -63,7 +63,7 @@ Pattern words: *might*, *could*, *maybe*, *possibly*, *if users want*
 
 ```
 Is there a specific past event or directly observable fact?
-├── YES → Does 00-raw/ contain a citable source?
+├── YES → Does raw/ contain a citable source?
 │         ├── YES → stated[]
 │         └── NO  → assumed[] (evidence: medium)
 └── NO  → Is it a generic/future/hypothetical?
@@ -81,7 +81,7 @@ From `examples/good-run/01-intake.json`:
 "stated": [
   {
     "text": "A support agent can enter a customer email to find that customer's orders",
-    "source_ref": "00-raw/idea.md#L4"
+    "source_ref": "raw/idea.md#L4"
   }
 ]
 ```
@@ -96,7 +96,7 @@ This is `stated` because it describes a specific actor (support agent), a specif
     "importance": "high",
     "evidence": "medium",
     "risk": "medium",
-    "source_ref": "00-raw/idea.md#L6"
+    "source_ref": "raw/idea.md#L6"
   }
 ]
 ```

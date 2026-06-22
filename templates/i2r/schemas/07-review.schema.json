@@ -22,7 +22,7 @@
           "requirement_id": { "type": "string" },
           "defect_class": {
             "type": "string",
-            "enum": ["AMBIGUITY", "UNTESTABLE", "UNSOURCED", "SCOPE_LEAK", "IMPLEMENTATION_LEAK", "DUPLICATE", "CONFLICT", "NFR_MISSING", "ACCEPTANCE_GAP", "GSD_INCOMPATIBLE", "DOWNSTREAM_REINTERPRETATION_RISK", "READER_TEST_FAIL", "PLACEHOLDER"]
+            "enum": ["AMBIGUITY", "UNTESTABLE", "UNSOURCED", "SCOPE_LEAK", "IMPLEMENTATION_LEAK", "DUPLICATE", "CONFLICT", "NFR_MISSING", "ACCEPTANCE_GAP", "GSD_INCOMPATIBLE", "DOWNSTREAM_REINTERPRETATION_RISK", "READER_TEST_FAIL", "PLACEHOLDER", "DOWNSTREAM_COMMAND_LEAK"]
           },
           "severity": { "type": "string", "enum": ["BLOCKER", "MAJOR", "MINOR"] },
           "evidence": { "type": "string" },

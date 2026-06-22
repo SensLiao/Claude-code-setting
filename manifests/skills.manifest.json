@@ -24,7 +24,7 @@
       "execution_mode": "SKILL-direct only (NOT workflow-spec)",
       "model_routing": "all-opus (lead + all 9 i2r-* agents; the $0 i2r.py SDK is no-LLM)",
       "downstream": ["gsd-pipeline-orchestrator"],
-      "purpose": "Requirements front-end UPSTREAM of GSD: turns a raw/messy idea into a GSD-ready PRD (WHAT + WHY + CONSTRAINTS + LOCKED DECISIONS only; NEVER HOW / tasks / architecture / UI / roadmap — GSD re-derives those). Self-dispatches 9 i2r-* agents through 10 mode subskills, backed by a project-local i2r.py SDK ($0, 16 commands) and 8 project hooks + 1 shared lib (`_i2r-common.js`) gated on runs/i2r/ presence (intentional no-config-file variant). Hands off to GSD via `/gsd:ingest-docs` or `/gsd:plan-phase --prd PRD.md`."
+      "purpose": "Requirements front-end UPSTREAM of GSD: turns a raw/messy idea into a Markdown-first requirements package (WHAT + WHY + CONSTRAINTS + LOCKED DECISIONS only; NEVER HOW / tasks / architecture / UI / roadmap — GSD re-derives those). Self-dispatches 9 i2r-* agents through 10 mode subskills, backed by a project-local i2r.py SDK ($0, 4-module SDK) and 8 project hooks + 1 shared lib (`_i2r-common.js`) gated on .i2r/runs/ presence (intentional config-optional variant). Downstream (GSD etc.) reads the same Markdown package and applies its own routing; I2R emits no /gsd command."
     },
     {
       "name": "gsd-pipeline-orchestrator",
@@ -227,7 +227,7 @@
     ]
   },
 
-  "routing_rule": "Claude should route through primary orchestrators first. Supporting skills are invoked by orchestrators or by explicit user request. The 4 commercial-grade primary orchestrators (GSD / UIUX / QA / AppSec) form the three-mainline architecture; claude-env-bootstrap is the project-setup gate; idea-to-requirements-orchestrator (I2R) is the requirements front-end upstream of GSD (raw idea → GSD-ready PRD).",
+  "routing_rule": "Claude should route through primary orchestrators first. Supporting skills are invoked by orchestrators or by explicit user request. The 4 commercial-grade primary orchestrators (GSD / UIUX / QA / AppSec) form the three-mainline architecture; claude-env-bootstrap is the project-setup gate; idea-to-requirements-orchestrator (I2R) is the requirements front-end upstream of GSD (raw idea → Markdown-first requirements package).",
 
   "anti_patterns": [
     "Multiple L3 styles simultaneously activated (taste/luxury/minimalist/soft are mutually exclusive)",
@@ -412,7 +412,7 @@
     },
     "qa": ".qa/evidence/<tag>/",
     "uiux": ".uiux/evidence/<tag>/",
-    "i2r": "runs/i2r/<slug>/<timestamp>/"
+    "i2r": ".i2r/runs/<slug>/<timestamp>/"
   },
 
   "name_freeze": [
@@ -433,7 +433,7 @@
     "disc-robots-sitemap-guard.js",
     "disc-session-context.js",
     "idea-to-requirements-orchestrator",
-    "i2r-handoff-gate",
+    "i2r-readiness-gate",
     "i2r-mode-gate",
     "i2r-subagent-output-gate",
     "i2r-citation-gate",

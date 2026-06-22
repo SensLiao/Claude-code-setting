@@ -3,7 +3,7 @@
 The router decides **how this run executes** before any authoring. It is a deliberate first step, not a
 default pipeline: route first, then enter only the modes this idea needs. Validate with `i2r.py route <run>`.
 
-## The decision (one object — schema: `schemas/00-mode-routing.schema.json`)
+## The decision (one object — schema: `schemas/00-mode-routing.schema.json`, output: `internal/stages/00-mode-routing.json`)
 
 | Field | Decide by asking… |
 |---|---|
@@ -21,10 +21,10 @@ default pipeline: route first, then enter only the modes this idea needs. Valida
 | `rationale` | one paragraph: why this shape |
 
 ## Routing → required artifacts (enforced by `i2r.py mode.check` + the `i2r-mode-gate` hook)
-- `requires_*search` true → `02b-evidence.json` MUST exist before the gate passes.
-- `requires_scope_debate` true → `03b-scope-debate.json` MUST exist.
-- `requires_discussion == blocking` → a `00-raw/clarifications-*.md` MUST exist.
-- `requires_codex_review` true → `07-review.codex.json` (or the fresh-critic fallback) MUST exist.
+- `requires_*search` true → `internal/stages/02b-evidence.json` MUST exist before the gate passes.
+- `requires_scope_debate` true → `internal/stages/03b-scope-debate.json` MUST exist.
+- `requires_discussion == blocking` → a `raw/clarifications-*.md` MUST exist.
+- `requires_codex_review` true → `internal/stages/07-review.codex.json` (or the fresh-critic fallback) MUST exist.
 
 If you flip a `requires_*` flag on, you have committed to producing the artifact — the gate will not let you
 skip it. When in doubt, prefer the leaner route and let the critic escalate.

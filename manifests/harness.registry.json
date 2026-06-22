@@ -104,10 +104,10 @@
           "i2r-mark-stale.js",
           "i2r-subagent-output-gate.js",
           "i2r-citation-gate.js",
-          "i2r-handoff-gate.js"
+          "i2r-readiness-gate.js"
         ]
       },
-      "hook_scope": "project-installed via `python ~/.claude/templates/i2r/scripts/i2r.py install --project .` — INTENTIONAL VARIANT: gated on run-folder presence (runs/i2r/), NOT a config file. No .i2r/config.json exists; fail-open/silent on non-i2r projects. Hooks registered by `i2r.py install` (NOT `init`, which only scaffolds the run folder).",
+      "hook_scope": "project-installed via `python ~/.claude/templates/i2r/scripts/i2r.py install --project .` — INTENTIONAL VARIANT: gated on run-folder presence (.i2r/runs/), config is OPTIONAL (defaults apply with no .i2r/config/i2r.config.yaml); fail-open/silent on non-i2r projects. Hooks registered by `i2r.py install` (NOT `init`, which only scaffolds the run folder).",
       "sdk": "templates/i2r/scripts/i2r.py (project-local; copied into <project> by `i2r.py install`)",
       "sdk_commands": [
         "init",
@@ -128,9 +128,9 @@
         "evals.run"
       ],
       "downstream": ["gsd-pipeline-orchestrator"],
-      "evidence_root": "runs/i2r/<slug>/<timestamp>/",
+      "evidence_root": ".i2r/runs/<slug>/<timestamp>/",
       "toolchain_template": "templates/i2r/{scripts,schemas,hooks}",
-      "notes": "Requirements front-end UPSTREAM of GSD. Produces WHAT + WHY + CONSTRAINTS + LOCKED DECISIONS only (NEVER WHEN/HOW/WHO-BUILDS-WHAT — GSD re-derives phases/architecture/tasks). Hands off to GSD via `/gsd:ingest-docs` or `/gsd:plan-phase --prd PRD.md`. Gate verdicts: READY / NEEDS_REVIEW / BLOCKED. Dual independent review (santa-loop: i2r-completeness-critic + Codex adversarial | fallback fresh critic), bounded to max 3 iterations. Trigger intent: clarify an idea / define requirements / functional+non-functional requirements / acceptance criteria / scope / PRD / prepare for GSD / 需求 / 想法转需求. Does NOT trigger on implementation/coding/debugging/UI/roadmap."
+      "notes": "Requirements front-end UPSTREAM of GSD. Produces WHAT + WHY + CONSTRAINTS + LOCKED DECISIONS only (NEVER WHEN/HOW/WHO-BUILDS-WHAT — GSD re-derives phases/architecture/tasks). Downstream (GSD etc.) reads the same Markdown package and applies its own routing; I2R emits no /gsd command. Gate verdicts: READY / NEEDS_REVIEW / BLOCKED. Dual independent review (santa-loop: i2r-completeness-critic + Codex adversarial | fallback fresh critic), bounded to max 3 iterations. Trigger intent: clarify an idea / define requirements / functional+non-functional requirements / acceptance criteria / scope / PRD / prepare for GSD / 需求 / 想法转需求. Does NOT trigger on implementation/coding/debugging/UI/roadmap."
     },
     {
       "name": "uiux-product-orchestrator",
@@ -573,7 +573,7 @@
         "explain-fail",
         "evals.run"
       ],
-      "evidence_root": "runs/i2r/<slug>/<timestamp>/"
+      "evidence_root": ".i2r/runs/<slug>/<timestamp>/"
     }
   },
 
@@ -587,7 +587,7 @@
     },
     "qa": ".qa/evidence/<tag>/",
     "uiux": ".uiux/evidence/<tag>/",
-    "i2r": "runs/i2r/<slug>/<timestamp>/"
+    "i2r": ".i2r/runs/<slug>/<timestamp>/"
   },
 
   "schemas": {
@@ -607,7 +607,7 @@
     "gsd_to_uiux": "../schemas/handoff.schema.yaml",
     "gsd_to_qa": "../schemas/handoff.schema.yaml",
     "i2r_to_gsd": "../schemas/handoff.schema.yaml",
-    "i2r_to_gsd_note": "I2R (requirements front-end, GSD-upstream) emits a GSD-ready PRD.md → GSD ingests via `/gsd:ingest-docs` or `/gsd:plan-phase --prd PRD.md`.",
+    "i2r_to_gsd_note": "I2R (requirements front-end, GSD-upstream) produces a Markdown-first requirements package; downstream (GSD etc.) reads it and applies its own routing — I2R emits no /gsd command.",
     "note": "All handoffs use unified handoff.schema.yaml. Owned by Wave 2 Agent A3 (PR-4)."
   },
 
@@ -650,7 +650,7 @@
     {"name": "disc-robots-sitemap-guard.js", "type": "hook", "category": "l12"},
     {"name": "disc-session-context.js", "type": "hook", "category": "l12"},
     {"name": "idea-to-requirements-orchestrator", "type": "skill", "category": "i2r"},
-    {"name": "i2r-handoff-gate.js", "type": "hook", "category": "i2r_safety_gate"},
+    {"name": "i2r-readiness-gate.js", "type": "hook", "category": "i2r_safety_gate"},
     {"name": "i2r-mode-gate.js", "type": "hook", "category": "i2r_safety_gate"},
     {"name": "i2r-subagent-output-gate.js", "type": "hook", "category": "i2r_safety_gate"},
     {"name": "i2r-citation-gate.js", "type": "hook", "category": "i2r_safety_gate"},
