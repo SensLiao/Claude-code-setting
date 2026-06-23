@@ -40,7 +40,9 @@ const HOOKS_FLAG = hooksArg ? hooksArg.split('=')[1] : (args.indexOf('--hooks') 
 const PROFILE_NAME = args.filter(a => !a.startsWith('-'))[1] || 'default';
 
 const SKIP = new Set(['install.ps1', 'install.sh', 'README.md', '.gitignore', '.gitattributes',
-  'settings.example.json', '.git', '.github', '.claude', 'claude-config.js', 'claude-config.ps1', 'wire-manifest.json', 'profiles', '.goals']);
+  'settings.example.json', '.git', '.github', '.claude', 'claude-config.js', 'claude-config.ps1', 'wire-manifest.json', 'profiles', '.goals',
+  // cross-tool bridge configs (read by Cursor/Codex/Gemini at ~/ or project level, NOT ~/.claude) + this repo's own GSD dev planning — stored in the repo for backup, never deployed into ~/.claude
+  '.cursor', '.codex', '.gemini', '.planning']);
 const PRESERVE = new Set(['.credentials.json', 'settings.json', 'settings.local.json',
   'memory', 'projects', 'sessions', 'tasks', 'history.jsonl', 'plugins']);
 const MANAGED = ['agents', 'commands', 'skills', 'hooks', 'scripts', 'rules', 'docs', 'manifests',
