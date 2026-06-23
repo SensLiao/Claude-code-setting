@@ -1,0 +1,307 @@
+# SKILLS-INDEX — UI/UX Skill 速查表
+
+> Generated 2026-05-21 · 配合 `~/.claude/CLAUDE.md` "前端 UI/UX 工作流 v2"
+> 总计 40+ 个 UI/UX 相关 skill / plugin（含已装 + 已 plugin install）
+
+## 字段说明
+- **触发词**：用户说哪些话会激活
+- **位置**：`~/.claude/skills/<name>/` 或 `<plugin>@<marketplace>`
+- **何时用**：典型场景
+- **何时不用**：反场景
+- **配套**：哪些 skill 一起用
+
+---
+
+## A — 字母序索引（按 slug 排）
+
+### `anchor-prototype-wave`
+- **触发词**："全 surface 铺一遍" / "hi-fi gallery" / "4-15 个 surface 量产" / "把锁定的 chassis 落到所有页面"
+- **位置**：`~/.claude/skills/anchor-prototype-wave/`
+- **何时用**：visual anchor 已锁，要并行产 4-15 个 hi-fi prototype 页面
+- **何时不用**：还在探索方向（用 `prototyping-ui-directions`）/ 单页 craft（用 `taste-skill`）
+- **配套**：`ux-principles` MODE C / `taste-skill`（锁 chassis）
+
+### `app-store-screenshots`
+- **触发词**："App Store 截图" / "Play Store" / "phone mockup" / "marketing screenshots"
+- **位置**：`~/.claude/skills/app-store-screenshots/`
+- **何时用**：iOS / Android 应用上架需要营销截图
+- **何时不用**：网页 marketing assets（用 `imagegen-frontend-web`）
+
+### `apple-design-system`
+- **触发词**："Apple Liquid Glass" / "新 Apple 设计语言" / "Apple modern UI"
+- **位置**：`~/.claude/skills/apple-design-system/`
+- **何时用**：实现 Apple 新设计语言（Liquid Glass / 动画 / 视觉模式）
+- **何时不用**：Android / Web
+
+### `apple-ios-hig`
+- **触发词**："iOS app" / "iPhone" / "HIG compliance" / "iOS code review" / "SwiftUI 审"
+- **位置**：`~/.claude/skills/apple-ios-hig/`
+- **何时用**：iOS 开发、HIG 审查、a11y audit、新 iOS 应用规划
+- **何时不用**：Android / Web
+
+### `apple-swiftui`
+- **触发词**："SwiftUI patterns" / "SwiftUI 写法"
+- **位置**：`~/.claude/skills/apple-swiftui/`
+- **何时用**：写 SwiftUI 代码
+- **何时不用**：UIKit / Storyboard
+
+### `bencium-controlled-ux-designer`
+- **触发词**："严格控制" / "always ask first" / "保守稳重" / "不要太张扬"
+- **位置**：`bencium-controlled-ux-designer@bencium-marketplace`
+- **何时用**：用户偏好稳定 / 协作类项目 / 每个设计决策都先问
+- **何时不用**：用户要"出格 / 大胆"（用 `innovative` 变体）
+
+### `bencium-innovative-ux-designer`
+- **触发词**："大胆 / bold / 出格" / "Anthropic Frontend Designer-style" / "high impact"
+- **位置**：`bencium-innovative-ux-designer@bencium-marketplace`
+- **何时用**：用户要创新 / 高质量品牌项目
+- **何时不用**：B2B 严肃产品 / 协作类（用 `controlled` 变体）
+
+### `brand-guidelines`
+- **触发词**："Anthropic brand" / "公司视觉规范" / "套品牌色 / 品牌字体"
+- **位置**：`~/.claude/skills/brand-guidelines/`
+- **何时用**：用 Anthropic 品牌色 / 字体的任何产物
+- **何时不用**：非 Anthropic 品牌项目
+
+### `brandkit`
+- **触发词**："brand kit" / "logo 系统" / "identity deck" / "visual world board"
+- **位置**：`~/.claude/skills/brandkit/`
+- **何时用**：高端品牌画板、logo 概念稿、视觉系统
+- **何时不用**：单纯网页 UI（用 L3 风格 skill）
+
+### `brutalist-skill` ⚠ BETA
+- **触发词**："brutalist" / "粗野" / "Swiss + military" / "机械化原始"
+- **位置**：`~/.claude/skills/brutalist-skill/`
+- **何时用**：数据密集 dashboard / 作品集 / 编辑型暴力美学
+- **何时不用**：消费产品 / a11y 优先 / 用户友好型
+
+### `canvas-design`
+- **触发词**："海报" / "poster" / "design PNG" / "PDF 设计"
+- **位置**：`~/.claude/skills/canvas-design/`
+- **何时用**：生成静态视觉艺术、海报、印刷品
+- **何时不用**：交互 UI / Web 网页
+
+### `design-audit@bencium-marketplace`
+- **触发词**："设计审计" / "看看哪不对" / "phased fix plan"
+- **位置**：plugin
+- **何时用**：现有 UI 系统化审查 + 分阶段 fix
+- **何时不用**：单点局部修补（用 `refactoring-ui`）
+
+### `design-ops@designer-skills`
+- **触发词**："设计交付" / "handoff" / "design sprint" / "asset 管理"
+- **位置**：plugin
+- **何时用**：设计 → 工程 handoff、sprint 协调
+
+### `design-research@designer-skills`
+- **触发词**："用户画像" / "personas" / "journey map" / "用户研究" / "访谈脚本"
+- **位置**：plugin
+- **何时用**：UX 研究的上游阶段
+
+### `design-systems@designer-skills`
+- **触发词**："设计 tokens" / "spacing / grid system" / "组件规范" / "命名约定"
+- **位置**：plugin
+- **何时用**：搭建 / 维护设计系统
+
+### `designer-toolkit@designer-skills`
+- **触发词**："portfolio review" / "case study 结构" / "design 演讲"
+- **位置**：plugin
+- **何时用**：设计师自身工具：作品集 / 简历 / case study
+
+### `emil-design-eng`
+- **触发词**："动画细节" / "micro-interaction" / "Emil Kowalski" / "UI polish 哲学"
+- **位置**：`~/.claude/skills/emil-design-eng/`
+- **何时用**：要做精细动画 / 微交互打磨
+- **何时不用**：静态布局 / 性能优先（动画反而是包袱）
+
+### `frontend-design@claude-plugins-official` （已装）
+- **触发词**："独特美学 / 非通用设计 / 大胆字体 / 杂志感"
+- **位置**：plugin
+- **何时用**：Anthropic 官方 frontend design 风格指南
+- **何时不用**：纯技术质量审查（用 Vercel agent）
+
+### `frontend-design-pro@frontend-design-pro`
+- **触发词**："11 种风格 demo" / "Swiss / Neumorphism / Glassmorphism / Brutalism / Claymorphism / Aurora / Cyberpunk / 3D / Maximalist / OLED / Organic"
+- **位置**：plugin
+- **何时用**：探索阶段采样多种鲜明美学
+- **何时不用**：已锁方向（用 L3 单一 skill）
+
+### `gpt-tasteskill`
+- **触发词**："GSAP" / "AIDA 结构" / "滚动叙事" / "Codex 专用 taste"
+- **位置**：`~/.claude/skills/gpt-tasteskill/`
+- **何时用**：高动效编辑型页 / Codex 协作
+- **何时不用**：低动效 / 静态产品 UI
+
+### `image-to-code-skill`
+- **触发词**："image-first" / "图 → 代码" / "高保真还原"
+- **位置**：`~/.claude/skills/image-to-code-skill/`
+- **何时用**：用图驱动开发，AI 先生成图再实现
+- **何时不用**：spec 已经文字化清晰（直接 taste-skill）
+
+### `imagegen-frontend-mobile`
+- **触发词**："手机 mockup 概念图" / "iOS / Android screen reference"
+- **位置**：`~/.claude/skills/imagegen-frontend-mobile/`
+- **何时用**：探索阶段产 mobile screen 概念图
+- **何时不用**：写代码阶段
+
+### `imagegen-frontend-web`
+- **触发词**："网站参考图" / "landing page 视觉" / "marketing site 概念"
+- **位置**：`~/.claude/skills/imagegen-frontend-web/`
+- **何时用**：探索阶段产 web 概念图
+- **何时不用**：写代码阶段
+
+### `interaction-design@designer-skills`
+- **触发词**："微交互" / "动画原则" / "state machine" / "gesture 模式" / "feedback patterns"
+- **位置**：plugin
+- **何时用**：交互行为设计
+
+### `interface-design@interface-design`
+- **触发词**："长期一致" / "session 间不漂移" / "persistent design memory"
+- **位置**：plugin（v2026.2.9）
+- **何时用**：长周期项目要保持跨 session 的设计决策一致
+- **何时不用**：一次性 prototype
+
+### `luxury` ⭐ 新增
+- **触发词**："dark editorial" / "fashion magazine" / "monochrome bold" / "architect portfolio" / "高端品牌（暗）" / "luxury 黑白" / "Oswald 大字"
+- **位置**：`~/.claude/skills/luxury/`
+- **何时用**：暗色编辑风（黑底白字）/ 时尚 / 摄影 / 建筑作品集 / 单色 + Oswald 大字
+- **何时不用**：消费 SaaS dashboard / 浅色品牌 / 数据密集（用 brutalist）/ B2B fintech
+- **配套**：`luxury-editorial-site-builder`（如果是单页 hero video brand）；`ux-principles` MODE C（验 21:1 对比度）
+
+### `luxury-editorial-site-builder`
+- **触发词**："editorial-luxury" / "杂志感" / "高端品牌官网" / "ESTUDIO ANÓNIMO" / "100dvh hero video" / "Hailuo/Veo/Kling 生成"
+- **位置**：`~/.claude/skills/luxury-editorial-site-builder/`
+- **何时用**：高端品牌单页 + hero video 生产
+- **何时不用**：product UI / dashboard（这只做 brand landing）
+
+### `minimalist-skill`
+- **触发词**："Notion 风" / "Linear 风" / "干净简洁" / "warm monochrome" / "muted pastels"
+- **位置**：`~/.claude/skills/minimalist-skill/`
+- **何时用**：编辑型清爽 product UI
+- **何时不用**：要"出格 / 视觉冲击"（用 brutalist / gpt-tasteskill）
+
+### `output-skill`
+- **触发词**：（always enforced when generating code）
+- **位置**：`~/.claude/skills/output-skill/`
+- **何时用**：所有要求"完整 / 不要 placeholder / 不要截断"的代码任务
+- **何时不用**：探索性短代码（明确允许 stub）
+
+### `prototyping-testing@designer-skills`
+- **触发词**："wireframe spec" / "可用性测试" / "a11y audit" / "A/B test 设计"
+- **位置**：plugin
+
+### `prototyping-ui-directions`
+- **触发词**："做几版 UI direction" / "idea → prototype 包" / "多 variant 探索 / variant gallery"
+- **位置**：`~/.claude/skills/prototyping-ui-directions/`
+- **何时用**：idea → reference clone → research → multi-variant prototype 包（4 阶段 pipeline）
+- **何时不用**：已锁方向（用 anchor-prototype-wave）
+
+### `redesign-skill`
+- **触发词**："升级 UI / 整页 redesign / audit + 改"
+- **位置**：`~/.claude/skills/redesign-skill/`
+- **何时用**：现有页面整体升级
+- **何时不用**：局部小修（用 refactoring-ui）
+
+### `refactoring-ui`
+- **触发词**："UI 看着不对劲" / "fix 视觉层级" / "改字体 / 改颜色 / 改 spacing" / "美化一下"
+- **位置**：`~/.claude/skills/refactoring-ui/`
+- **何时用**：现有页面局部视觉修补
+- **何时不用**：整页 redesign（用 redesign-skill）
+
+### `skill-creator`
+- **触发词**："写个新 skill" / "create skill" / "skill 优化 / 评估"
+- **位置**：`~/.claude/skills/skill-creator/`
+- **何时用**：开发新 skill / 评测现有 skill 性能
+- **何时不用**：使用 skill（这是元开发工具）
+
+### `soft-skill`
+- **触发词**："high-end agency" / "expensive feel" / "spring 动效" / "premium feel"
+- **位置**：`~/.claude/skills/soft-skill/`
+- **何时用**：要做"高级感"产品 UI，沉稳柔和
+- **何时不用**：极简（用 minimalist）/ 数据密集（用 brutalist）
+
+### `stitch-skill`
+- **触发词**："Google Stitch" / "DESIGN.md 导出" / "premium DESIGN.md"
+- **位置**：`~/.claude/skills/stitch-skill/`
+- **何时用**：用 Google Stitch 工作流，需要 DESIGN.md
+- **何时不用**：不用 Stitch
+
+### `taste-skill`
+- **触发词**："single-page craft" / "DESIGN_VARIANCE / MOTION / DENSITY 三参数" / "高端但通用" / "反 AI slop"
+- **位置**：`~/.claude/skills/taste-skill/`（升级版 from Leonxlnx）
+- **何时用**：默认 L3 单页 craft，3 参数（VARIANCE 1-10 / MOTION 1-10 / DENSITY 1-10）可调
+- **何时不用**：明确要某具体风格（用 luxury / minimalist / brutalist）/ 多 surface 量产（用 anchor-prototype-wave）
+
+### `theme-factory`
+- **触发词**："10 个预设主题" / "套主题" / "slides / docs / artifact 主题化"
+- **位置**：`~/.claude/skills/theme-factory/`
+- **何时用**：给 artifact 套预设主题
+- **何时不用**：⚠ 不要与 L3 风格 skill（luxury / taste / minimalist）同时跑
+
+### `ui-design@designer-skills`
+- **触发词**："调色板设计" / "字体系统" / "layout grid" / "响应式 breakpoint" / "dark mode spec" / "视觉层级"
+- **位置**：plugin
+
+### `ui-ux-pro-max@ui-ux-pro-max-skill` ⭐ 一站式
+- **触发词**："不想思考 / 一站式 / 自动选风格" / "67 风格" / "161 调色板" / "fintech / SaaS / e-commerce" 等行业关键词
+- **位置**：plugin（v2.5.0）
+- **何时用**：项目类型清晰，让 skill 自动匹配 67 风格 + 161 调色板 + 57 字体 + 161 推理规则 + 99 UX 指南
+- **何时不用**：要精细控制（用 taste-skill）/ 已有强方向（用 L3 单一 skill）
+
+### `ux-design@wondelai-skills`
+- **触发词**："Refactoring UI + iOS HIG + 启发式 + Hooked + Don Norman 一锅端"
+- **位置**：plugin
+- **何时用**：综合 UX 实践集合（含多本经典书的精华）
+
+### `ux-principles` ⭐ 横切 foundation
+- **触发词**："ux audit / ux 审 / 评估 UX / NN heuristic / Laws of UX / Built for Mars 视角 / ux review"
+- **位置**：`~/.claude/skills/ux-principles/`
+- **何时用**：**所有 UI/UX 任务的开工前 + 写完前 + 决定数字时**
+- **何时不用**：纯技术任务无 UI（如 backend API）
+- **3 模式**：MODE A pre-design / MODE B mid-design 战术查表 / MODE C post-design audit
+
+### `ux-strategy@designer-skills`
+- **触发词**："信息架构" / "IA" / "user flow" / "task analysis" / "竞品 UX audit"
+- **位置**：plugin
+
+### `visual-critique@designer-skills`
+- **触发词**："hierarchy 分析" / "brand 一致性审" / "/critique-screen 命令" / "字体审计"
+- **位置**：plugin
+- **何时用**：现成 UI 的层级 / brand / composition / typography 系统审
+- **何时不用**：还没产物的 idea 阶段
+
+---
+
+## B — 按 Layer 反向索引（L0 → L11）
+
+参见 `~/.claude/CLAUDE.md` "前端 UI/UX 工作流 v2" 章节的全景图。
+
+---
+
+## C — Vercel Plugin 系（已装：vercel@claude-plugins-official）
+
+- `vercel:ai-sdk` / `:ai-gateway` / `:auth` / `:chat-sdk` / `:env-vars` / `:next-cache-components` / `:next-forge` / `:next-upgrade` / `:nextjs` / `:react-best-practices` / `:routing-middleware` / `:runtime-cache` / `:shadcn` / `:turbopack` / `:vercel-agent` / `:vercel-cli` / `:vercel-firewall` / `:vercel-functions` / `:vercel-sandbox` / `:vercel-storage` / `:workflow` / `:bootstrap` / `:deploy` / `:env` / `:marketplace` / `:status` / `:knowledge-update` / `:verification` / `:deployments-cicd`
+
+全部走 `vercel:<sub>` 命名空间。触发条件见各 skill 自身 description。
+
+---
+
+## D — 工具（非 skill）
+
+| 工具 | 位置 | 触发 | 用途 |
+|---|---|---|---|
+| GStack | `~/.claude/tools/gstack/` | "给设计打分 / 0-10 维度评估" | Y Combinator CEO 的 0-10 设计评分 CLI；含 AI Slop Detection |
+
+---
+
+## E — 已废弃 / archive
+
+- `taste-skill.pre-20260521`（旧单 SKILL.md 版，已自动备份到 `~/.claude/_backup-20260521/`）
+- 历史精简的 175+ skill 在 `~/.claude/skills-archive/`，需要时按归档 README 移回
+
+---
+
+## 维护
+
+- 新装 skill / 卸载 skill 后，更新本文件 + CLAUDE.md
+- 触发词冲突时，更具体的优先（如 "iOS 应用" → `apple-ios-hig` 优先于 `ui-ux-pro-max`）
+- 月度复盘：哪些 skill 一次没用过？考虑 archive

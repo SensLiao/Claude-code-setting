@@ -88,6 +88,16 @@ _backup-*
 gsd-install-state.json
 gsd-file-manifest.json
 ecc/install-state.json
+.last-update-result.json
+plugins/.last_inuse_sweep
+
+# === 🟡 其它工具的可重装/缓存目录（2026-06-23 audit）===
+# .opencode = npm 包 ecc-universal（可 npm i 重装）; .agents = ECC 上游 skills（可重装）
+# 手写的 .cursor / .codex / .gemini 桥接配置则保留上传（不在此忽略，已纳入仓库）
+.opencode/
+.agents/
+chrome/
+image-cache/
 
 # === 🟡 OS / 编辑器噪声 ===
 .DS_Store

@@ -158,7 +158,18 @@ async function main() {
 
   if (!targetsAppsec) return allow()
 
-  const wfArgs = toolInput.args ?? {}
+  // Claude Code delivers tool_input.args as a JSON-ENCODED STRING for the Workflow tool
+  // (not a parsed object). Parse it before reading fields, while still accepting an object
+  // for forward-compatibility. All downstream verification (spec_hash recompute, sentinel,
+  // TTL, mode, allow_dynamic_workflow) is unchanged — this only makes the args readable.
+  let wfArgs = toolInput.args ?? {}
+  if (typeof wfArgs === 'string') {
+    try { wfArgs = JSON.parse(wfArgs) }
+    catch (e) { block(`tool_input.args is a string but not valid JSON: ${e.message}`) }
+  }
+  if (!wfArgs || typeof wfArgs !== 'object') {
+    block('tool_input.args did not resolve to an object (got ' + typeof wfArgs + ')')
+  }
   const runId  = wfArgs.run_id
   const claimedSpecHash = wfArgs.spec_hash
   const spec = wfArgs.spec
