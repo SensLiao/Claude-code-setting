@@ -1,0 +1,305 @@
+# 全局 Claude 配置
+
+> 重构日期：2026-05-21（含 26+ UI/UX skill 扩张）
+> 备份位置：`~/.claude/_backup-20260521/CLAUDE.md`
+> 配套文档：`~/.claude/SKILLS-INDEX.md`（速查表）、`~/.claude/rules/common/agents.md`（agent 路由）
+
+---
+
+## 项目启动协议（GSD 默认，硬规则）
+
+> **核心规则**：开新项目 / 开新系统 / 开新阶段 → **默认启动 GSD**。
+
+### 启动入口：先调 `gsd-pipeline-orchestrator`
+
+任何非 trivial 工作（新项目 / 新 phase / 跨模块改造 / continue 上次 / milestone boundary）开工前，**第一步先 `Skill("gsd-pipeline-orchestrator")`**。它会：
+
+1. 读 `.planning/` 状态 + repo 结构
+2. 用 8 个 flag（ambiguity / UI / AI / arch / security / core-logic / CRUD / milestone）分类当前 phase
+3. 编排 Tier 1-4 命令序列 + agent 编排模式
+4. 输出 pipeline 计划等用户拍板
+
+### 触发场景速查
+
+| 用户话语 | 默认入口 |
+|---|---|
+| "开个新项目" / "做个新系统" | `gsd-new-project` |
+| "做个新功能" / "开新阶段" | `gsd-spec-phase` → `discuss` → `plan` → `execute` → `verify` → `ship` |
+| "需求还不清楚" | `gsd-spec-phase` |
+| "改 bug 但牵连面广" | `gsd-debug` 或 `gsd-spec-phase` |
+| "续上次的活" | `gsd-resume-work` |
+| "扫一下这个仓库" | `gsd-map-codebase` |
+| "审一下这个 phase" | `gsd-code-review` / `gsd-ui-review` / `gsd-verify-work` |
+| **任何 UI/UX 设计任务** | **see "前端工作流" 章节** |
+
+### 跳过 GSD 的场景
+1-3 行的 bugfix / 回答问题 / 读代码 / 用户明确说 "不用 GSD"。
+
+---
+
+## 硬规则（零例外）
+
+1. **不可变性**：创建新对象，不修改现有对象
+2. **不硬编码密钥**：API key/密码/token 必须用环境变量
+3. **测试覆盖 80%+**：新功能必须有测试
+4. **文件 <800 行**：超过就拆分
+5. **先验证再声称完成**
+6. **能自己验证的不要问用户**：curl / 查数据库 / 打开浏览器 — 能自动做就自动做
+7. **不要猜测，先查证据**
+8. **增量验证**：改完一个 bug 不要重跑全量
+9. **检查是对的就不要放宽**：修根因，不降标准
+10. **不要机械执行 reviewer 意见**：先评估实际风险
+11. **提交前严格检查文件列表**：不要混入无关改动
+
+九条行为准则（不瞎猜接口 / 寻求确认 / 以人类为准 / 复用现有 / 主动验证 / 遵循规范 / 诚实承认无知 / 谨慎重构 / 声明式编程 + 验证循环）：见 [rules/common/principles.md](rules/common/principles.md)。
+
+---
+
+## Skills 选择规则
+
+**GSD 是总管**。其他 skill 在它们与 GSD 不冲突且明确匹配任务时才调用。
+
+**选择原则**：
+- 默认走 GSD
+- 简单任务（改几行 / 回答问题 / 读代码）：跳过 skill
+- 明确匹配时调用，模糊时不调
+- 中等任务：`gsd-quick` 或 `gsd-fast`
+- 复杂任务：GSD 主流程 + 必要 skill 点缀
+- 大型任务：GSD 主轴 + 多 skill 协作
+
+**不要现造**：归档里的能力（archive 里 175+ skill），需要时从 `~/.claude/skills-archive/` 移回。
+
+---
+
+## 全局 Skills 能力位（v2 — 2026-05-21）
+
+> 共 12 个**编排 / 通用 / 产品 / 内容**能力位 + 1 个**前端工作流 cluster**（详见下方）。
+
+### 总管 / 编排
+
+| 能力位 | Skill | 用途 |
+|--------|-------|------|
+| **AI 编排（默认入口）** | `gsd-*` 全家桶（67+ 子命令） | spec-driven workflow 总调度器 |
+| 委派执行 | `codex-dispatch` | Codex CLI (GPT-5.4) 委派；额度满 fallback Claude subagent |
+
+### 产品 / 商业
+
+| 能力位 | Skill | 用途 |
+|---|---|---|
+| 需求澄清 / PRD | `grill-with-docs` | 模糊点子 → 可执行 spec |
+| 市场调研 / 竞品 | `competitive-teardown` | 12 维矩阵 + SWOT + battle card |
+
+### 内容 / 交付
+
+| 能力位 | Skill | 用途 |
+|---|---|---|
+| AIGC 视频 | `remotion-best-practices` | Remotion (React) 视频工程 |
+| 会议复盘 | `meeting-analyzer` | transcript 行为模式 + 沟通反模式 |
+| 客户文档 | `document-skills@anthropic` | PDF / PPTX / DOCX / XLSX（通过 plugin 装） |
+
+### 前端 / 设计
+
+> **见下方 "前端 UI/UX 工作流（v2 扩张版）" 章节**——12 个原能力位扩展为 **40+ skill 分层路由**。每次 UI/UX 任务**强制走** `ux-principles` 横切层。
+
+---
+
+## 前端 UI/UX 工作流（v2 — 2026-05-21 扩张版）
+
+> 这是**最大幅度的重构**。原 5-skill 工作流（ux-principles + taste + prototyping-ui-directions + anchor-prototype-wave + luxury-editorial-site-builder）保留并扩展为 9 层。
+>
+> **核心原则不变**：每次 UI 任务开工前 + 写完前 + 决定数字时，**必须走 `ux-principles`** 横切层。
+
+### 全景图
+
+```
+LAYER 0:  FOUNDATION（横切，强制）
+          ux-principles  (MODE A pre / MODE B mid / MODE C post audit)
+
+LAYER 1:  DISCOVERY              LAYER 2:  EXPLORATION
+          gsd-explore / spike              prototyping-ui-directions (variants)
+          grill-with-docs                  frontend-design-pro       (11 styles 采样)
+          competitive-teardown             imagegen-frontend-web/mobile  (visual refs)
+
+LAYER 3:  STYLE LOCKING（按品类挑 1-2 个，不混搭）
+          ┌──────────────┬──────────────┬──────────────┬──────────────┐
+          ▼              ▼              ▼              ▼              ▼
+          taste-skill    luxury         brutalist-     minimalist-    soft-skill
+          (3-axis        (dark           skill          skill         (high-end
+          通用 craft)     editorial)    (BETA)         (Notion/        agency)
+                                                        Linear)
+          ┌──────────────┬──────────────┬──────────────┬──────────────┐
+          gpt-tasteskill stitch-skill   redesign-skill image-to-code- frontend-
+          (GSAP motion)  (Google Stitch (audit existing skill        design-pro@
+                          DESIGN.md)    + upgrade)     (image-first  marketplace
+                                                        workflow)     (11 demos)
+
+LAYER 4:  PRODUCTION
+          anchor-prototype-wave    (4-15 surface gallery)
+          bencium-innovative-      (bold variant)
+          bencium-controlled-      (always-ask-first variant)
+          interface-design@        (session-persistent decisions)
+          frontend-design@         (Anthropic official)
+
+LAYER 5:  PLATFORM-SPECIFIC
+          ┌──────────────┬──────────────┬──────────────┬──────────────┐
+          apple-ios-hig  apple-design-  apple-swiftui  vercel:nextjs +
+                          system                        :react-best-practices
+                          (Liquid Glass)                + :shadcn + :turbopack
+
+LAYER 6:  REFINEMENT / AUDIT
+          refactoring-ui            (visual hierarchy fixes)
+          visual-critique@          (/critique-screen)
+          design-audit@bencium      (phased fix plans)
+          gsd-ui-review             (6-pillar audit on shipped code)
+
+LAYER 7:  DESIGN RESEARCH / STRATEGY（Owl-Listener Designer Skills 9 plugins）
+          design-research / design-systems / ux-strategy / ui-design /
+          interaction-design / prototyping-testing / design-ops /
+          designer-toolkit / visual-critique
+
+LAYER 8:  CONTENT / ASSETS
+          brand-guidelines  brandkit  theme-factory  canvas-design
+          (Anthropic brand) (premium  (10 themes)   (poster/PNG/PDF)
+                            boards)
+
+LAYER 9:  MASTER COLLECTION（一站式落地）
+          ui-ux-pro-max  (67 styles + 161 palettes + 57 fonts + 161 rules + 99 UX guidelines, v2.5.0)
+          ux-design@wondelai-skills  (Refactoring UI + iOS HIG + Heuristics + Hooked + Don Norman)
+
+LAYER 10:  BRAND LANDING（特例）
+          luxury-editorial-site-builder  (light editorial, atelier, 100dvh hero video)
+
+LAYER 11:  ENFORCEMENT / META
+          output-skill        (no truncation, no placeholders)
+          skill-creator       (create new skills)
+          emil-design-eng     (UI polish + animation philosophy)
+          app-store-screenshots  (iOS/Android marketing assets)
+          ~/.claude/tools/gstack/  (0-10 design scoring CLI, not a skill)
+```
+
+### Layer 决策树（用户说什么 → 走哪一层）
+
+| 用户话语关键词 | 入口 | 备注 |
+|---|---|---|
+| "做几版给我看 / explore directions" | L1 + L2 | 用 prototyping-ui-directions + frontend-design-pro |
+| "我想要 high-end / 高端" | L3 → soft-skill / luxury / taste-skill | 看品类选 |
+| "暗色 / dark editorial / 时尚 / 高端品牌（暗）" | L3 → **luxury** | 黑底 + Oswald + 单色 |
+| "暗色 + 视频 hero" | L3 luxury + L10 luxury-editorial-site-builder | 组合 |
+| "Notion 风 / Linear 风 / 干净简洁" | L3 → minimalist-skill | |
+| "粗野 / Swiss + military" | L3 → brutalist-skill | BETA |
+| "GSAP 动效 / 滚动叙事" | L3 → gpt-tasteskill | |
+| "升级一下现有 UI / redesign" | L3 → redesign-skill 或 L6 refactoring-ui | redesign 是整页升级，refactoring-ui 是局部修补 |
+| "全 surface 量产 / hi-fi gallery" | L4 → anchor-prototype-wave | 锁 anchor 后用 |
+| "我不确定哪种好" + 安全 | L4 → bencium-controlled-ux-designer | always-ask-first |
+| "大胆点 / 出格" | L4 → bencium-innovative-ux-designer | |
+| "iOS 应用 / iPhone / SwiftUI" | L5 → apple-ios-hig + apple-swiftui | |
+| "Apple 新设计语言 / Liquid Glass" | L5 → apple-design-system | |
+| "Next.js / React 性能 / shadcn" | L5 → vercel:nextjs + :react-best-practices + :shadcn | plugin namespace |
+| "UI 不对劲 / 看起来奇怪 / 视觉层级乱" | L6 → refactoring-ui | |
+| "用 NN 启发式审一下 / heuristic review" | L6 → ux-principles MODE C + visual-critique | |
+| "做用户画像 / journey map" | L7 → design-research | |
+| "做设计系统 / tokens" | L7 → design-systems | |
+| "做 brand / logo / 品牌画板" | L8 → brandkit + brand-guidelines | |
+| "套主题 / 10 个 preset" | L8 → theme-factory | ⚠ 不要与 luxury 等 L3 skill 混用 |
+| "做海报 / PNG / PDF" | L8 → canvas-design | |
+| "一站式不想思考" | L9 → ui-ux-pro-max | 67 风格自动选 |
+| "高端品牌官网 / 杂志感 / hero video" | L10 → luxury-editorial-site-builder | |
+| "动画细节 / 微交互" | L11 → emil-design-eng | |
+| "App Store 截图 / Play 截图" | L11 → app-store-screenshots | |
+| "给设计打分 / 0-10 评估" | L11 → 用 `~/.claude/tools/gstack/` CLI | 非 skill |
+
+### 五阶段标准时序（90% 场景）
+
+| 阶段 | 主 skill | ux-principles 模式 | 产出 |
+|---|---|---|---|
+| 1. Discovery | `prototyping-ui-directions` Stage 0-1 | MODE A | idea-brief + pre-design checklist |
+| 2. Variant 探索 | `prototyping-ui-directions` Stage 2-3 + `frontend-design-pro` | MODE A + 每 variant 跑 MODE C | 3-5 variant + audit 表 |
+| 3. Style lock | `taste-skill` / `luxury` / `minimalist-skill` / ...（选 1） | MODE B（查数字）+ MODE C（final audit） | hi-fi craft 单页 + audit |
+| 4. 全 surface 量产 | `anchor-prototype-wave` | 每 surface 跑 MODE C | hi-fi gallery + master audit |
+| 5. （特例）品牌 landing | `luxury-editorial-site-builder` | MODE A + MODE C editorial criteria | 高端 brand 单页 |
+
+### 快速路径（节省 token）
+
+- 改 1 个已有 surface：只用 L3（lock）+ L0（MODE B/C），跳过 L1/L2/L4
+- 审现成 prototype：只跑 L0 MODE C + L6 visual-critique
+- 只 idea 阶段：L1 + L0 MODE A
+- 已锁 chassis 铺全 surface：L4 anchor-prototype-wave + L0 MODE C
+
+### 反模式（不要这么做）
+
+- ❌ 跳过 `ux-principles` 直接进 `anchor-prototype-wave`
+- ❌ `taste-skill` 用在 4-15 surface 量产（应用 `anchor-prototype-wave`）
+- ❌ `prototyping-ui-directions` 用在已锁方向（应用 `anchor-prototype-wave`）
+- ❌ `luxury-editorial-site-builder` 用在 product UI（只做品牌 landing）
+- ❌ `luxury` (L3) + `theme-factory` (L8) 同时跑——L8 会覆盖 L3 的 tokens；要么只用 L3，要么 theme-factory 单独用
+- ❌ 同时挂多个 L3 skill（taste / luxury / minimalist / brutalist 同时拉）——挑一个
+- ❌ 把整个工作流的 11 层都串起来——按任务实际范围挑 2-4 层就够
+
+### PR description 模板
+
+```markdown
+## Frontend Skill Composition
+
+- ✅ ux-principles MODE A (pre) — design brief at [link]
+- ✅ ux-principles MODE C (post) — audit at [link]
+- ✅ <L3 chosen>: <skill-name> — <what it produced>
+- ⏸ <other layers not invoked> — <reason>
+```
+
+---
+
+## Skills 三层分布策略
+
+| 层级 | 路径 | 数量 | 内容 |
+|------|------|------|------|
+| 全局 | `~/.claude/skills/` | 100 dirs | GSD 67 + 编排/产品/内容 9 + 前端工作流 24 |
+| 全局 plugins | `~/.claude/plugins/` | 18 plugins from 10 marketplaces | bencium 2 + designer-skills 9 + interface-design 1 + ui-ux-pro-max 1 + frontend-design-pro 1 + ux-design (wondelai) 1 + Anthropic frontend-design 1 + Vercel agent 1 + cli-anything 1 |
+| 全局 tools | `~/.claude/tools/` | 1 | gstack（CLI） |
+| 总项目 | `项目/.claude/skills/` | 8 | 商业 / 咨询 / 方法论 |
+| 案例 | `cases/{case}/.claude/skills/` | 11 | Python / ML / API / 安全 / 数据库 |
+| 归档 | `~/.claude/skills-archive/` | 175+ | 历史精简的工程 patterns / 重复风格 / 旧版 |
+
+需要归档中的 skill：从 `~/.claude/skills-archive/` 移回。具体清理目录见 `removed-20260510/`。
+
+---
+
+## 官方 Marketplace Plugins
+
+路径：`~/.claude/plugins/marketplaces/`
+
+**Anthropic 系**：`claude-plugins-official`（frontend-design, vercel 等）
+**第三方系**：`bencium-marketplace`, `designer-skills`, `interface-design`, `ui-ux-pro-max-skill`, `frontend-design-pro`, `wondelai-skills`, `cli-anything`
+
+需要其他 plugin（如 `feature-dev` / `commit-commands` / `code-simplifier`）时手动 `claude plugin install <name>@claude-plugins-official`。
+
+---
+
+## 工作原则
+
+- **明确匹配时调 skill，模糊时不调直接做**
+- **GSD 是总管**：任何非 trivial 编码任务先想能不能挂到 gsd-* 上
+- **简单任务跳 skill**
+- **能力位之外的工程能力（claude-api / mcp-server-patterns / 各语言 patterns）在 archive**，需要时移回
+- **同类不要装多个**
+- **前端工作流的 L3 风格只挑一个**：taste / luxury / minimalist / brutalist / soft / gpt-tasteskill / stitch / redesign / image-to-code / frontend-design-pro 不混搭
+- **L0 ux-principles 永远走**：开工前 / 写完前 / 决定数字时
+
+---
+
+## 应急回滚
+
+```powershell
+# 完整回滚 CLAUDE.md + rules
+Copy-Item "$HOME\.claude\_backup-20260521\CLAUDE.md" "$HOME\.claude\CLAUDE.md" -Force
+Copy-Item "$HOME\.claude\_backup-20260521\rules" "$HOME\.claude\rules" -Recurse -Force
+
+# 卸载本次新增的 6 个 marketplace（保留 plugin 已装的）
+claude plugin marketplace remove bencium-marketplace
+claude plugin marketplace remove designer-skills
+claude plugin marketplace remove interface-design
+claude plugin marketplace remove ui-ux-pro-max-skill
+claude plugin marketplace remove frontend-design-pro
+claude plugin marketplace remove wondelai-skills
+```
+
+详细回滚步骤见：`~/.claude/.planning/phases/skills-ui-ux-expansion-20260521/INSTALL-LOG.md`
