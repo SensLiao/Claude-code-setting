@@ -1,0 +1,16 @@
+{
+  "_comment": "TEMPLATE — one scenario item matching 06-acceptance schema. Replace ALL <...> placeholders before using. Remove this _comment field in real output.",
+  "id": "AC-<CAT>-<NN>-<NN>",
+  "requirement_id": "<CAT>-<NN>",
+  "scenario": "<Short noun-phrase title: what single behaviour this tests>",
+  "given": [
+    "<World state / precondition — one string per condition>"
+  ],
+  "when": [
+    "<The single triggering event or action>"
+  ],
+  "then": [
+    "<Observable outcome — what the system shows, returns, or records>"
+  ],
+  "prose": "Passes when <observable outcome, minimally contextualised, WHAT only, ≤40 words>."
+}

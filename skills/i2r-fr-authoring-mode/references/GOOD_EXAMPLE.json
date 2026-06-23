@@ -1,0 +1,49 @@
+{
+  "_meta": {
+    "artifact_version": "1.0",
+    "stage": "04-functional",
+    "run_id": "i2r-order-lookup-good-run",
+    "generated_by_agent": "i2r-functional-author",
+    "created_at": "2026-06-22T00:04:00Z",
+    "input_hashes": [{ "file": "03-scope.json", "sha256": "a3f2c1d9e8b7a6f5c4d3e2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1" }],
+    "skills_used": ["i2r-fr-authoring-mode", "i2r-scope-mode"],
+    "tools_used": ["Read", "Bash(python scripts/i2r.py validate --stage 4)"],
+    "mode_context": {
+      "search_mode": "not_required",
+      "discussion_mode": "not_required",
+      "debate_mode": "not_required"
+    }
+  },
+  "requirements": [
+    {
+      "id": "ORDER-01",
+      "capability": "order-lookup-by-email",
+      "ears_pattern": "event_driven",
+      "preconditions": [],
+      "trigger": "a support agent submits a customer email",
+      "system_name": "the lookup tool",
+      "system_response": "return the orders associated with that email from the last 90 days",
+      "rendered": "When a support agent submits a customer email, the lookup tool shall return the orders associated with that email from the last 90 days.",
+      "priority": "MUST",
+      "source": "stated",
+      "source_ref": "raw/idea.md#L4",
+      "rationale": "Primary order-status call flow; support agents need immediate access to recent orders to resolve live calls.",
+      "acceptance_ids": ["AC-ORDER-01-01"]
+    },
+    {
+      "id": "ORDER-03",
+      "capability": "order-lookup-by-email",
+      "ears_pattern": "unwanted",
+      "preconditions": [],
+      "trigger": "a lookup finds no orders for the submitted email within the last 90 days",
+      "system_name": "the lookup tool",
+      "system_response": "show an explicit no-orders-found message rather than an empty screen",
+      "rendered": "If a lookup finds no orders for the submitted email within the last 90 days, then the lookup tool shall show an explicit no-orders-found message rather than an empty screen.",
+      "priority": "SHOULD",
+      "source": "assumed",
+      "source_ref": "raw/idea.md#L4",
+      "rationale": "Unwanted-behaviour sibling for ORDER-01. An empty screen leaves the agent uncertain whether the lookup ran at all.",
+      "acceptance_ids": ["AC-ORDER-03-01"]
+    }
+  ]
+}

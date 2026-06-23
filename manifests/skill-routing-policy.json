@@ -16,6 +16,23 @@
       "notes": "Suggest `/claude-env-bootstrap` to the user; do NOT auto-execute. Has side effects (writes files, copies skills, modifies CLAUDE.md). disable-model-invocation: true."
     },
     {
+      "intent_category": "idea_to_requirements",
+      "intent_keywords": [
+        "clarify an idea", "clarify my idea", "define requirements", "requirements",
+        "functional requirements", "non-functional requirements", "acceptance criteria",
+        "scope", "PRD", "write a PRD", "prepare for GSD", "turn idea into requirements",
+        "需求", "想法转需求", "写 PRD", "把想法变成需求", "需求澄清", "需求定义"
+      ],
+      "orchestrator": "idea-to-requirements-orchestrator",
+      "trigger_mode": "auto",
+      "position": "upstream of gsd-pipeline-orchestrator (pm_delivery) — I2R is the requirements front-end that feeds GSD",
+      "do_not_trigger_on": [
+        "implementation", "coding", "debugging", "build", "architecture", "HOW to build",
+        "UI design", "roadmap", "tasks", "phases"
+      ],
+      "notes": "Requirements front-end UPSTREAM of GSD. Turns a raw/messy idea into a Markdown-first requirements package (WHAT/WHY + CONSTRAINTS + LOCKED DECISIONS only; NEVER HOW / tasks / architecture / UI / roadmap). SKILL-direct (not workflow-spec), all-opus, auto-invocable. Downstream (GSD etc.) reads the same Markdown package and applies its own routing; I2R emits no /gsd command. When intent is implementation/coding/UI/roadmap (the HOW/WHEN/WHO), route to gsd-pipeline-orchestrator instead — see do_not_trigger_on. Tie-break: a raw-idea / requirements-clarification request precedes pm_delivery (clarify WHAT before GSD derives HOW)."
+    },
+    {
       "intent_category": "pm_delivery",
       "intent_keywords": [
         "需求", "PM", "milestone", "里程碑", "acceptance", "验收",
@@ -24,7 +41,7 @@
       ],
       "orchestrator": "gsd-pipeline-orchestrator",
       "trigger_mode": "auto",
-      "notes": "Default entry for all non-trivial work. Dispatches phase commands (spec / discuss / plan / execute / verify / ship)."
+      "notes": "Default entry for all non-trivial work. Dispatches phase commands (spec / discuss / plan / execute / verify / ship). Upstream requirements clarification (raw idea → PRD) belongs to idea-to-requirements-orchestrator (see idea_to_requirements above)."
     },
     {
       "intent_category": "uiux_design",

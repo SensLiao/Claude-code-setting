@@ -1,0 +1,125 @@
+{
+  "_meta": {
+    "artifact_version": "1.0",
+    "stage": "05-nfr",
+    "run_id": "i2r-order-lookup-good-run",
+    "generated_by_agent": "i2r-nfr-author",
+    "created_at": "2026-06-22T00:04:30Z",
+    "input_hashes": [{ "file": "04-functional.json", "sha256": "b4e3d2c1f0a9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3" }],
+    "skills_used": ["i2r-nfr-authoring-mode"],
+    "tools_used": ["Read", "Bash(python scripts/i2r.py validate --stage 5)"],
+    "mode_context": {
+      "search_mode": "not_required",
+      "discussion_mode": "not_required",
+      "debate_mode": "not_required"
+    }
+  },
+  "nfrs": [
+    {
+      "id": "NFR-PERF-01",
+      "iso25010_category": "Performance Efficiency",
+      "coverage_status": "required",
+      "description": "A lookup returns results within the time an agent can hold a live call without the customer noticing a delay",
+      "fit_criterion": {
+        "threshold": "p95 lookup response time <= 2 seconds",
+        "environment": "internal support workstation on the office network, under average weekday load",
+        "period": "measured each release against a representative 500-order dataset"
+      },
+      "measurement_method": "timing instrumentation on the lookup action, sampled over 1 000 consecutive runs",
+      "priority": "MUST",
+      "source_ref": "raw/idea.md#L3"
+    },
+    {
+      "id": "NFR-SEC-01",
+      "iso25010_category": "Security",
+      "coverage_status": "required",
+      "description": "Only authenticated internal staff can perform a lookup; access attempts by unauthenticated parties are rejected and logged",
+      "fit_criterion": {
+        "threshold": "100% of lookup requests require an authenticated internal session; 0% of unauthenticated requests return order data",
+        "environment": "production",
+        "period": "every request, verified by access-control review and audit-log sampling each release"
+      },
+      "measurement_method": "access-control review plus random audit-log sampling of 50 requests per release",
+      "priority": "MUST",
+      "source_ref": "raw/idea.md#L6"
+    },
+    {
+      "id": "NFR-REL-01",
+      "iso25010_category": "Reliability",
+      "coverage_status": "required",
+      "description": "The lookup tool remains available during support-team working hours so agents are never blocked from accessing order data",
+      "fit_criterion": {
+        "threshold": "availability >= 99.5% across each calendar month, excluding scheduled maintenance windows announced >= 24 hours in advance",
+        "environment": "production, during 08:00–20:00 local support-team hours",
+        "period": "each calendar month"
+      },
+      "measurement_method": "uptime monitoring with 1-minute polling, automated monthly report",
+      "priority": "MUST",
+      "source_ref": "raw/idea.md#L3"
+    },
+    {
+      "id": "NFR-INT-01",
+      "iso25010_category": "Interaction Capability",
+      "coverage_status": "deferred",
+      "description": "Accessibility conformance level for the lookup screen",
+      "deferred_missing_info": "Target WCAG conformance level (AA vs AAA) not yet agreed with the support team; unblocks once the team lead confirms.",
+      "priority": "SHOULD",
+      "source_ref": "raw/idea.md#L3"
+    },
+    {
+      "id": "NFR-FUNC-01",
+      "iso25010_category": "Functional Suitability",
+      "coverage_status": "required",
+      "description": "Order lookup results are correct — no false positives (wrong-customer orders) and no false negatives (missing orders within the 90-day window)",
+      "fit_criterion": {
+        "threshold": "0 false positives and 0 false negatives across a regression dataset of 500 known order-email pairs",
+        "environment": "staging, with a representative dataset seeded from anonymised production data",
+        "period": "each release"
+      },
+      "measurement_method": "automated regression test suite comparing lookup results against the reference dataset",
+      "priority": "MUST",
+      "source_ref": "raw/idea.md#L4"
+    },
+    {
+      "id": "NFR-COMPAT-01",
+      "iso25010_category": "Compatibility",
+      "coverage_status": "not_applicable",
+      "description": "Data interchange with external systems",
+      "na_reason": "The lookup tool is a standalone internal tool with no integration points to external systems and no data-exchange contracts in scope.",
+      "priority": "WONT",
+      "source_ref": "raw/idea.md#L1"
+    },
+    {
+      "id": "NFR-MAINT-01",
+      "iso25010_category": "Maintainability",
+      "coverage_status": "required",
+      "description": "The lookup tool's automated test suite provides sufficient coverage to detect regressions before release",
+      "fit_criterion": {
+        "threshold": "automated test suite covers >= 80% of branching paths",
+        "environment": "CI pipeline on every merge to the main branch",
+        "period": "each merge"
+      },
+      "measurement_method": "coverage report generated by the CI pipeline",
+      "priority": "SHOULD",
+      "source_ref": "raw/idea.md#L1"
+    },
+    {
+      "id": "NFR-FLEX-01",
+      "iso25010_category": "Flexibility",
+      "coverage_status": "not_applicable",
+      "description": "Multi-tenant or multi-environment adaptability",
+      "na_reason": "The lookup tool serves a single internal support team on a single tenant; no scalability or multi-environment adaptation is required in this scope.",
+      "priority": "WONT",
+      "source_ref": "raw/idea.md#L1"
+    },
+    {
+      "id": "NFR-SAFETY-01",
+      "iso25010_category": "Safety",
+      "coverage_status": "not_applicable",
+      "description": "Risk of physical or financial harm from tool failure",
+      "na_reason": "The lookup tool is read-only and informational; it does not trigger transactions, control physical systems, or act on data. No safety hazard is possible from its operation.",
+      "priority": "WONT",
+      "source_ref": "raw/idea.md#L1"
+    }
+  ]
+}

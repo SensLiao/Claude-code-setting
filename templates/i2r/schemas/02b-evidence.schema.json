@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "i2r/02b-evidence",
+  "title": "I2R Evidence Ledger (conditional search mode)",
+  "type": "object",
+  "required": ["_meta", "search_mode", "evidence"],
+  "properties": {
+    "_meta": { "$ref": "#/definitions/meta" },
+    "search_mode": { "type": "string", "enum": ["local", "web", "mixed", "unavailable"] },
+    "research_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "question"],
+        "properties": { "id": { "type": "string" }, "question": { "type": "string" }, "reason": { "type": "string" } }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "claim", "source_type", "source_ref", "confidence", "used_for"],
+        "properties": {
+          "id": { "type": "string" },
+          "claim": { "type": "string" },
+          "source_type": { "type": "string", "enum": ["official_doc", "repo", "local_doc", "user_material", "article"] },
+          "source_ref": { "type": "string" },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+          "used_for": { "type": "array", "items": { "type": "string", "enum": ["context", "constraint", "nfr", "terminology", "pattern"] } },
+          "not_allowed_for": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "question", "impact"],
+        "properties": { "id": { "type": "string" }, "question": { "type": "string" }, "impact": { "type": "string", "enum": ["blocking", "non_blocking"] } }
+      }
+    }
+  },
+  "definitions": {
+    "meta": {
+      "type": "object",
+      "required": ["artifact_version", "stage", "run_id", "generated_by_agent", "created_at"],
+      "properties": {
+        "artifact_version": { "type": "string" },
+        "stage": { "type": "string" },
+        "run_id": { "type": "string" },
+        "generated_by_agent": { "type": "string" },
+        "created_at": { "type": "string" },
+        "input_hashes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "sha256"],
+            "properties": { "file": { "type": "string" }, "sha256": { "type": "string" } }
+          }
+        },
+        "skills_used": { "type": "array", "items": { "type": "string" } },
+        "tools_used": { "type": "array", "items": { "type": "string" } },
+        "mode_context": { "type": "object" }
+      }
+    }
+  }
+}

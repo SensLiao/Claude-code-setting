@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "i2r/03b-scope-debate",
+  "title": "I2R Scope Debate (conditional — high downstream reinterpretation risk)",
+  "type": "object",
+  "required": ["_meta", "positions", "resolution", "reinterpretation_risk"],
+  "properties": {
+    "_meta": { "$ref": "#/definitions/meta" },
+    "positions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["agent", "position", "rationale"],
+        "properties": {
+          "agent": { "type": "string", "enum": ["i2r-scope-architect", "i2r-functional-author", "i2r-nfr-author", "i2r-completeness-critic"] },
+          "position": { "type": "string" },
+          "rationale": { "type": "string" }
+        }
+      }
+    },
+    "resolution": { "type": "string" },
+    "reinterpretation_risk": { "type": "string", "enum": ["high", "medium", "low"] },
+    "changes_requested": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["target", "change"],
+        "properties": { "target": { "type": "string" }, "change": { "type": "string" } }
+      }
+    }
+  },
+  "definitions": {
+    "meta": {
+      "type": "object",
+      "required": ["artifact_version", "stage", "run_id", "generated_by_agent", "created_at"],
+      "properties": {
+        "artifact_version": { "type": "string" },
+        "stage": { "type": "string" },
+        "run_id": { "type": "string" },
+        "generated_by_agent": { "type": "string" },
+        "created_at": { "type": "string" },
+        "input_hashes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "sha256"],
+            "properties": { "file": { "type": "string" }, "sha256": { "type": "string" } }
+          }
+        },
+        "skills_used": { "type": "array", "items": { "type": "string" } },
+        "tools_used": { "type": "array", "items": { "type": "string" } },
+        "mode_context": { "type": "object" }
+      }
+    }
+  }
+}

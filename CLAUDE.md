@@ -1,6 +1,6 @@
 # 全局 Claude 配置
 
-> 重构日期：2026-05-23 v4 — 三主线 + 5 Orchestrator + AppSec 边界化
+> 重构日期：2026-05-23 v4 — 三主线 + 6 Orchestrator（+I2R 需求前端，GSD 上游）+ AppSec 边界化
 > 回滚通道：GitHub `SensLiao/Claude-code-setting`（按 commit 粒度）+ `~/.claude/backups/`
 > 配套：[SKILLS-INDEX.md](SKILLS-INDEX.md)（13-Layer + 20-Route + 消歧表） / [rules/security-appsec.md](rules/security-appsec.md)（path-scoped AppSec 详规则） / [docs/ORCHESTRATOR-MAP.md](docs/ORCHESTRATOR-MAP.md)
 > L12 Discoverability（UIUX 下游 release gate）：[docs/L12-DISCOVERABILITY.md](docs/L12-DISCOVERABILITY.md) / [rules/discoverability-l12.md](rules/discoverability-l12.md) / 入口 skill `discoverability-orchestrator`
@@ -78,7 +78,7 @@
 
 这是 commercial delivery 的操作宪法。所有 routing 决策按"主线 → orchestrator → narrower skill"分层，默认不无脑堆叠同层 skill。**例外（2026-06-10）**：UIUX 主线的 create/optimize 任务走**质量组合调度引擎**——刻意跨层组合多个 skill（接地 → 探索 → 风格 → 生成 → 统一 → 评审，详 `uiux-product-orchestrator` references/combination-policy.md）。"不一次性激活多 skill"指"不让同层竞争 skill 抢活 / 不无脑堆叠"，**不**禁止跨层的刻意质量组合；其余主线（GSD / AppSec / QA）仍 narrower-skill-wins。
 
-- **三主线**：Project setup / PM 交付 / UIUX / QA / AppSec，由 5 个 primary orchestrator 统管
+- **三主线**：Project setup / PM 交付 / UIUX / QA / AppSec，由 6 个 primary orchestrator 统管
 - **详细路由表**（13-Layer / 20-Route / 触发消歧 / Skill 状态边界）：见 [SKILLS-INDEX.md](SKILLS-INDEX.md)
 - **详细规则**（coding-style / testing / security / hooks / patterns / git）：见 `.claude/rules/`
 - **CLAUDE.md 只保留**：宪法级硬规则 + 主线短路由 + AppSec 短规则 + 反模式 + 模型路由 + 回滚
@@ -108,11 +108,12 @@
 
 ---
 
-## 3. 三主线 + 5 Primary Orchestrator
+## 3. 三主线 + 6 Primary Orchestrator
 
 | 主线 | Orchestrator | 何时触发 | 自动/手动 | 执行模式 |
 |---|---|---|---|---|
 | Project setup | `claude-env-bootstrap` | 用户说 "init / bootstrap / 装环境" | manual-first（disable-model-invocation: true）| SKILL-direct only（manual, no workflow） |
+| 需求前端（GSD 上游） | `idea-to-requirements-orchestrator`（I2R） | raw idea / 想法转需求 / 定义需求 / functional·non-functional requirements / acceptance criteria / scope / 写 PRD / prepare for GSD（**不**触发：实现 / coding / debug / UI / roadmap）| auto | **SKILL-direct only**（all-opus；9 个 i2r-* agent + 10 个 mode subskill；不迁 workflow-spec 见 §3.5）。把一个 raw idea 变成 **Markdown-first 需求包**（产物落 `.i2r/runs/<slug>/<run-id>/`；`out/`=README/PRD/REQUIREMENTS/ACCEPTANCE/DECISIONS/CONSTRAINTS/READINESS 等纯 Markdown 阅读包，只产 WHAT/WHY，绝不产 HOW/tasks/architecture/UI；运行开始先问中/英、**单语言**产出）。下游（GSD 等）读同一份 Markdown 并自行决定后续——I2R **不发**任何 `/gsd:` 下游命令 |
 | PM 交付主线 | `gsd-pipeline-orchestrator` | 任何 non-trivial 工作 | auto | **SKILL-direct only**（33 个 gsd-* agent + slash command 派发；不迁 workflow-spec 见 §3.5）|
 | UIUX 主线 | `uiux-product-orchestrator` | UI/UX design / visual / style / reference / audit UI | auto | **SKILL-direct only**（L3 互斥 + collection / workflow skill 边界；不迁 workflow-spec 见 §3.5）|
 | QA 主线 | `enterprise-qa-testing` v3.2 | testing / QA / E2E / release readiness / CI gate | auto | **dual-mode**：prompt-only（默认）+ workflow-spec（显式 `/qa-quick-check` `/qa-focused-gate` `/qa-release-readiness` `/qa-commercial-cert`，§18.5 14-step launch contract）|
@@ -128,6 +129,7 @@
 |---|---|---|
 | `appsec-security-orchestrator` | ✅ dual-mode（F verdict） | 4 个 custom appsec-* agents 全 runtime-PROVEN；7 个 presets + 8 schemas 全产物落地；preview gate + spec_hash + resume 经 P0 实跑验证 |
 | `enterprise-qa-testing` | ✅ dual-mode（F with deferred live coverage） | B.1.g 落定 §18.5 14-step launch contract + qa-sdk spec.hash / sentinel.write 命令 + cold-start customs wiring audit；6 presets + 12 schemas + 12 prompts |
+| `idea-to-requirements-orchestrator` (I2R) | ❌ stays SKILL-direct | 需求前端、GSD 上游；all-opus 9 个 i2r-* agent + 10 mode subskill + project-local **4-module $0 SDK**（`i2r.py`+`i2r_core.py`+`i2r_render.py`+`i2r_validate.py`）+ 8 个 project hooks + 1 个 shared lib（`_i2r-common.js`）（v2 **Markdown-first**：产物落 `.i2r/runs/<slug>/<run-id>/`，`out/`=纯 Markdown 阅读包 / `internal·audit·ops`=机器治理；**config 可选**，缺省零配置即跑——保留「无强制 config」变体）；santa-loop 双评审 + bounded repair loop 是 inherently interactive，单 pass DAG workflow-spec 覆盖不了 |
 | `gsd-pipeline-orchestrator` | ❌ stays SKILL-direct | 33 gsd-* agents 已通过 SKILL 主线 + slash command 派发良好；多周期 checkpoint 模式（gsd-debug-session-manager / gsd-ui-checker BLOCK/FLAG）不适合单 pass DAG workflow-spec |
 | `uiux-product-orchestrator` | ❌ stays SKILL-direct | L3 风格互斥 + collection skill / workflow skill 边界 + 多风格自动匹配是 inherently interactive 模式，单 pass workflow 无法覆盖 |
 | `discoverability-orchestrator` (L12) | ❌ stays own track | 已有 GSD-lite Harness v1.0：discoverability-sdk.py 10 命令 + 3 disc-* agents + 5 项目 hooks + 8-step self-dispatch；equivalent governance properties，无需第二套机制 |

@@ -1,0 +1,34 @@
+{
+  "_meta": {
+    "artifact_version": "1.0",
+    "stage": "04-functional",
+    "run_id": "i2r-<slug>-<timestamp>",
+    "generated_by_agent": "i2r-functional-author",
+    "created_at": "<ISO-8601>",
+    "input_hashes": [{ "file": "03-scope.json", "sha256": "<sha256>" }],
+    "skills_used": ["i2r-fr-authoring-mode", "i2r-scope-mode"],
+    "tools_used": ["Read", "Bash(python scripts/i2r.py validate --stage 4)"],
+    "mode_context": {
+      "search_mode": "not_required",
+      "discussion_mode": "not_required",
+      "debate_mode": "not_required"
+    }
+  },
+  "requirements": [
+    {
+      "id": "<CAT>-NN",
+      "capability": "<capability-slug-from-03-scope>",
+      "ears_pattern": "<ubiquitous|event_driven|state_driven|optional|unwanted|complex>",
+      "preconditions": [],
+      "trigger": "<discrete event or condition that fires this requirement — omit for ubiquitous>",
+      "system_name": "<product or component name in user's vocabulary>",
+      "system_response": "<observable behaviour; no framework/db/table/endpoint/algorithm names>",
+      "rendered": "<Full EARS sentence: When <trigger>, the <system_name> shall <system_response>.>",
+      "priority": "<MUST|SHOULD|COULD|WONT>",
+      "source": "<stated|assumed|decision>",
+      "source_ref": "raw/<filename>#L<line>",
+      "rationale": "<optional: why this requirement exists>",
+      "acceptance_ids": ["AC-<CAT>-NN-01"]
+    }
+  ]
+}

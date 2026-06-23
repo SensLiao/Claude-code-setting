@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "i2r/01-intake",
+  "title": "I2R Intake (normalized idea, STATED vs ASSUMED vs DECISION)",
+  "type": "object",
+  "required": ["_meta", "idea_restatement", "stated", "assumed", "decisions", "ambiguity_score", "clarification_status", "open_questions"],
+  "properties": {
+    "_meta": { "$ref": "#/definitions/meta" },
+    "idea_restatement": { "type": "string" },
+    "stated": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["text", "source_ref"],
+        "properties": { "text": { "type": "string" }, "source_ref": { "type": "string" } }
+      }
+    },
+    "assumed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["text", "category", "importance", "evidence", "risk"],
+        "properties": {
+          "text": { "type": "string" },
+          "category": { "type": "string", "enum": ["desirability", "viability", "feasibility", "usability"] },
+          "importance": { "type": "string", "enum": ["high", "medium", "low"] },
+          "evidence": { "type": "string", "enum": ["high", "medium", "low"] },
+          "risk": { "type": "string", "enum": ["high", "medium", "low"] },
+          "source_ref": { "type": "string" }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["text", "source_ref"],
+        "properties": {
+          "text": { "type": "string" },
+          "source_ref": { "type": "string" },
+          "context": { "type": "string" },
+          "rationale": { "type": "string" },
+          "alternatives": { "type": "string" },
+          "consequences": { "type": "string" },
+          "reversibility": { "type": "string" },
+          "tradeoffs": { "type": "string" }
+        }
+      }
+    },
+    "surface_signals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "evidence_ref"],
+        "properties": { "id": { "type": "string" }, "evidence_ref": { "type": "string" }, "phrase": { "type": "string" } }
+      }
+    },
+    "ambiguity_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "clarification_status": { "type": "string", "enum": ["clear", "needs_clarification"] },
+    "open_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["question", "blocking"],
+        "properties": { "id": { "type": "string" }, "question": { "type": "string" }, "blocking": { "type": "boolean" }, "why": { "type": "string" } }
+      }
+    }
+  },
+  "definitions": {
+    "meta": {
+      "type": "object",
+      "required": ["artifact_version", "stage", "run_id", "generated_by_agent", "created_at"],
+      "properties": {
+        "artifact_version": { "type": "string" },
+        "stage": { "type": "string" },
+        "run_id": { "type": "string" },
+        "generated_by_agent": { "type": "string" },
+        "created_at": { "type": "string" },
+        "input_hashes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "sha256"],
+            "properties": { "file": { "type": "string" }, "sha256": { "type": "string" } }
+          }
+        },
+        "skills_used": { "type": "array", "items": { "type": "string" } },
+        "tools_used": { "type": "array", "items": { "type": "string" } },
+        "mode_context": { "type": "object" }
+      }
+    }
+  }
+}
