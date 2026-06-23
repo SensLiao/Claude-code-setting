@@ -1,0 +1,38 @@
+{
+  "_comment": "Hook-wiring batches for `claude-config.js wire`. Paths are repo-relative under ~/.claude. runner: node|bash. claude-config.js resolves the node binary via process.execPath and prefixes the target dir; bash entries run via `bash`. Wiring is idempotent (matched by script basename per event) and never removes existing entries (e.g. gitnexus).",
+  "batches": {
+    "A": {
+      "label": "GSD core governance (guards + injection scan + context monitor)",
+      "default": true,
+      "entries": [
+        { "event": "PreToolUse", "matcher": "Write|Edit", "runner": "node", "script": "hooks/gsd-prompt-guard.js", "timeout": 5 },
+        { "event": "PreToolUse", "matcher": "Write|Edit", "runner": "node", "script": "hooks/gsd-read-guard.js", "timeout": 5 },
+        { "event": "PreToolUse", "matcher": "Write|Edit", "runner": "node", "script": "hooks/gsd-workflow-guard.js", "timeout": 5 },
+        { "event": "PreToolUse", "matcher": "Bash", "runner": "bash", "script": "hooks/gsd-validate-commit.sh", "timeout": 5 },
+        { "event": "PostToolUse", "matcher": "Bash|Edit|Write|MultiEdit|Agent|Task", "runner": "node", "script": "hooks/gsd-context-monitor.js", "timeout": 10 },
+        { "event": "PostToolUse", "matcher": "Read", "runner": "node", "script": "hooks/gsd-read-injection-scanner.js", "timeout": 5 },
+        { "event": "PostToolUse", "matcher": "Write|Edit", "runner": "bash", "script": "hooks/gsd-phase-boundary.sh", "timeout": 5 },
+        { "event": "SessionStart", "matcher": "*", "runner": "node", "script": "hooks/detect-bootstrap-needed.js", "timeout": 5 },
+        { "event": "SessionStart", "runner": "node", "script": "hooks/gsd-check-update.js" },
+        { "event": "SessionStart", "runner": "bash", "script": "hooks/gsd-session-state.sh" }
+      ]
+    },
+    "B": {
+      "label": "ECC quality (config-protection / block-no-verify / per-file format / design-check)",
+      "default": true,
+      "entries": [
+        { "event": "PreToolUse", "matcher": "Write|Edit|MultiEdit", "runner": "node", "script": "scripts/hooks/config-protection.js", "timeout": 5 },
+        { "event": "PreToolUse", "matcher": "Bash", "runner": "node", "script": "hooks/block-no-verify.js", "timeout": 5 },
+        { "event": "PostToolUse", "matcher": "Edit|Write|MultiEdit", "runner": "node", "script": "scripts/hooks/post-edit-format.js", "timeout": 15 },
+        { "event": "PostToolUse", "matcher": "Edit|Write|MultiEdit", "runner": "node", "script": "scripts/hooks/design-quality-check.js", "timeout": 10 }
+      ]
+    },
+    "C": {
+      "label": "Progress-ledger discipline (Stop) — §0.7 durable-ledger reminder (SOFT, one-shot, fail-open)",
+      "default": true,
+      "entries": [
+        { "event": "Stop", "runner": "node", "script": "hooks/ledger-reminder.js", "timeout": 5 }
+      ]
+    }
+  }
+}

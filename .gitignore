@@ -26,11 +26,9 @@ settings.local.json
 .last-cleanup
 .gsd-profile
 
-# === 🟡 本地安装器工具链（用户决定不上,2026-06-23）===
-# claude-config.js 及其 config/输出 = 个人本地安装器,不随 repo 分发(repo 只传 claude-setting 内容)
-claude-config.js
-claude-config.ps1
-wire-manifest.json
+# === 🟡 本地 per-machine 产物（用户决定不上）===
+# profiles/ = 本机 hook 接线记录（export-profile 输出），因机而异，不分发。
+# 注：claude-config.js + wire-manifest.json 已改回纳入分发（2026-06-23）——安装器需随 repo 到新设备。
 profiles/
 
 # === 🟡 个人数据 / 对话历史（用户决定不上） ===
