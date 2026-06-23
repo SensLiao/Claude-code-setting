@@ -2,7 +2,7 @@
   "schema_version": "2.0.0",
   "generated_date": "2026-06-15",
   "generated_by": "harness drift normalization Wave 2 Agent A2 (PR-1); 2026-06-10 refresh: +3 AppSec skills (security-app-api / security-platform-supply-chain / security-compliance-privacy), hook-enumeration pointer; 2026-06-10 +cross_ai_dispatch (codex-dispatch — decision/discipline playbook over official codex@openai-codex plugin, NOT a codex-exec wrapper); 2026-06-15 Wave A wiring: +design-token-pipeline (uiux_design_system), +uiux_motion (motion-engineering), +appsec_app fuzzing/sast-deep, +appsec_pentest (recon-scan/ai-redteam), +3 qa_layers (load-stress/mutation/mobile-native dormant), +l12_discoverability_growth (discoverability-growth), +disc-measurement-puller agent; 2026-06-15 Wave B wiring: +uiux_registry (shadcn-registry, wires to design-token-pipeline) + uiux_production_agents (uiux-surface-builder L4 opus / uiux-design-reviewer L6 opus), +dast-authenticated (appsec_app — RED-LINE double-gate authenticated DAST, wrapper-only, name-frozen), +security-pentest-exploitation-planning (appsec_pentest — planning/reference-only behind double-gate), +qa-resilience-fault-injection (qa_layers — RED-LINE double-gate chaos/fault-injection, staging only); extension doc-notes (A3 iac-cloud k8s runtime §4.5, P6 appsec-sdk retest.append + pentest-report, Q6 a11y §3.6, web-aeo §20 / web-seo §15 / app-aso §16.6 L12 post-launch)",
-  "description": "Global ~/.claude/ skill manifest. Defines 5 primary orchestrators (1 manual-first bootstrap + 4 commercial-grade three-mainline) and how supporting skills are tiered beneath them. v2.0.0 adds hooks/sdks/evidence_roots/name_freeze top-level blocks for harness-level coverage of AppSec v3.0 GSD-lite engine + L12 discoverability + QA layered matrix + UIUX subsystem. Claude routes through primary orchestrators first; supporting skills are invoked by orchestrators or by explicit user request.",
+  "description": "Global ~/.claude/ skill manifest. Defines 6 primary orchestrators (1 manual-first bootstrap + 1 requirements front-end I2R upstream of GSD + 4 commercial-grade three-mainline) and how supporting skills are tiered beneath them. v2.0.0 adds hooks/sdks/evidence_roots/name_freeze top-level blocks for harness-level coverage of AppSec v3.0 GSD-lite engine + L12 discoverability + QA layered matrix + UIUX subsystem. Claude routes through primary orchestrators first; supporting skills are invoked by orchestrators or by explicit user request.",
 
   "primary_orchestrators": [
     {
@@ -14,12 +14,25 @@
       "purpose": "Interactive project-level Claude environment setup and repair. Scans project signals, asks high-leverage questions, composes a tailored .claude/ environment in real time, and synchronizes the global ~/.claude/ catalog into the project."
     },
     {
+      "name": "idea-to-requirements-orchestrator",
+      "canonical_id": "i2r.orchestrator",
+      "aliases": ["i2r", "i2r-orchestrator"],
+      "tier": "primary",
+      "role": "Idea-to-Requirements Orchestrator (requirements front-end, UPSTREAM of GSD)",
+      "trigger_mode": "auto",
+      "disable_model_invocation": false,
+      "execution_mode": "SKILL-direct only (NOT workflow-spec)",
+      "model_routing": "all-opus (lead + all 9 i2r-* agents; the $0 i2r.py SDK is no-LLM)",
+      "downstream": ["gsd-pipeline-orchestrator"],
+      "purpose": "Requirements front-end UPSTREAM of GSD: turns a raw/messy idea into a Markdown-first requirements package (WHAT + WHY + CONSTRAINTS + LOCKED DECISIONS only; NEVER HOW / tasks / architecture / UI / roadmap — GSD re-derives those). Self-dispatches 9 i2r-* agents through 10 mode subskills, backed by a project-local i2r.py SDK ($0, 4-module SDK) and 8 project hooks + 1 shared lib (`_i2r-common.js`) gated on .i2r/runs/ presence (intentional config-optional variant). Downstream (GSD etc.) reads the same Markdown package and applies its own routing; I2R emits no /gsd command."
+    },
+    {
       "name": "gsd-pipeline-orchestrator",
       "tier": "primary",
       "role": "GSD Delivery Orchestrator",
       "trigger_mode": "auto",
       "disable_model_invocation": false,
-      "purpose": "PM-style commercial delivery: requirements / acceptance criteria / spec / discuss / plan / execute / verify / ship. Routes phase commands and coordinates with UIUX / QA / AppSec orchestrators."
+      "purpose": "PM-style commercial delivery: requirements / acceptance criteria / spec / discuss / plan / execute / verify / ship. Routes phase commands and coordinates with UIUX / QA / AppSec orchestrators. Upstream idea→PRD requirements clarification is owned by idea-to-requirements-orchestrator (I2R)."
     },
     {
       "name": "uiux-product-orchestrator",
@@ -158,6 +171,17 @@
   },
 
   "agent_families": {
+    "i2r": [
+      "i2r-orchestrator",
+      "i2r-intake-clarifier",
+      "i2r-context-analyst",
+      "i2r-evidence-researcher",
+      "i2r-scope-architect",
+      "i2r-functional-author",
+      "i2r-nfr-author",
+      "i2r-acceptance-author",
+      "i2r-completeness-critic"
+    ],
     "appsec_qa": [
       "appsec-reviewer",
       "appsec-risk-classifier",
@@ -203,7 +227,7 @@
     ]
   },
 
-  "routing_rule": "Claude should route through primary orchestrators first. Supporting skills are invoked by orchestrators or by explicit user request. The 4 commercial-grade primary orchestrators (GSD / UIUX / QA / AppSec) form the three-mainline architecture; claude-env-bootstrap is the project-setup gate.",
+  "routing_rule": "Claude should route through primary orchestrators first. Supporting skills are invoked by orchestrators or by explicit user request. The 4 commercial-grade primary orchestrators (GSD / UIUX / QA / AppSec) form the three-mainline architecture; claude-env-bootstrap is the project-setup gate; idea-to-requirements-orchestrator (I2R) is the requirements front-end upstream of GSD (raw idea → Markdown-first requirements package).",
 
   "anti_patterns": [
     "Multiple L3 styles simultaneously activated (taste/luxury/minimalist/soft are mutually exclusive)",
@@ -351,6 +375,30 @@
         "status",
         "ledger.append"
       ]
+    },
+    "i2r": {
+      "path": "templates/i2r/scripts/i2r.py",
+      "lang": "python",
+      "project_local": true,
+      "toolchain_template": "templates/i2r/",
+      "commands": [
+        "init",
+        "install",
+        "status",
+        "route",
+        "validate --stage N",
+        "mode.check",
+        "evidence.validate",
+        "discuss.record",
+        "repair.plan",
+        "assemble",
+        "gate.check",
+        "mark-stale",
+        "unstale",
+        "diff",
+        "explain-fail",
+        "evals.run"
+      ]
     }
   },
 
@@ -363,7 +411,8 @@
       "migration_command": "appsec-sdk migrate-evidence"
     },
     "qa": ".qa/evidence/<tag>/",
-    "uiux": ".uiux/evidence/<tag>/"
+    "uiux": ".uiux/evidence/<tag>/",
+    "i2r": ".i2r/runs/<slug>/<timestamp>/"
   },
 
   "name_freeze": [
@@ -382,7 +431,13 @@
     "disc-evidence-required.js",
     "disc-mark-stale.js",
     "disc-robots-sitemap-guard.js",
-    "disc-session-context.js"
+    "disc-session-context.js",
+    "idea-to-requirements-orchestrator",
+    "i2r-readiness-gate",
+    "i2r-mode-gate",
+    "i2r-subagent-output-gate",
+    "i2r-citation-gate",
+    "i2r-write-boundary"
   ],
 
   "see_also": [

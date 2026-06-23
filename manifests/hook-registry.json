@@ -95,6 +95,24 @@
             {"name": "disc-mark-stale.js", "trigger": "PostToolUse", "purpose": "Auto-mark L12 evidence stale after deploy or config change"},
             {"name": "disc-evidence-required.js", "trigger": "Stop", "purpose": "Block phase completion if evidence/discoverability/<tag>/ is empty"}
           ]
+        },
+        "i2r": {
+          "config_gate": null,
+          "config_gate_note": "INTENTIONAL I2R VARIANT — I2R has NO config-gate file (no .i2r/config.json). Its hooks fail-open/silent on non-i2r projects by gating on run-folder presence (.i2r/runs/ exists) instead of a config file. This is by design (CONTRACT.md §13): a fresh project without an active I2R run gets ZERO i2r-hook enforcement. Hooks are committed project-local in <project>/.claude/hooks/ and registered into <project>/.claude/settings.json by `i2r.py install` (NOT by `i2r.py init`, which only scaffolds the run folder).",
+          "run_folder_gate": "<project>/.i2r/runs/",
+          "snippet_path": "templates/i2r/hooks/",
+          "install_command": "python ~/.claude/templates/i2r/scripts/i2r.py install --project .",
+          "hooks": [
+            {"name": "i2r-session-context.js", "trigger": "SessionStart", "purpose": "Inject active I2R run + current stage pointer + `status` command into session context"},
+            {"name": "i2r-auto-trigger-boundary.js", "trigger": "UserPromptSubmit", "purpose": "Requirements-shaped prompt → nudge toward I2R; implementation/code prompt → nudge AWAY (keeps I2R from doing GSD's job)"},
+            {"name": "i2r-write-boundary.js", "trigger": "PreToolUse(Write|Edit|MultiEdit)", "purpose": "Block writes to implementation dirs (src/ app/ lib/ packages/ tests/ database/ migrations/ api/ routes/ components/ ui/) while I2R is active (CONTRACT.md §14)"},
+            {"name": "i2r-mode-gate.js", "trigger": "Stop", "purpose": "Block downstream when routing-required search/discussion/debate stages are not done"},
+            {"name": "i2r-mark-stale.js", "trigger": "PostToolUse(Write|Edit|MultiEdit)", "purpose": "Upstream artifact changed → mark downstream stages STALE"},
+            {"name": "i2r-subagent-output-gate.js", "trigger": "SubagentStop", "purpose": "Verify owned artifact exists + schema-valid + generated_by_agent == expected owner + _meta complete before subagent work is accepted (CONTRACT.md §4)"},
+            {"name": "i2r-citation-gate.js", "trigger": "SubagentStop / Stop", "purpose": "Ensure evidence CARDS in 02b-evidence.json carry a source_ref (reuses `i2r.py evidence.validate`)"},
+            {"name": "i2r-readiness-gate.js", "trigger": "Stop", "purpose": "Block 'requirements done / ready for GSD' unless both reviews PASS + gate ∈ {READY, NEEDS_REVIEW} + no open BLOCKER"}
+          ],
+          "library_module": "_i2r-common.js"
         }
       }
     },
@@ -106,6 +124,7 @@
         {"name": "_qa-common.js", "used_by": "qa-*.js"},
         {"name": "_uiux-common.js", "used_by": "uiux-*.js"},
         {"name": "_disc-common.js", "used_by": "disc-*.js"},
+        {"name": "_i2r-common.js", "used_by": "i2r-*.js", "note": "Shared lib for i2r-*.js hooks: run-folder discovery, state read, redaction helpers. Copied project-local with the i2r hooks."},
         {"name": "git-cmd.js", "used_by": "gsd-validate-commit.sh", "path": "hooks/lib/git-cmd.js", "note": "Conventional Commits gate token-walk classifier (isGitSubcommand); lives in hooks/lib/, NOT copied project-local (gsd hook is global)"}
       ]
     },
@@ -127,19 +146,21 @@
   },
 
   "enforcement_gaps_callout": {
-    "description": "Subsystems whose docs may have implied global enforcement but whose hooks are project-installed only. Fresh projects without the corresponding config gate have ZERO subsystem-hook enforcement; only GSD hooks fire globally.",
-    "subsystems": ["appsec", "qa", "uiux", "discoverability"],
+    "description": "Subsystems whose docs may have implied global enforcement but whose hooks are project-installed only. Fresh projects without the corresponding config gate have ZERO subsystem-hook enforcement; only GSD hooks fire globally. NOTE: i2r is the one variant that gates on run-folder presence (.i2r/runs/) rather than a required config file (config is optional) — see config_gates.i2r.",
+    "subsystems": ["appsec", "qa", "uiux", "discoverability", "i2r"],
     "config_gates": {
       "appsec": "<project>/.appsec/config.json",
       "qa": "<project>/.qa/config.json",
       "uiux": "<project>/.uiux/config.json",
-      "discoverability": "<project>/discoverability.config.yaml"
+      "discoverability": "<project>/discoverability.config.yaml",
+      "i2r": "<project>/.i2r/runs/ (.i2r/ workspace presence; config OPTIONAL — intentional I2R variant)"
     },
     "install_commands": {
       "appsec": "bash ~/.claude/scripts/appsec-sdk.sh init",
       "qa": "bash ~/.claude/scripts/qa-sdk.sh init",
       "uiux": "bash ~/.claude/scripts/uiux-sdk.sh init",
-      "discoverability": "python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py --project-root . init"
+      "discoverability": "python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py --project-root . init",
+      "i2r": "python ~/.claude/templates/i2r/scripts/i2r.py install --project ."
     },
     "remediation": "claude-env-bootstrap EXECUTE §7.1a now auto-runs the right init for each selected subsystem (2026-05-30), and each SDK init is an idempotent hook-installer (creates <sub> config if missing + copies project-local hooks + merges settings.json via install-subsystem-hooks.js). Users invoking a subsystem in a project NOT created by bootstrap can run the install_command above once (bare init, no release tag needed)."
   },

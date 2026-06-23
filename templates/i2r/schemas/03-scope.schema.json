@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "i2r/03-scope",
+  "title": "I2R Scope (in / out / deferred, capability inventory, MoSCoW seed)",
+  "type": "object",
+  "required": ["_meta", "in_scope", "out_of_scope", "deferred", "capability_inventory", "scope_confirmed"],
+  "properties": {
+    "_meta": { "$ref": "#/definitions/meta" },
+    "in_scope": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["capability", "moscow"],
+        "properties": {
+          "capability": { "type": "string" },
+          "moscow": { "type": "string", "enum": ["MUST", "SHOULD", "COULD", "WONT"] },
+          "source_ref": { "type": "string" }
+        }
+      }
+    },
+    "out_of_scope": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["item", "reason"],
+        "properties": { "item": { "type": "string" }, "reason": { "type": "string" } }
+      }
+    },
+    "deferred": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["item", "reason"],
+        "properties": { "item": { "type": "string" }, "reason": { "type": "string" } }
+      }
+    },
+    "capability_inventory": { "type": "array", "items": { "type": "string" } },
+    "scope_risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["risk"],
+        "properties": { "risk": { "type": "string" }, "mitigation": { "type": "string" } }
+      }
+    },
+    "scope_confirmed": { "type": "boolean" }
+  },
+  "definitions": {
+    "meta": {
+      "type": "object",
+      "required": ["artifact_version", "stage", "run_id", "generated_by_agent", "created_at"],
+      "properties": {
+        "artifact_version": { "type": "string" },
+        "stage": { "type": "string" },
+        "run_id": { "type": "string" },
+        "generated_by_agent": { "type": "string" },
+        "created_at": { "type": "string" },
+        "input_hashes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "sha256"],
+            "properties": { "file": { "type": "string" }, "sha256": { "type": "string" } }
+          }
+        },
+        "skills_used": { "type": "array", "items": { "type": "string" } },
+        "tools_used": { "type": "array", "items": { "type": "string" } },
+        "mode_context": { "type": "object" }
+      }
+    }
+  }
+}

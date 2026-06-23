@@ -77,6 +77,37 @@
       "priority": "low"
     },
 
+    "idea-to-requirements-orchestrator": {
+      "domain": "i2r",
+      "kind": "orchestrator",
+      "selector": {"all_of": [{"signal": "workflow_state", "contains_any": ["fresh-init", "gsd-active", "planning-present"]}]},
+      "agent_addon": [
+        "i2r-orchestrator",
+        "i2r-intake-clarifier",
+        "i2r-context-analyst",
+        "i2r-evidence-researcher",
+        "i2r-scope-architect",
+        "i2r-functional-author",
+        "i2r-nfr-author",
+        "i2r-acceptance-author",
+        "i2r-completeness-critic"
+      ],
+      "subskill_addon": [
+        "i2r-skill-quality-mode",
+        "i2r-elicitation-mode",
+        "i2r-search-mode",
+        "i2r-discussion-mode",
+        "i2r-scope-mode",
+        "i2r-fr-authoring-mode",
+        "i2r-nfr-authoring-mode",
+        "i2r-acceptance-mode",
+        "i2r-debate-review-mode",
+        "i2r-gsd-projection-mode"
+      ],
+      "_note": "Requirements front-end UPSTREAM of GSD (raw idea -> Markdown-first requirements package under .i2r/runs/.../out/: WHAT/WHY only, never HOW/tasks/architecture/UI; one language per run, asked at start). Auto-invocable, all-opus, SKILL-direct, 4-module $0 SDK. Hooks are project-installed via `python ~/.claude/templates/i2r/scripts/i2r.py install --project .` (gated on .i2r/ presence; config optional; see §7.1a). Downstream (GSD etc.) reads the same Markdown and applies its own routing; I2R emits no /gsd command.",
+      "priority": "high"
+    },
+
     "ux-principles": {
       "domain": "uiux",
       "kind": "core",

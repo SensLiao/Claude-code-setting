@@ -1,0 +1,35 @@
+{
+  "_meta": {
+    "artifact_version": "1.0",
+    "stage": "05-nfr",
+    "run_id": "i2r-<slug>-<timestamp>",
+    "generated_by_agent": "i2r-nfr-author",
+    "created_at": "<ISO-8601>",
+    "input_hashes": [{ "file": "04-functional.json", "sha256": "<sha256>" }],
+    "skills_used": ["i2r-nfr-authoring-mode"],
+    "tools_used": ["Read", "Bash(python scripts/i2r.py validate --stage 5)"],
+    "mode_context": {
+      "search_mode": "not_required",
+      "discussion_mode": "not_required",
+      "debate_mode": "not_required"
+    }
+  },
+  "nfrs": [
+    {
+      "id": "NFR-<ISOCAT>-NN",
+      "iso25010_category": "<Functional Suitability|Performance Efficiency|Compatibility|Interaction Capability|Reliability|Security|Maintainability|Flexibility|Safety>",
+      "coverage_status": "<required|not_applicable|deferred>",
+      "description": "<Observable quality goal in business terms; no framework/db/tool names; no vague adjectives>",
+      "fit_criterion": {
+        "threshold": "<Measurable condition with explicit number/percentage/level — no vague terms>",
+        "environment": "<Context: environment type, user group, load level — no specific cloud/db product names>",
+        "period": "<When measured: per request / each release / each calendar month / etc.>"
+      },
+      "measurement_method": "<How the threshold is observed — optional but strongly recommended>",
+      "priority": "<MUST|SHOULD|COULD|WONT>",
+      "source_ref": "raw/<filename>#L<line>",
+      "na_reason": "<Required when coverage_status = not_applicable — explains WHY, not just asserts NA>",
+      "deferred_missing_info": "<Required when coverage_status = deferred — names exactly what info is missing>"
+    }
+  ]
+}

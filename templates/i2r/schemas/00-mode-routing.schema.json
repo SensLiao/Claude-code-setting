@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "i2r/00-mode-routing",
+  "title": "I2R Mode Routing (L0 router output)",
+  "type": "object",
+  "required": [
+    "_meta",
+    "idea_type",
+    "trigger_source",
+    "requires_external_search",
+    "requires_local_search",
+    "requires_discussion",
+    "requires_scope_debate",
+    "requires_nfr_deep_dive",
+    "requires_codex_review",
+    "risk_flags",
+    "selected_modes",
+    "excluded_modes",
+    "rationale"
+  ],
+  "properties": {
+    "_meta": { "$ref": "#/definitions/meta" },
+    "idea_type": {
+      "type": "string",
+      "enum": ["new_product", "feature", "internal_tool", "workflow", "agent_system", "refactor", "unknown"]
+    },
+    "trigger_source": {
+      "type": "string",
+      "enum": ["model_auto", "user_direct", "parent_orchestrator", "gsd_precheck"]
+    },
+    "requires_external_search": { "type": "boolean" },
+    "requires_local_search": { "type": "boolean" },
+    "requires_discussion": { "type": "string", "enum": ["none", "non_blocking", "blocking"] },
+    "requires_scope_debate": { "type": "boolean" },
+    "requires_nfr_deep_dive": { "type": "boolean" },
+    "requires_codex_review": { "type": "boolean" },
+    "risk_flags": { "type": "array", "items": { "type": "string" } },
+    "selected_modes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["elicitation", "search", "discussion", "scope", "fr-authoring", "nfr-authoring", "acceptance", "dual-review", "gsd-projection", "skill-quality"]
+      }
+    },
+    "excluded_modes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["mode", "reason"],
+        "properties": { "mode": { "type": "string" }, "reason": { "type": "string" } }
+      }
+    },
+    "rationale": { "type": "string" }
+  },
+  "definitions": {
+    "meta": {
+      "type": "object",
+      "required": ["artifact_version", "stage", "run_id", "generated_by_agent", "created_at"],
+      "properties": {
+        "artifact_version": { "type": "string" },
+        "stage": { "type": "string" },
+        "run_id": { "type": "string" },
+        "generated_by_agent": { "type": "string" },
+        "created_at": { "type": "string" },
+        "input_hashes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "sha256"],
+            "properties": { "file": { "type": "string" }, "sha256": { "type": "string" } }
+          }
+        },
+        "skills_used": { "type": "array", "items": { "type": "string" } },
+        "tools_used": { "type": "array", "items": { "type": "string" } },
+        "mode_context": { "type": "object" }
+      }
+    }
+  }
+}
