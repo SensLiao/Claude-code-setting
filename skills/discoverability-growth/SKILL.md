@@ -56,14 +56,15 @@ L12 的其他 4 个 narrow skill 都在回答**当前已上线的页面 discover
 
 **这个 skill 回答的是第三个问题：基于这些证据，接下来该做什么才能被更多人找到？**
 
-它做四件事，全部 evidence-driven：
+它做五件事，全部 evidence-driven：
 
-1. **Keyword strategy** —— 关键词机会发现（autocomplete / related / SERP feature gap）
+1. **Keyword strategy** —— 关键词机会发现（autocomplete / related / SERP feature gap）+ 搜索意图 → 页面类型映射（§4）
 2. **Content-gap analysis** —— 站内已覆盖 vs 应覆盖的主题差距（站点爬取 + 竞品爬取对比）
 3. **Prioritized growth backlog** —— 把机会按 effort/impact 排成可执行清单
 4. **Programmatic-SEO patterns** —— 大规模模板化页面的合规模式（避免 doorway / thin-content）
+5. **Off-site authority advisory**（§4.5）—— 站外权威 / digital-PR / 未链提及的 **advisory** 清单（永不买链、永不执行、永不 gate）
 
-它**不是** marketing 套件、不发内容、不买外链、不碰社媒投放——只产出"该写/该改什么"的 evidence-backed backlog。
+它**不是** marketing 套件、不发内容、**不买外链 / 不碰任何 Google 链接垃圾红线**（§4.5.3）、不碰社媒投放——off-site 这块只产 **advisory backlog**（该争取什么链接），真正去赢得链接是人做的。只产出"该写 / 该改 / 该争取什么"的 evidence-backed backlog。
 
 ### 不在本 skill 范围
 
@@ -143,6 +144,7 @@ Step 3  Content-gap analysis（站内 vs 应覆盖）
 
 Step 4  AI synthesis → prioritized backlog（AI 只排序，不造数）
         ├─ 把扩展词聚类成 topic cluster（pillar + supporting）
+        ├─ 每个簇/词分类 search intent（informational / commercial / transactional / navigational；local → handoff web-local-seo）→ 据此定 target_page_type（blog/guide / product / category / comparison / landing）
         ├─ 每个 backlog item 评 effort（S/M/L）× impact（来自真实 GSC 展示量/SERP feature/gap 大小）
         └─ 内链机会：crawl 出的孤立页 / 高权重页未指向 gap 页
 
@@ -183,6 +185,8 @@ Step 5  Emit growth-backlog.* + handoff
       "supporting": [
         {
           "keyword": "reduce eks node cost",
+          "intent": "commercial",
+          "target_page_type": "comparison",
           "volume": "unknown",
           "volume_source": "no_volume_api",
           "current_position": 14.2,
@@ -213,6 +217,75 @@ Step 5  Emit growth-backlog.* + handoff
 - 任何 `volume` 无工具来源 → `"volume": "unknown"` + `"volume_source": "no_volume_api"`，**不**编数字
 - 任何 `current_position` 必须来自 measurement.json（真实 GSC）或标 `unknown`
 - `impact` 评级必须有 `impact_basis`（指向真实 evidence），不能是"感觉重要"
+- 每个 supporting keyword 必须带 `intent`（informational/commercial/transactional/navigational）+ `target_page_type`（决定该词该落 blog/product/category/comparison/landing 哪种页）—— 这是"对的查询配对对的页"的核心纪律（Google SOP Phase 4/5）；`local` intent 的词 handoff `web-local-seo`
+
+---
+
+## 4.5 Off-site authority & digital-PR advisory backlog（站外权威 — advisory-only）
+
+> **加入 2026-06-27（SEO-doc audit P1）。** 此前整个 L12 没有任何 skill 拥有"站外权威 / 外链 / digital PR"——`web-seo` 只管站内、`web-aeo` 的 brand-entity 只是 AI 引用信号、本 skill §0 又声明"不买外链"。结果：Google 官方 SOP 里 off-page 最高杠杆的一整块（authority / backlinks）**无主**。本节补上，且**严格限定为 advisory**。
+
+### 4.5.0 边界（本节能做什么、绝不做什么）
+
+| ✅ 本节做（advisory backlog）| ❌ 本节绝不做 |
+|---|---|
+| 产出"可争取的 link-worthy 资产 / digital-PR / 目录 / 未链提及"清单 | 自动外联、发邮件、代发 PR |
+| 用 **GSC Links report**（免费、deterministic）做现状基线 | 买链接 / 换链 / PBN / 评论灌水（红线，见 §4.5.3）|
+| 把 off-site 机会按 effort/impact 排进 backlog（severity 永远 warn/info）| 把"外链数"当 release blocker（authority 是长期积累，不可 gate）|
+| 标注哪些是**手动 / 线下**动作（大部分 off-page 本质如此）| 新增第 5 个 evidence channel 或新 gate（本 skill 不是 channel、不是 gate）|
+
+> **为什么是 advisory**：外链绝大多数是 off-platform + 人际动作（PR pitch、合作、赞助），脚本无法"执行"。本节能 deterministic 的只有**现状基线**（GSC Links）+ **机会枚举**；真正去赢得链接是人做的。所以本节产出是 backlog/建议，`severity` 一律 `warn`/`info`，**永不 blocker**（与 §6 反模式"把 growth backlog 当 release blocker"一致）。
+
+### 4.5.1 Script-first 锚点：GSC Links report（免费、deterministic）
+
+唯一能脚本化的 off-site 现状真相源是 **Google Search Console Links report**（免费）：top linking sites / top linked pages / 锚文本分布。它由 `disc-measurement-puller` 经 GSC API 拉（与 search-analytics 同源凭证），落独立 raw export；本 skill **消费**它，不自己拉。
+
+- 有 GSC Links 数据 → backlog 基于真实 referring domains（"竞品有、你没有的 referring domain" = 可争取目标）
+- 无数据 → 标 `referring_domains: unknown`，机会清单仍可产（基于 link-worthy 资产类型），但置信度降低，**绝不编造外链数**
+
+### 4.5.2 Advisory backlog item（off-site 类）
+
+并入 `growth-backlog.json` 的新数组 `offsite_authority_opportunities[]`（与 §4 同文件，severity warn/info）：
+
+```json
+{
+  "offsite_authority_opportunities": [
+    {
+      "type": "linkable_asset | digital_pr | directory | unlinked_mention | partnership",
+      "title": "原创基准数据报告：2026 K8s 成本基准",
+      "rationale": "原创数据是最稳的自然外链磁铁（Google: link-worthy original research）",
+      "evidence_ref": "raw/gsc-links.json#/top_linking_sites  (or 'unknown' if no GSC Links)",
+      "action_mode": "manual",
+      "effort": "M", "impact": "high",
+      "impact_basis": "竞品该主题有 N 个 referring domains，你 0（GSC Links 对比）",
+      "owner_handoff": "team (PR/content) — 本 skill 只产清单，不外联"
+    }
+  ]
+}
+```
+
+机会类型（对照 Google 官方安全做法）：
+- **linkable_asset** —— 原创研究 / 计算器 / 模板 / 行业统计 / 指南（自然外链磁铁）
+- **digital_pr** —— 记者 / 播客 / newsletter / 行业 blog 的 pitch 角度（清单，不代发）
+- **directory** —— 与业务相关的**正经**目录（非链接农场）
+- **unlinked_mention** —— 品牌被提及但未加链接 → 半自动检测（品牌名 search），人工去要链接
+- **partnership** —— 供应商 / 协会 / 高校 / 本地组织（Local 的本地外链 → 与 `web-local-seo §13.5.4` prominence 呼应）
+
+### 4.5.3 Google 链接垃圾红线（AVOID — 永不建议、永不执行）
+
+下列一律**不**进 backlog、**不**建议、**不**执行（违反 Google link-spam policy，会致排名下降 / 移除）：
+
+| ❌ 红线 | 说明 |
+|---|---|
+| 买 / 卖链接（含用 goods/services 换 do-follow 链）| Google link-spam policy 明确禁止 |
+| PBN（private blog network）| 人为操纵的链接网络 |
+| 大规模链接交换（"你链我我链你"）| 互惠链接滥用 |
+| 隐藏链接 / 隐藏文本 | cloaking 类 |
+| 评论区 / 论坛 / UGC 灌链 | user-generated spam |
+| 寄生 SEO / site-reputation abuse | 借高权威站发垃圾内容 |
+| 关键词堆砌锚文本的批量外链 | 过度优化锚文本 |
+
+> 这是 §0 "不买外链" 红线的完整版——把一句话扩成**完整 AVOID 清单**，既是给用户的护栏，也是给 AI 的硬约束：**任何 off-site 建议若落入上表，立即丢弃**。安全做法只有一条主线：**做出值得被链接的东西，然后让真实的人发现它**（Google: earn links, never manipulate）。
 
 ---
 
@@ -294,6 +367,7 @@ python -c "import json; d=json.load(open('evidence/discoverability/'$TAG'/measur
 | AI 引用友好度（答案块/llms.txt） | `web-aeo` |
 | Local 主题（门店/服务区） | `web-local-seo` |
 | 内容写作（实际写文章） | 团队/内容 owner（本 skill 不写最终内容，只产选题 + 大纲建议） |
+| 站外权威 / digital-PR / 外链争取（§4.5）| 团队（PR / 内容 / BD）—— 本 skill 只产 advisory 清单，不外联、不代发 |
 | 高流量私密 path 暴露 | `appsec-security-orchestrator`（escalate，不修） |
 
 ---
