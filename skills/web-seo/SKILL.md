@@ -177,6 +177,19 @@ description: >
 | `<html lang="...">` | 与页面主语言一致 | 语言检测错误 |
 | Viewport | `<meta name="viewport" content="width=device-width,initial-scale=1">` | Mobile 不友好，影响 mobile-first indexing |
 
+### 4.5.1 页面结构质量（标题大纲 / 内链锚文本 / 可爬性）
+
+> §4.5 看页头 metadata；本节看**页面骨架与链接**——标题层级是否合理、内链是否**可爬**（真 `<a href>`）且**锚文本描述性**。Google 用链接发现页面 + 作相关性信号；用标题理解结构。
+
+| Check | 期望值 | 失败影响 | 自动化方式 |
+|---|---|---|---|
+| 标题大纲不跳级 | h1→h2→h3 顺序，不从 h1 直跳 h3；不多 h1；无空标题 | 结构混乱、机器/读者难解析 | DOM parse heading 序列 |
+| 可爬锚点 | 站内导航/正文链接是真 `<a href="...">`，不是 `<div onclick>` / `<button>` / 纯 JS push | 不可爬 → 目标页发现不到 | 统计无 `href` 的"伪链接"导航 |
+| 描述性锚文本 | 锚文本描述目标（"定价方案"），不是 "click here" / "read more" / "了解更多" / 裸 URL | 相关性信号弱 | 统计非描述性锚文本占比 |
+| 关键页可达深度 | 重要页距首页点击深度 ≤ 3，且有 ≥1 站内入链（非孤岛）| 太深 → 爬取/权重流不到 | 内链图（§15 unlighthouse/linkinator 爬取已建图）|
+
+把 heading 序列 + 锚点清单并入 `raw/metadata.json`（`headings[]` + `anchors[]: { href, text, rel, is_crawlable }`）。产 warn（全 warn-only，**永不 blocker**）：`broken_heading_outline` / `non_descriptive_anchor_text` / `internal_link_not_crawlable_anchor` / `critical_page_excessive_click_depth` / 既有 `weak_internal_linking`（孤岛）。搜索意图→页面类型映射与内容缺口策略不在本 skill —— 路由到 [`discoverability-growth`](../discoverability-growth/SKILL.md)（§12）。
+
 ### 4.6 structured data（schema.org / JSON-LD）
 
 > 推荐 **JSON-LD**（Google 官方首选），不要 Microdata / RDFa 混用。
@@ -225,6 +238,28 @@ npx lighthouse https://<url> \
 | Best Practices | ≥ 90 |
 
 低于目标 → **warn-only**（不阻断 release，进报告）。但 SEO score 涉及 `noindex` / robots 误封等 → 升级为 BLOCKER（见 §6）。
+
+### 4.7.1 Core Web Vitals 实测阈值（field data — CrUX / PSI，warn-only）
+
+> §4.7 的 Lighthouse 是 **lab** 总分（一次合成跑分）；Google 的 **page-experience 排名信号**用的是 **field data**（真实用户 28 天 CrUX）。两者不可互换——lab Performance ≥ 80 不等于 field CWV 达标。本节补三个**具名** Core Web Vitals 的实测阈值。
+
+| 指标 | "good" 阈值 | 含义 |
+|---|---|---|
+| **LCP** Largest Contentful Paint | < 2.5s | 最大内容渲染时间 |
+| **INP** Interaction to Next Paint | < 200ms | 交互响应（2024-03 起取代 FID）|
+| **CLS** Cumulative Layout Shift | < 0.1 | 视觉稳定性 |
+
+数据源（script-first，免费）：**PageSpeed Insights API**（返回 `loadingExperience` / `originLoadingExperience` = CrUX field + lab）或 **CrUX API**（需免费 key）。
+
+```bash
+# PSI field CWV（CrUX p75）；PSI 有匿名额度，配 key 更稳。无数据 → 标 insufficient，不算失败
+curl -sS "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=https://example.com&strategy=mobile&category=performance" \
+  > "evidence/discoverability/$TAG/raw/cwv-psi-mobile.json"
+```
+
+产 warn-only finding（**永不 blocker**）：`cwv_lcp_above_threshold` / `cwv_inp_above_threshold` / `cwv_cls_above_threshold`，`evidence_path` 指向 PSI `loadingExperience.metrics.*`。CrUX 无足够真实用户数据（新站 / 低流量）→ `cwv_field_data_insufficient`，不视为失败。
+
+> **边界**：L12 只把 CWV 作为 **SEO / page-experience 证据**记录（warn-only）。**性能 gate + 深度优化归 QA**（`qa-performance-reliability`，§12）——L12 不阻断 release、不替 QA 做性能门禁。§15.3 的 lhci 另跑 CWV 的 **lab proxy** 断言（LCP/CLS/TBT），与本节 field 真值互补。
 
 ### 4.8 Search Console / Bing Webmaster（监控）
 
@@ -346,6 +381,14 @@ public/
 | `title_too_long_or_too_short` | title < 30 或 > 70 字符 |
 | `image_alt_text_sparse` | 关键图片 alt 缺失比例 > 30% |
 | `weak_internal_linking` | 关键页之间无内链（PageRank 流不畅） |
+| `non_descriptive_anchor_text` | 内链锚文本大量为 "click here" / "read more" / 裸 URL（相关性信号弱）|
+| `internal_link_not_crawlable_anchor` | 站内导航/正文链接走 `onclick` / 无 `href`，爬虫不可达 |
+| `broken_heading_outline` | 标题层级跳级 / 多个 h1 / 空标题（结构信号差）|
+| `critical_page_excessive_click_depth` | 关键页距首页点击深度 > 3（爬取 / 权重难达）|
+| `cwv_lcp_above_threshold` | 真实用户 LCP（CrUX/PSI field）> 2.5s（page-experience 信号；warn-only，性能 gate 归 QA）|
+| `cwv_inp_above_threshold` | 真实用户 INP > 200ms（同上）|
+| `cwv_cls_above_threshold` | 真实用户 CLS > 0.1（同上）|
+| `cwv_field_data_insufficient` | CrUX 无足够真实用户数据（新站 / 低流量）—— 不视为失败，仅说明无法测 field CWV |
 | `hreflang_missing_for_multilingual_site` | 检测到多语言 URL 但无 hreflang 声明 |
 | `mixed_canonical_protocols` | canonical 协议与当前 URL 不一致（http vs https） |
 | `sitemap_lastmod_is_build_timestamp` | `lastmod` 字段疑似 build 时间而非真实更新时间 |
@@ -550,6 +593,7 @@ evidence/discoverability/<tag>/
 | 想做 AI search / LLM answer engine 优化 | [`web-aeo`](../web-aeo/SKILL.md) |
 | 涉及 LocalBusiness / Google Business Profile / 地区门店 | [`web-local-seo`](../web-local-seo/SKILL.md) |
 | 涉及 App Store / Google Play | [`app-aso`](../app-aso/SKILL.md) |
+| 关键词策略 / 搜索意图 → 页面类型 / 内容缺口 / "该写什么页" | [`discoverability-growth`](../discoverability-growth/SKILL.md) |
 | 发现敏感页被搜索引擎收录 / authorization 问题 | `appsec-security-orchestrator`（本 skill 只标识，不修） |
 | 性能问题超出 SEO 范围（CWV 深度优化） | `qa-performance-reliability` |
 | 发现 a11y 失败导致 SEO 信号变差 | `qa-a11y-compliance` |
@@ -714,7 +758,10 @@ npx unlighthouse-ci --site https://example.com \
         "canonical": "error",
         "hreflang": "warn",
         "structured-data": "warn",
-        "image-alt": "warn"
+        "image-alt": "warn",
+        "largest-contentful-paint": ["warn", { "maxNumericValue": 2500 }],
+        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.1 }],
+        "total-blocking-time": ["warn", { "maxNumericValue": 200 }]
       }
     },
     "upload": { "target": "filesystem", "outputDir": "evidence/discoverability/$TAG/raw/lhci" }
@@ -738,6 +785,7 @@ lhci autorun --config=lighthouserc.json
 | `hreflang` | §4.4 hreflang | warn（仅多语言站强制）|
 | `structured-data` | §4.6 structured data | warn |
 | `image-alt` | §4.5 `<img alt>` | warn |
+| `largest-contentful-paint` / `cumulative-layout-shift` / `total-blocking-time` | §4.7.1 Core Web Vitals（**lab proxy**；field 真值以 §4.7.1 PSI/CrUX 为准，TBT 是 INP 的 lab 近似）| warn（性能 gate 归 QA）|
 
 > **阈值映射 §6/§7，不另起一套**：`error` 级断言对应 §6 blocker（CI 阻断 = release 阻断）；`warn` 级对应 §7 warn-only（进 report 不阻断）。**严禁**把 §7 warn 项偷偷设成 `error` —— 与 orchestrator §7 "严禁把 warn-only 偷偷升级成 blocker" 同理。升级必须显式改配置 + 写明理由。
 

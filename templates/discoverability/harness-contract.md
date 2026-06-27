@@ -106,7 +106,7 @@ cwd）。
 | `mark-stale --reason "<reason>" [--file <path>]` | 更新 `state.json.gate_status=STALE`；append 到 `stale_reasons[]` 和 `.discoverability/runs/<tag>/stale-reasons.json` | 0 |
 | `explain <tag> [--finding <id>]` | 输出 evidence 摘要供 AI synthesis；SDK 本身不调 LLM，只准备 input | 0 / 1 |
 | `status [--tag <tag>]` | 打印 state.json + (可选) 指定 tag 的 gate-result 概要；机器可读 JSON | 0 |
-| `measure.pull <tag> --provider {gsc\|ga4\|bing\|aso} <raw-export>` | **measurement-only, NOT gate inputs** — 把某 provider 的真实指标 raw export 归一化合并进 `evidence/discoverability/<tag>/measurement.json`（自动盖 `measurement_only: true`）；script-first，无指标即记 `status: skipped`，绝不编造 | 0 / 1 |
+| `measure.pull <tag> --provider {gsc\|ga4\|bing\|aso\|aeo\|gbp} <raw-export>` | **measurement-only, NOT gate inputs** — 把某 provider 的真实指标 raw export 归一化合并进 `evidence/discoverability/<tag>/measurement.json`（自动盖 `measurement_only: true`）；script-first，无指标即记 `status: skipped`，绝不编造 | 0 / 1 |
 | `measure.compare <tag> --baseline-tag <baseline>` | **measurement-only, NOT gate inputs** — 对 `<tag>` vs `<baseline>` 的 measurement.json 做 per-metric 算术 delta，写 `measurement-compare.json`（`avg_position` 自动 lower-is-better）；纯算术，无 AI 解读 | 0 / 1 |
 
 ### 2.2 退出码语义（gate.check 专用）

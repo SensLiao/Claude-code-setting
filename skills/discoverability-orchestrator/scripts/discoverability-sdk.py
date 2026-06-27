@@ -67,19 +67,27 @@ _RANK = {"PASS": 0, "SKIPPED": 0, "WARN": 1, "FAIL": 2, "BLOCKED": 3, "STALE": 3
 # numbers come from the API, never from an LLM. When credentials are absent the
 # pullers emit status=skipped (NOT a fabricated metric) so a missing GSC token
 # never silently invents impressions/clicks.
-MEASUREMENT_PROVIDERS = ("gsc", "ga4", "bing", "aso", "aeo")
+MEASUREMENT_PROVIDERS = ("gsc", "ga4", "bing", "aso", "aeo", "gbp")
 # Canonical L12 channel each provider feeds (so measurement maps onto the same
 # channel vocabulary as audit evidence). 'aeo' feeds the ai-search channel
 # (web-aeo §20 AI citation tracking — measurement-only, never a gate input).
+# 'gbp' feeds the local channel (web-local-seo post-launch measurement via the
+# free Google Business Profile Performance API — the local analog of GSC Search
+# Analytics for the seo channel; measurement-only, never a gate input).
 PROVIDER_CHANNEL = {"gsc": "seo", "ga4": "seo", "bing": "seo", "aso": "aso",
-                    "aeo": "ai-search"}
+                    "aeo": "ai-search", "gbp": "local"}
 # Metric keys the comparator knows how to delta (direction = "higher is better"
 # except avg_position / keyword_rank where LOWER is better — handled explicitly
 # in compare). ASO funnel keys (product_page_views / conversion_rate /
 # keyword_rank) added for app-aso §16.6 ASO measurement.
 MEASURE_METRICS = ("impressions", "clicks", "ctr", "avg_position",
                    "sessions", "ai_referral_sessions", "ai_citations",
-                   "product_page_views", "conversion_rate", "keyword_rank")
+                   "product_page_views", "conversion_rate", "keyword_rank",
+                   # GBP (local channel) Google Business Profile Performance API
+                   # metrics — all higher-is-better; web-local-seo post-launch
+                   # measurement-only (never a gate input).
+                   "direction_requests", "call_clicks", "website_clicks",
+                   "bookings", "conversations")
 MEASURE_LOWER_IS_BETTER = ("avg_position", "keyword_rank")
 
 # ----- Minimal YAML reader (mappings/sequences/scalars/inline flow) ---------
@@ -1112,7 +1120,7 @@ def cmd_measure_pull(args: argparse.Namespace, ctx: Context) -> int:
     changes gate_status."""
     tag = args.tag
     provider = (args.provider or "").lower()
-    if provider in CHANNEL_ALIASES:  # tolerate aeo/geo though pullers use gsc/ga4/bing/aso
+    if provider in CHANNEL_ALIASES:  # tolerate aeo/geo aliases (pullers use gsc/ga4/bing/aso/aeo/gbp)
         provider = provider
     if provider not in MEASUREMENT_PROVIDERS:
         err(f"invalid --provider '{provider}' (must be one of {MEASUREMENT_PROVIDERS})")
@@ -1276,7 +1284,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("status"); sp.add_argument("--tag", default=None)
     sp = sub.add_parser("ledger.append"); sp.add_argument("tag")
     sp.add_argument("--decision", default=None); sp.add_argument("--stage", default=None)
-    # L1 measurement: measure.pull <tag> --provider {gsc|ga4|bing|aso} <export.json>
+    # L1 measurement: measure.pull <tag> --provider {gsc|ga4|bing|aso|aeo|gbp} <export.json>
     sp = sub.add_parser("measure.pull"); sp.add_argument("tag")
     sp.add_argument("--provider", required=True); sp.add_argument("file")
     # L1 measurement: measure.compare <tag> --baseline-tag T | --baseline-file F
