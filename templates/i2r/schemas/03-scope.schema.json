@@ -31,7 +31,11 @@
       "items": {
         "type": "object",
         "required": ["item", "reason"],
-        "properties": { "item": { "type": "string" }, "reason": { "type": "string" } }
+        "properties": {
+          "item": { "type": "string" },
+          "reason": { "type": "string" },
+          "revisit_trigger": { "type": "string", "description": "RML: concrete condition under which this re-enters scope; absence is flagged by minimalism_scan (deferral_has_trigger)" }
+        }
       }
     },
     "capability_inventory": { "type": "array", "items": { "type": "string" } },

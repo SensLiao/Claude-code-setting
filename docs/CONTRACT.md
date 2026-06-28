@@ -207,12 +207,15 @@ schema-valid · `generated_by_agent` == expected owner · `skills_used` ⊇ requ
 
 `AMBIGUITY` · `UNTESTABLE` · `UNSOURCED` · `SCOPE_LEAK` · `IMPLEMENTATION_LEAK` · `DUPLICATE` · `CONFLICT` ·
 `NFR_MISSING` · `ACCEPTANCE_GAP` · `GSD_INCOMPATIBLE` · `DOWNSTREAM_REINTERPRETATION_RISK` ·
-`READER_TEST_FAIL` · `PLACEHOLDER` · `DOWNSTREAM_COMMAND_LEAK`
+`READER_TEST_FAIL` · `PLACEHOLDER` · `DOWNSTREAM_COMMAND_LEAK` · `OVER_SPECIFICATION`
 
 `NFR_MISSING` covers **either** a `required` NFR lacking its `fit_criterion` **or** an in-scope capability with
-observable quality attributes that has no NFR at all. `DOWNSTREAM_COMMAND_LEAK` (new, BLOCKER) = any `/gsd:*`,
-`plan-phase`, `ingest-docs`, or machine-contract field in an `out/` document (§1, §18). Full per-class
-definitions + default severities live in `i2r-debate-review-mode/references/defect-taxonomy.md`.
+observable quality attributes that has no NFR at all. `DOWNSTREAM_COMMAND_LEAK` (BLOCKER) = any `/gsd:*`,
+`plan-phase`, `ingest-docs`, or machine-contract field in an `out/` document (§1, §18). `OVER_SPECIFICATION`
+(MAJOR) = a requirement/NFR that restates a platform/standard/regulatory guarantee or is an unmotivated
+engineered default — it carries no incremental WHAT (the RML lens; redundancy uses `DUPLICATE`, gold-plating
+uses `SCOPE_LEAK`; safety-floor items are never flagged). Full per-class definitions + default severities live
+in `i2r-debate-review-mode/references/defect-taxonomy.md`.
 
 ---
 
@@ -323,7 +326,7 @@ routes/** components/** ui/**` — keeps I2R from doing GSD's job.
 `i2r-search-mode` · `i2r-discussion-mode` · `i2r-scope-mode` · `i2r-fr-authoring-mode` ·
 `i2r-nfr-authoring-mode` · `i2r-acceptance-mode` · `i2r-debate-review-mode` · `i2r-gsd-projection-mode`.
 Root orchestration skill dir (`idea-to-requirements-orchestrator/`): `SKILL.md` + `workflow.md` +
-`mode-router.md` + `output-contract.md` (was `gsd-contract.md`) + `quality-gates.md` + `orchestration-policy.md`.
+`mode-router.md` + `output-contract.md` (was `gsd-contract.md`) + `quality-gates.md` + `requirements-minimalism.md` + `orchestration-policy.md`.
 
 **9 agents** (`.claude/agents/`, all opus): `i2r-orchestrator` · `i2r-intake-clarifier` ·
 `i2r-context-analyst` · `i2r-evidence-researcher` · `i2r-scope-architect` · `i2r-functional-author` ·
