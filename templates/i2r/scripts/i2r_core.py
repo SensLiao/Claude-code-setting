@@ -300,6 +300,66 @@ def placeholder_scan(r: Path) -> list:
     return findings
 
 
+def _norm_body(text) -> str:
+    """Normalize a requirement body for exact-duplicate detection: lowercase, strip
+    punctuation, collapse whitespace. Conservative — only an exact normalized match
+    counts as a duplicate (no fuzzy matching -> no false positives)."""
+    return re.sub(r"\s+", " ", re.sub(r"[^\w\s]", " ", str(text or "").lower())).strip()
+
+
+def minimalism_scan(r: Path) -> list:
+    """RML deterministic scan (vendored: ponytail laziness ladder -> requirements domain).
+    Flags over-specification; NEVER blocks. Findings are shaped like placeholder_scan
+    ({id, where, term, class, severity}); the SDK reads severity, not class enum.
+      - DUPLICATE          (MAJOR): two FRs, or two required NFRs, with identical normalized bodies.
+      - OVER_SPECIFICATION (MINOR): a required NFR sourced 'assumed' with no source_ref (unmotivated default).
+      - deferral_has_trigger (MAJOR): a deferred[] scope item with no non-empty revisit_trigger.
+    Severities are MAJOR/MINOR only — RML surfaces, it does not cut (safety floor stays intact)."""
+    findings = []
+
+    fr = load_stage(r, "04-functional")
+    if fr and not is_skipped(fr):
+        seen = {}
+        for req in fr.get("requirements", []):
+            key = _norm_body(req.get("system_response") or req.get("rendered"))
+            if not key:
+                continue
+            if key in seen:
+                findings.append({"id": req.get("id"), "where": "system_response",
+                                 "term": "duplicate of " + str(seen[key]),
+                                 "class": "DUPLICATE", "severity": "MAJOR"})
+            else:
+                seen[key] = req.get("id")
+
+    nf = load_stage(r, "05-nfr")
+    if nf and not is_skipped(nf):
+        seen = {}
+        for n in nf.get("nfrs", []):
+            if n.get("coverage_status") != "required":
+                continue
+            key = _norm_body(n.get("description"))
+            if key:
+                if key in seen:
+                    findings.append({"id": n.get("id"), "where": "description",
+                                     "term": "duplicate of " + str(seen[key]),
+                                     "class": "DUPLICATE", "severity": "MAJOR"})
+                else:
+                    seen[key] = n.get("id")
+            if n.get("source") == "assumed" and not str(n.get("source_ref", "")).strip():
+                findings.append({"id": n.get("id"), "where": "source",
+                                 "term": "unmotivated assumed default",
+                                 "class": "OVER_SPECIFICATION", "severity": "MINOR"})
+
+    scope = load_stage(r, "03-scope")
+    if scope and not is_skipped(scope):
+        for d in scope.get("deferred", []):
+            if not str(d.get("revisit_trigger", "")).strip():
+                findings.append({"id": d.get("item", "?"), "where": "deferred.revisit_trigger",
+                                 "term": "missing", "class": "deferral_has_trigger", "severity": "MAJOR"})
+
+    return findings
+
+
 def prd_grade(r: Path) -> dict:
     rev = reviews(r)
     scores = [v["gsd_ambiguity_precheck"]["score"] for v in rev.values()

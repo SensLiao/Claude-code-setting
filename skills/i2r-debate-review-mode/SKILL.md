@@ -100,7 +100,7 @@ Recorded in `gsd_ambiguity_precheck` of both review files.
 
 ## Defect classification
 
-Every finding must carry a `defect_class` from the fixed 13-value set in CONTRACT §7
+Every finding must carry a `defect_class` from the fixed set in CONTRACT §7
 and `references/defect-taxonomy.md`. Severity must be classified as BLOCKER, MAJOR,
 or MINOR per the severity table in that reference.
 
@@ -149,7 +149,7 @@ the relevant stage-owner executes the repair).
 
 ## References
 
-- `references/defect-taxonomy.md` — 13 defect classes, severity table, 8-class completeness checklist
+- `references/defect-taxonomy.md` — defect classes, severity table, completeness checklist
 - `references/santa-loop.md` — dual-reviewer protocol, Reader Test Gate, Codex fallback
 - `references/repair-loop.md` — bounded repair loop, 08-repair-notes.json contract
 

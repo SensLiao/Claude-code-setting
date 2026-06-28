@@ -1,6 +1,6 @@
 # Defect Taxonomy
 
-The fixed 13-value `defect_class` set from CONTRACT §7. Every finding in
+The fixed `defect_class` set from CONTRACT §7 (the authoritative list and count live there). Every finding in
 `07-review.json` and `07-review.codex.json` must use exactly one of these values.
 Do not invent new classes; if a defect does not fit, use the closest match and
 explain in `evidence`.
@@ -24,6 +24,8 @@ explain in `evidence`.
 | `DOWNSTREAM_REINTERPRETATION_RISK` | MAJOR | The requirement is technically unambiguous but is highly likely to be misread by implementers, reviewers, or downstream AI agents in a predictable way. Requires a `scope_risks` note or rewrite. |
 | `READER_TEST_FAIL` | BLOCKER | A fresh reader seeing only `PRD.md` cannot independently infer goals, boundary, constraints, or acceptance criteria for this requirement. The PRD is not standalone-readable. |
 | `PLACEHOLDER` | BLOCKER | A requirement, NFR, or acceptance criterion contains a placeholder value from the reject list (CONTRACT §9): `TBD`, `TODO`, `FIXME`, `nice to have`, `fast`, `secure`, `scalable`, `robust`, `user-friendly`, `performant`, `flexible`, `efficient`, `as appropriate`, `as needed`, `etc.`, `and so on`, `to be determined`. |
+| `DOWNSTREAM_COMMAND_LEAK` | BLOCKER | Any `/gsd:*`, `plan-phase`, `ingest-docs`, or machine-contract field (`next_command_hint`, `consumer_contract_version`, `required_gsd_behavior`, `handoff.gsd`) in an `out/` document — the package must carry no downstream orchestration commands (CONTRACT §1, §18). |
+| `OVER_SPECIFICATION` | MAJOR | The requirement/NFR carries no incremental WHAT: it restates a guarantee the platform / standard / regulation the project is bound to already provides (TLS, JSON responses, hashing the stack mandates), or it is an `assumed` engineered default nobody asked for. The RML lens (root skill `requirements-minimalism.md`). Distinct from `DUPLICATE` (restates *another requirement*) and `SCOPE_LEAK` (a *gold-plated capability* outside scope). NEVER applied to a safety-floor item (security / data-loss / accessibility / compliance / explicit ask) — those are protected even when terse. RML only flags; `OVER_SPECIFICATION` is never BLOCKER. |
 
 ---
 
@@ -38,6 +40,8 @@ Default severity may be overridden by a reviewer with explicit justification in 
   without logging the error").
 - `NFR_MISSING` may be downgraded to MINOR if the capability is explicitly `COULD`
   or `WONT` in scope.
+- `OVER_SPECIFICATION` may be downgraded to MINOR for an unmotivated `assumed` NFR (advisory — confirm it is
+  wanted), or upgraded to MAJOR for a platform/standard re-statement that misleads downstream. Never BLOCKER.
 
 BLOCKER defects can never be downgraded below MAJOR. If a reviewer disagrees with
 a BLOCKER classification, they must record it as MAJOR with full justification;
@@ -45,7 +49,7 @@ the gate resolves the discrepancy.
 
 ---
 
-## 8-class completeness checklist (per review pass)
+## Completeness checklist (per review pass)
 
 Before producing `findings[]`, the reviewer runs this checklist. Each class
 is checked independently; a failure generates one or more findings.
@@ -75,11 +79,16 @@ is checked independently; a failure generates one or more findings.
    making scope, architecture, or ambiguity decisions?
    (GSD rubric. Failure → GSD_INCOMPATIBLE.)
 
+9. **Minimalism** — Does every requirement carry incremental WHAT, or does it
+   restate a platform/standard given or duplicate another requirement?
+   (RML ladder, root skill `requirements-minimalism.md`. Failure → OVER_SPECIFICATION,
+   or DUPLICATE / SCOPE_LEAK where those fit. Safety-floor items are exempt.)
+
 ---
 
 ## GSD ambiguity precheck weights (CONTRACT §10)
 
-Run after the 8-class checklist. Score each dimension 0.0–1.0 (0 = no ambiguity):
+Run after the completeness checklist. Score each dimension 0.0–1.0 (0 = no ambiguity):
 
 ```
 goal       × 0.35   — Is the business purpose clear and specific?
