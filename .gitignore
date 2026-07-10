@@ -30,6 +30,8 @@ settings.local.json
 # profiles/ = 本机 hook 接线记录（export-profile 输出），因机而异，不分发。
 # 注：claude-config.js + wire-manifest.json 已改回纳入分发（2026-06-23）——安装器需随 repo 到新设备。
 profiles/
+# .harness/ = 机器流水账（ledger-autolog → run-ledger.appendRun），每机各自生成，不分发
+.harness/
 
 # === 🟡 个人数据 / 对话历史（用户决定不上） ===
 # 本地工作账本(§0.7 进度 ledger）— 仅追踪个人进度，不上仓库
