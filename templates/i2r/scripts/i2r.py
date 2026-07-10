@@ -28,7 +28,7 @@ from i2r_core import (                        # noqa: E402
     raw_dir, out_dir, internal_dir, stages_dir, audit_dir, ops_dir, stage_path, state_path,
     is_run_dir, find_run_dir, read_state, write_state, append_log, run_lang,
     load_stage, is_skipped, validate_stage, routing, required_stages, reviews, detect_state,
-    placeholder_scan, prd_grade, reader_test_verdict, orphan_acceptance, downstream_risk,
+    placeholder_scan, minimalism_scan, prd_grade, reader_test_verdict, orphan_acceptance, downstream_risk,
     out_structural_checks, load_all_stages, build_model, write_latest, _scrub,
 )
 
@@ -393,6 +393,8 @@ def cmd_gate_check(args) -> int:
     majors = [f for f in findings if f.get("severity") == "MAJOR"]
     ph = placeholder_scan(run_dir)
     ph_block = [f for f in ph if f.get("severity") == "BLOCKER"]
+    ms = minimalism_scan(run_dir)
+    ms_major = [f for f in ms if f.get("severity") == "MAJOR"]
     grade = prd_grade(run_dir)
     reader = reader_test_verdict(run_dir)
     stale = read_state(run_dir).get("stale", [])
@@ -402,6 +404,8 @@ def cmd_gate_check(args) -> int:
     checks.extend(struct_checks)
     checks.append({"name": "no_open_blockers", "result": "PASS" if not (blockers or ph_block) else "FAIL", "note": ""})
     checks.append({"name": "placeholder_scan_clean", "result": "PASS" if not ph_block else "FAIL", "note": ""})
+    checks.append({"name": "minimalism_scan_clean", "result": "PASS" if not ms_major else "FAIL",
+                   "note": ", ".join(f"{f['id']}.{f['where']}" for f in ms_major[:5])})
     checks.append({"name": "reader_test", "result": reader, "note": ""})
     checks.append({"name": "prd_ambiguity_within_target",
                    "result": "PASS" if (grade["present"] and grade["pass"]) else "FAIL",
@@ -423,6 +427,8 @@ def cmd_gate_check(args) -> int:
     if majors:
         reasons.append(f"{len(majors)} open MAJOR finding(s)")
     reasons.extend(struct_major)
+    if ms_major:
+        reasons.append("RML minimalism (advisory): " + ", ".join(f"{f['id']}.{f['where']}({f['class']})" for f in ms_major[:5]))
     if stale:
         reasons.append("STALE artifacts pending re-run: " + ", ".join(stale))
     if orphans:
@@ -434,7 +440,7 @@ def cmd_gate_check(args) -> int:
                or not both_pass or not independent or bool(stale) or bool(struct_block))
     if blocked:
         verdict, code = "BLOCKED", 2
-    elif majors or struct_major or (grade["present"] and not grade["pass"]) or not grade["present"] or orphans or dstream:
+    elif majors or struct_major or ms_major or (grade["present"] and not grade["pass"]) or not grade["present"] or orphans or dstream:
         verdict, code = "NEEDS_REVIEW", 1
     else:
         verdict, code = "READY", 0
@@ -442,7 +448,8 @@ def cmd_gate_check(args) -> int:
     result = {
         "verdict": verdict, "generated_at": iso_now(), "run_id": read_state(run_dir).get("run_id", ""),
         "lang": lang, "both_reviews_pass": both_pass, "open_blockers": len(blockers) + len(ph_block) + len(struct_block),
-        "open_majors": len(majors) + len(struct_major), "placeholder_hits": len(ph),
+        "open_majors": len(majors) + len(struct_major) + len(ms_major), "placeholder_hits": len(ph),
+        "minimalism_findings": len(ms),
         "reader_test": reader, "prd_ambiguity_score": grade["score"],
         "missing_or_invalid_stages": missing, "reasons": reasons or ["all gate checks passed"],
     }

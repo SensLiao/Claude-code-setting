@@ -14,7 +14,7 @@ downstream.
 artifacts must exist in `internal/stages/` before the run can complete.
 
 ## 3. Santa-loop dual review (PHASE 6) — both must PASS
-- **Reviewer A** = `i2r-completeness-critic` (Claude opus, fresh context, never an author): the 8-class
+- **Reviewer A** = `i2r-completeness-critic` (Claude opus, fresh context, never an author): the completeness
   defect checklist + `gsd_ambiguity_precheck` + the Reader Test. Reads the whole `out/` Markdown package.
 - **Reviewer B** = Codex `/codex:adversarial-review` (double-blind — does not see A's findings). On Codex
   quota/rate-limit, fall back to a **2nd fresh-context `i2r-completeness-critic`**. Also reads the `out/`

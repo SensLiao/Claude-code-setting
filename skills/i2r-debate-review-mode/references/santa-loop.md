@@ -33,7 +33,7 @@ in `_meta.input_hashes` of each review output.
 `i2r-completeness-critic` (fresh context, no memory of authoring decisions):
 
 1. Read `requirements.json` and `PRD.md`.
-2. Run the 8-class completeness checklist (`references/defect-taxonomy.md §8-class`).
+2. Run the completeness checklist (`references/defect-taxonomy.md` §Completeness checklist).
 3. Run the GSD ambiguity precheck (`references/defect-taxonomy.md §gsd-ambiguity`).
 4. Run the Reader Test Gate (see §Reader Test Gate below).
 5. Produce `07-review.json` with `reviewer: "claude"`.
