@@ -67,6 +67,8 @@ description: >
 3. **Machine-readable docs** — llms.txt / llms-full.txt / markdown routes / API quickstart
 4. **Brand entity signals** — Wikipedia / Reddit / YouTube / 行业目录等实体痕迹（弱启发式）
 
+> **AEO 是 core SEO 的增量，不是平行新渠道**：Google 官方明确其 AI 搜索功能根植于核心 Search ranking 与质量系统——"AEO" / "GEO" 本质仍是 SEO。**核心 SEO（[`web-seo`](../web-seo/SKILL.md)）没做好，先做那个**；本 skill 的 AI-specific 优化是叠加在扎实 on-page SEO 之上的增量，不替代它。别把这里的工具量误读成"AI search 是一条要单独重投入的新渠道"。
+
 ### 不在本 skill 范围
 
 | 邻居 skill | 处理内容 |
@@ -1126,8 +1128,7 @@ geo track --url https://example.com --report \
 
 # 3. 归并进 measurement.json —— measurement-only，绝不进 gate
 #    复用 L1 的 measure.pull（provider=aeo 路由到 ai-search channel 的 ai_citations 指标）
-#    （注：measure.pull 当前 provider enum 见 §20.6 RETURN —— 若 aeo 未在 enum 中，
-#     主线程需按 §20.6 补 provider，本 skill 不改 SDK）
+#    （aeo provider 已在 SDK：MEASUREMENT_PROVIDERS 含 aeo，PROVIDER_CHANNEL["aeo"]="ai-search"，见 §20.6）
 python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py \
   --project-root . measure.pull "$TAG" --provider aeo \
   "evidence/discoverability/$TAG/raw/ai-citations.json"
@@ -1139,16 +1140,16 @@ python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk
 
 > **路径**：raw 产物落 `evidence/discoverability/<tag>/raw/`，归并进同 tag 的 `measurement.json`（harness-contract §2.4），**不**写 `ai-search.json`（那是 pre-launch channel evidence）。两个文件同住一个 `<tag>/` 目录但语义完全分开。
 
-### 20.6 SDK 依赖说明（RETURN 给主线程 —— 本 skill 不改 SDK）
+### 20.6 SDK 依赖说明（已落地 —— 2026-06-27 sync）
 
-L1 已落地 `measure.pull` / `measure.compare`（harness-contract §2.4），且 schema 已含 `ai_citations` / `ai_referral_sessions` 指标键（见 SDK `MEASURE_METRICS`）。但当前 `measure.pull` 的 `--provider` enum 是 `{gsc, ga4, bing, aso}`（`MEASUREMENT_PROVIDERS`），**`PROVIDER_CHANNEL` 未含 AEO→ai-search 映射**。
+L1 已落地 `measure.pull` / `measure.compare`（harness-contract §2.4），且 schema 已含 `ai_citations` / `ai_referral_sessions` 指标键（见 SDK `MEASURE_METRICS`）。**`aeo` provider 现已在 SDK 中**（2026-06-27 补齐）：
+- `MEASUREMENT_PROVIDERS` 含 `"aeo"`
+- `PROVIDER_CHANNEL["aeo"] = "ai-search"`
+- 因此 `measure.pull --provider aeo <raw/ai-citations.json>` 直接归一化进 `measurement.json` 的 ai-search channel（measurement-only，绝不进 gate）
 
-**L3 需要主线程在 `discoverability-sdk.py` 补一个 measurement provider**（L1 owns SDK，本 skill 按约束**不改** SDK，仅 RETURN）：
-- 在 `MEASUREMENT_PROVIDERS` 增 `"aeo"`（或复用现有命名习惯）
-- 在 `PROVIDER_CHANNEL` 增 `"aeo": "ai-search"`
-- 归一化逻辑：把 `geo citations` 的 JSON（`domain_citation_rate` / `brand_mention_rate` / `verdict` / `top_cited_domains`）映射到 measurement schema 的 `ai_citations`（+ 标 provider 能力分级 §20.4，parametric provider 的 mention rate 不计入 citation）
+归一化时把 `geo citations` 的 JSON（`domain_citation_rate` / `brand_mention_rate` / `verdict` / `top_cited_domains`）映射到 measurement schema 的 `ai_citations`；按 §20.4 provider 能力分级，parametric provider（OpenAI/Anthropic）的 mention rate **不**计入 citation。
 
-**若主线程暂不补 SDK**：L3 仍可独立运行 —— `geo citations --format json` 直接产出 `raw/ai-citations.json` 供 AI 解读，只是不进 `measurement.json` 归一化时序流。citation 追踪的**核心价值（真实 verdict + 真实 source URL）不依赖 SDK**，SDK 仅负责时序归并 + before/after delta。
+**SDK 无关的独立运行**仍成立：`geo citations --format json` 直接产出 `raw/ai-citations.json` 供 AI 解读；SDK 只负责时序归并 + before/after delta。citation 追踪的**核心价值（真实 verdict + 真实 source URL）不依赖 SDK**。
 
 ### 20.7 measurement-only 边界（与 §19 audit gate 不重叠）
 

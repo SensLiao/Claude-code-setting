@@ -37,7 +37,7 @@ Per the L12 constitution (`rules/discoverability-l12.md` §Script-first, harness
 ```yaml
 project_root: <absolute path>
 tag: <release tag, commit SHA, or explicit>           # same <tag> as the audit run
-providers: [gsc, ga4, bing, aso]                       # subset to pull; default = all eligible
+providers: [gsc, ga4, bing, aso, aeo, gbp]                       # subset to pull; default = all eligible
 baseline_tag: <optional prior tag for measure.compare> # if a before/after delta is wanted
 period: <optional ISO date range, e.g. 2026-06-01..2026-06-30>
 ```
@@ -54,8 +54,10 @@ Credentials ALWAYS come from environment variables — **never** read or write `
 | `ga4` | seo | GA4 **Data API** (`runReport`) — sessions, engagement, and AI-referral sessions (filter `sessionSource` ∈ chatgpt.com / perplexity.ai / claude.ai / gemini.google.com per config `monitoring.chatgpt_referral_tracking`) | `GA4_OAUTH_JSON` / `GOOGLE_APPLICATION_CREDENTIALS` + `GA4_PROPERTY_ID` | `curl` Data API, or google-analytics-data SDK if installed |
 | `bing` | seo | **Bing Webmaster Tools API** (`GetRankAndTrafficStats`) | `BING_WEBMASTER_API_KEY` | `python -c` via `bing-webmaster-tools` pip pkg (`pip install bing-webmaster-tools`), or `curl` |
 | `aso` | aso | **App Store Connect Analytics Reports API** (impressions → product-page-views → downloads funnel) and/or Google Play Developer reporting | `ASC_KEY_ID` + `ASC_ISSUER_ID` + `ASC_PRIVATE_KEY_PATH` | App Store Connect JWT + `curl` |
+| `aeo` | ai-search | AI *referral* sessions come through GA4 (sessionSource ∈ chatgpt.com / perplexity.ai / claude.ai / gemini.google.com). AI *citation* counts (is your domain cited inside an answer?) need a citation tool — only Perplexity Sonar returns real source URLs — dropped in as an `aeo` export | GA4 creds (reused) / `PERPLEXITY_API_KEY` (citations) | `curl` GA4 + optional citation CLI |
+| `gbp` | local | **Google Business Profile Performance API** (`locations/<id>:fetchMultiDailyMetricsTimeSeries`) — business impressions (maps+search), `direction_requests`, `call_clicks`, `website_clicks`, `bookings`, `conversations`; the local analog of GSC Search Analytics | `GBP_OAUTH_JSON` / `GOOGLE_APPLICATION_CREDENTIALS` (+ account/location id) | `curl` with OAuth token |
 
-> AEO/AI-citation measurement note: GSC/GA4 capture AI *referral traffic* (the `ai_referral_sessions` metric). True AI *citation* tracking (is your domain cited inside ChatGPT/Perplexity answers?) needs a separate citation tool (e.g. the staged `geo-optimizer-skill` `geo citations` / `geo track`, BYO answer-engine API key; only Perplexity Sonar returns real source URLs). If a citation export is provided, drop its `ai_citations` count into the GSC or a dedicated export under the `seo` channel. Never invent a citation count.
+> AEO/AI-citation measurement note: GSC/GA4 capture AI *referral traffic* (the `ai_referral_sessions` metric). True AI *citation* tracking (is your domain cited inside ChatGPT/Perplexity answers?) needs a separate citation tool (e.g. the staged `geo-optimizer-skill` `geo citations` / `geo track`, BYO answer-engine API key; only Perplexity Sonar returns real source URLs). If a citation export is provided, drop its `ai_citations` count into an `aeo` export (provider `aeo` → `ai-search` channel — the SDK supports it; see the provider table above). Never invent a citation count.
 
 ## What you must do (workflow)
 
@@ -64,7 +66,7 @@ Credentials ALWAYS come from environment variables — **never** read or write `
 ```bash
 ls -la "<project_root>/evidence/discoverability/<tag>/"        # tag dir must exist (audit ran init)
 ```
-Read `discoverability.config.yaml` `monitoring:` block (Search Console property, GA4 property, AI-referral utm patterns) and `project.type` (drives which providers are eligible — e.g. `aso` only for mobile_app / web_app_plus_mobile_app). If the tag dir is missing, run `discoverability-sdk init <tag>` first (idempotent), or report BLOCKED if config is absent.
+Read `discoverability.config.yaml` `monitoring:` block (Search Console property, GA4 property, AI-referral utm patterns) and `project.type` (drives which providers are eligible — e.g. `aso` only for mobile_app / web_app_plus_mobile_app; `gbp` only when the `local` channel is active: local_service, or any project with physical_locations > 0 / service_areas). If the tag dir is missing, run `discoverability-sdk init <tag>` first (idempotent), or report BLOCKED if config is absent.
 
 ### 2. For each eligible provider, pull the raw export
 
@@ -77,7 +79,7 @@ Run the real API/CLI. Capture stdout to a raw export file under the tag's `raw/`
   "rows": [ { "query": "...", "clicks": 120 } ] }
 ```
 
-Recognized metric keys (the SDK only keeps numeric values for these): `impressions`, `clicks`, `ctr`, `avg_position`, `sessions`, `ai_referral_sessions`, `ai_citations`. Omit a metric you did not get — do **not** zero-fill.
+Recognized metric keys (the SDK only keeps numeric values for these): `impressions`, `clicks`, `ctr`, `avg_position`, `sessions`, `ai_referral_sessions`, `ai_citations`, `product_page_views`, `conversion_rate`, `keyword_rank` (ASO funnel), `direction_requests`, `call_clicks`, `website_clicks`, `bookings`, `conversations` (GBP / local channel). Omit a metric you did not get — do **not** zero-fill.
 
 If credentials are missing or the call fails, write the skip form instead and continue:
 ```json
@@ -88,7 +90,7 @@ If credentials are missing or the call fails, write the skip form instead and co
 
 ```bash
 python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py \
-  --project-root . measure.pull <tag> --provider <gsc|ga4|bing|aso> <raw-export.json>
+  --project-root . measure.pull <tag> --provider <gsc|ga4|bing|aso|aeo|gbp> <raw-export.json>
 ```
 Run once per provider — the SDK merges each provider block into the single `evidence/discoverability/<tag>/measurement.json`. The SDK stamps `measurement_only: true` so it is unmistakably **not** a gate input.
 

@@ -654,6 +654,77 @@ evidence 输出必须标 `audit_mode: auto | manual | pending`，不要假装人
 
 ---
 
+## 13.5 Post-launch local measurement（上线后本地效果测量 — measurement-only）
+
+> **加入 2026-06-27（SEO-doc audit P2-1）。** §4-§13 是**上线前 local audit**（GBP/NAP/schema/service-area pages/reviews 是否合规）；本节是**上线后测量**（真实曝光 / 来电 / 路线请求 / 预订）。补齐前，`local` 是 L12 四个 channel 里**唯一没有** post-launch measurement 的——本节对齐 `web-seo §15` / `web-aeo §20` / `app-aso §16.6`。
+
+### 13.5.0 一句话定位
+
+- **§4-§13（已有）= pre-launch local audit**：审 GBP/NAP/schema 形状，产 `local.json` channel evidence，进 audit gate（§20 blocker / warn）。
+- **§13.5（本节）= post-launch measurement**：拉真实 GBP Performance 指标，产 `measurement.json`（measurement-only），**绝不进 gate**。
+
+两条流并行、互不污染，与 L1 post-launch measurement（harness-contract `measure.pull` / `measure.compare`）同属上线后只读数据流。
+
+### 13.5.1 GBP Performance API 是本地业务的 GSC
+
+`web-seo` 用 Google Search Console Search Analytics 测网页搜索表现；**本地业务的等价物是 Google Business Profile Performance API**——按天给 business impressions（maps + search）、`direction_requests`、`call_clicks`、`website_clicks`、`bookings`、`conversations`。这正是 Google 官方文档 baseline（Phase 2）+ 月报（Phase 10）口径的本地版。
+
+| 维度 | §4-§13 pre-launch audit | §13.5 post-launch measurement |
+|---|---|---|
+| 问题 | GBP/NAP/schema 合规吗？ | 上线后**实际**被多少人看到 / 联系 / 导航？ |
+| 数据源 | GBP API 读字段 + site 源码 grep | **GBP Performance API**（`locations/<id>:fetchMultiDailyMetricsTimeSeries`）|
+| 产物 | `local.json`（channel evidence）| `measurement.json`（measurement-only）|
+| 进 gate？ | ✅ §20 blocker / warn | ❌ 否（`gate.check` 完全忽略）|
+
+### 13.5.2 Script-first 红线（AI 永不编造本地指标）
+
+继承 §20 执行宪法 + harness §8.2：
+
+1. **每个指标来自一次真实 API 调用**（GBP Performance API）。AI **绝不**凭印象写"你大概每月 X 次来电"。
+2. **无凭证 → `status: skipped`**，绝不编造。由 L1 的 `disc-measurement-puller` agent 拉取（`measure.pull --provider gbp`，provider 已在 SDK `MEASUREMENT_PROVIDERS` + `PROVIDER_CHANNEL["gbp"]="local"`）。无 GBP 凭证 → skipped。
+3. **BYO creds 从环境变量取**（`GBP_OAUTH_JSON` / `GOOGLE_APPLICATION_CREDENTIALS` + account/location id），**绝不**提交进仓库 / chat / report。
+4. AI 只在**最后一步**解读 `measurement.json` 的真实漏斗，关联到 §4-§6 哪些 GBP/NAP 改动可能起效——不产生任何指标本身。
+
+> **本 skill 读权限边界不变**：本节 API 拉取**不由本 skill 跑**，RETURN 给 L1 的 `disc-measurement-puller` agent（有 Bash）执行 `measure.pull`，本 skill 只**解读**归一化后的 `measurement.json`。与 §13.3 "无 GBP key 时仅产 manual checklist" 的既有读权限模型一致。
+
+### 13.5.3 拉取（由 disc-measurement-puller agent 跑）
+
+```bash
+# GBP Performance API；无 key → skipped，绝不编造
+python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py \
+  --project-root . measure.pull "$TAG" --provider gbp \
+  "evidence/discoverability/$TAG/raw/gbp-performance.json"
+
+# 优化前后对比（真实曝光/来电/路线 delta，纯算术；measure.compare 自动按 metric 方向判 improved/regressed）
+python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py \
+  --project-root . measure.compare "$TAG" --baseline-tag "$BASELINE_TAG"
+```
+
+### 13.5.4 measurement → 优化映射 + relevance/distance/prominence 框架
+
+Google 官方"**local ranking = relevance + distance + prominence**"（§16 来源）是解读这些指标、也是组织 §4-§8 审计的统一框架。distance（用户与门店的物理距离）不可控，但 relevance 与 prominence 完全可由 listing 改动驱动：
+
+| 三因素 | 可控？ | 喂它的审计章节 | 对应 measurement 信号 |
+|---|---|---|---|
+| **relevance**（业务与查询的匹配度）| ✅ | §4 categories / completeness、§7 LocalBusiness schema | impressions 低 → relevance 弱 |
+| **prominence**（知名度 / 权威）| ✅（缓慢）| §5 reviews、§6 NAP/citations、本地外链（→ `discoverability-growth`）| impressions 有但 call/direction 低 → prominence 没转成行动 |
+| **distance**（就近）| ❌ | §6 NAP 地址准确性 / §8 areaServed 喂它 | 某 service area 显著低 → 该区 relevance/prominence 弱 |
+
+> AI 只做这层**解读 + 路由**，指标本身 100% 来自 API。**绝不**反过来用 listing 形状去"推算"应该有多少曝光/来电。
+
+### 13.5.5 measurement-only 边界（反模式）
+
+| 流 | 产物 | 进 gate？ |
+|---|---|---|
+| pre-launch local audit（§4-§13）| `local.json` channel evidence | ✅ §20 blocker / warn |
+| post-launch measurement（§13.5）| `measurement.json`（`measurement_only: true`）| ❌ 完全忽略 |
+
+- ❌ 把 GBP impressions / call_clicks 写进 release gate（观测值，Google 本地排名算法未公开，永不 blocker）
+- ❌ 无凭证时让 AI 编一个曝光/来电数字（必须 `status: skipped`）
+- ❌ 把 measurement 产物写进 `local.json` 污染 pre-launch channel evidence
+
+---
+
 ## 14. Evidence 输出
 
 归一化后的 channel evidence 落 `evidence/discoverability/<tag>/local.json`（canonical channel key `local`，由 `discoverability-sdk evidence.append <tag> local <file>` 写入，schema 见 harness contract §4）。下表 raw 脚本产物落同一 tag 的 `raw/` 工作目录，被 `local.json` 的 `findings[].evidence_path` 反查引用：
