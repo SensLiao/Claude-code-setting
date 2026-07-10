@@ -121,7 +121,8 @@ Commands:
   quarantine.add --test <name> --owner <id> --issue <url> --expiry <date> --repro <cmd> --unblock <cond> [--class <n>]
   approve.snapshot --scope <csv> --reason <text> --hours <n> --pattern <regex> [--human-attested]
   fallback.approve --scope <csv> --reason <text> --hours <n> --human-attested   # human-attest a degraded QA path (qa-no-silent-fallback)
-  level.select <L1|L2|L3|L4> [--run-id <tag>]   # write .qa/state/level-selected.json (SKILL §6 Step 0)
+  intake.write --level L1-L4 --scope-kind git-diff|named-target|release|whole-product --scope-detail <text> --mode execution|plan-only|design-only --acceptance gsd-plan|user-inline|none-acknowledged --decided-by user|model-default [--acceptance-detail <text>] [--run-id <tag>]   # RICH entry intake → .qa/state/intake.json (SKILL §6 Step 0); gated by qa-entry-ask-required (strict REFUSES decided_by=model-default — real user input required)
+  level.select <L1|L2|L3|L4> [--run-id <tag>]   # (legacy/subset) write .qa/state/level-selected.json — prefer intake.write
   tasklist.write [<file>]                        # write .qa/state/tasklist.json from file/stdin (SKILL §6 Step 0.5)
   spec.hash <spec.json|-> -- compute canonical sha256:<hex> matching qa-preview-gate.js
   sentinel.write --run-id <id> --mode <m> --spec-file <p> --approval-text <txt> [--ttl-seconds <n>] [--approved-estimate-high <tokens>] [--preview-hash <hex>]
@@ -1131,6 +1132,79 @@ cmd_ledger_append() {
   "$NODE_BIN" "$RUN_LEDGER" "${fwd[@]}"
 }
 
+# ───── intake.write — RICH entry artifact (SKILL §6 Step 0, 2026-06-22) ─────
+# The 4 things a QA run MUST pin BEFORE producing evidence: level / scope (change-set) /
+# mode / acceptance-criteria source. qa-entry-ask-required.js blocks evidence/gate commands
+# until .qa/state/intake.json exists AND is COMPLETE. Mirrors GSD's "required populated
+# artifact before proceeding" pattern (PROJECT.md/REQUIREMENTS.md before plan-phase).
+# Honest ceiling (CLAUDE.md §0.1): enforces "a complete intake was recorded", NOT "the user
+# was genuinely asked" — the platform can't see AskUserQuestion. Also refreshes
+# level-selected.json for back-compat with legacy readers.
+cmd_intake_write() {
+  ensure_project_root
+  local level="" scope_kind="" scope_detail="" mode="" acceptance="" acceptance_detail="" decided_by="" run_id=""
+  while (( "$#" )); do
+    case "$1" in
+      --level)             level="${2:-}"; shift 2;;
+      --scope-kind)        scope_kind="${2:-}"; shift 2;;
+      --scope-detail)      scope_detail="${2:-}"; shift 2;;
+      --mode)              mode="${2:-}"; shift 2;;
+      --acceptance)        acceptance="${2:-}"; shift 2;;
+      --acceptance-detail) acceptance_detail="${2:-}"; shift 2;;
+      --decided-by)        decided_by="${2:-}"; shift 2;;
+      --run-id)            run_id="${2:-}"; shift 2;;
+      *) echo "qa-sdk intake.write: unknown arg $1" >&2; exit 2;;
+    esac
+  done
+  local missing=()
+  [[ -z "$level" ]]        && missing+=("--level")
+  [[ -z "$scope_kind" ]]   && missing+=("--scope-kind")
+  [[ -z "$scope_detail" ]] && missing+=("--scope-detail")
+  [[ -z "$mode" ]]         && missing+=("--mode")
+  [[ -z "$acceptance" ]]   && missing+=("--acceptance")
+  [[ -z "$decided_by" ]]   && missing+=("--decided-by")
+  if (( ${#missing[@]} > 0 )); then
+    echo "qa-sdk intake.write: missing required: ${missing[*]}" >&2
+    echo "  usage: intake.write --level L1-L4 --scope-kind git-diff|named-target|release|whole-product --scope-detail <text> --mode execution|plan-only|design-only --acceptance gsd-plan|user-inline|none-acknowledged [--acceptance-detail <text>] [--run-id <tag>]" >&2
+    exit 2
+  fi
+  case "$level" in L1|L2|L3|L4) :;; *) echo "qa-sdk intake.write: --level must be L1|L2|L3|L4 (got '$level')" >&2; exit 2;; esac
+  case "$scope_kind" in git-diff|named-target|release|whole-product) :;; *) echo "qa-sdk intake.write: --scope-kind must be git-diff|named-target|release|whole-product (got '$scope_kind')" >&2; exit 2;; esac
+  case "$mode" in execution|plan-only|design-only) :;; *) echo "qa-sdk intake.write: --mode must be execution|plan-only|design-only (got '$mode')" >&2; exit 2;; esac
+  case "$acceptance" in gsd-plan|user-inline|none-acknowledged) :;; *) echo "qa-sdk intake.write: --acceptance must be gsd-plan|user-inline|none-acknowledged (got '$acceptance')" >&2; exit 2;; esac
+  case "$decided_by" in user|model-default) :;; *) echo "qa-sdk intake.write: --decided-by must be user|model-default (got '$decided_by'). Set 'user' ONLY when a real user actually answered Step 0's AskUserQuestion; otherwise 'model-default' (the strict entry gate REFUSES model-default — QA needs real user input)." >&2; exit 2;; esac
+  # If functional acceptance criteria are claimed to exist, their detail (PLAN.md ref or inline
+  # criteria) is required — else the run has no functional oracle (SKILL §1 / §3.7 / Q3).
+  if [[ "$acceptance" != "none-acknowledged" && -z "$acceptance_detail" ]]; then
+    echo "qa-sdk intake.write: --acceptance-detail required when --acceptance='$acceptance' (give the PLAN.md ref or inline criteria); use --acceptance none-acknowledged to proceed WITHOUT a functional oracle" >&2
+    exit 2
+  fi
+  if [[ -z "$run_id" && -f "$PROJECT_ROOT/.qa/state.json" ]]; then
+    run_id=$(node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{process.stdout.write(JSON.parse(s).active_release_tag||'')}catch{}})" < "$PROJECT_ROOT/.qa/state.json" 2>/dev/null)
+  fi
+  mkdir -p "$PROJECT_ROOT/.qa/state"
+  local out="$PROJECT_ROOT/.qa/state/intake.json"
+  local tmp; tmp=$(mktemp)
+  if ! node -e "
+    const fs=require('fs');
+    const d={
+      level: process.argv[1],
+      scope: { kind: process.argv[2], detail: process.argv[3] },
+      mode: process.argv[4],
+      acceptance_criteria: { source: process.argv[5], detail: process.argv[6] || null },
+      decided_by: process.argv[7],
+      run_id: process.argv[8] || null,
+      answered_at: process.argv[9],
+    };
+    fs.writeFileSync(process.argv[10], JSON.stringify(d, null, 2)+'\n');
+  " "$level" "$scope_kind" "$scope_detail" "$mode" "$acceptance" "$acceptance_detail" "$decided_by" "$run_id" "$(iso_now)" "$tmp" 2>/dev/null; then
+    rm -f "$tmp"; echo "qa-sdk intake.write: failed to serialize intake JSON" >&2; exit 1
+  fi
+  mv "$tmp" "$out"
+  printf '{"level":"%s","run_id":"%s","answered_at":"%s"}\n' "$level" "$run_id" "$(iso_now)" > "$PROJECT_ROOT/.qa/state/level-selected.json"
+  echo "$out"
+}
+
 main() {
   if (( $# < 1 )); then usage; exit 2; fi
   local cmd="$1"; shift
@@ -1146,6 +1220,7 @@ main() {
     quarantine.add)               cmd_quarantine_add "$@";;
     approve.snapshot)             cmd_approve_snapshot "$@";;
     fallback.approve)             cmd_fallback_approve "$@";;
+    intake.write)                 cmd_intake_write "$@";;
     level.select)                 cmd_level_select "$@";;
     tasklist.write)               cmd_tasklist_write "$@";;
     spec.hash)                    cmd_spec_hash "$@";;

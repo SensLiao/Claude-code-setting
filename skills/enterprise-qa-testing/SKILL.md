@@ -456,20 +456,35 @@ Decision Tree 是层选择启发式，**最终选层必须经过 §3 Risk Model 
 每次 QA 任务**按此 9 步顺序执行**，每步必须输出结构化结果。前一步未输出，不进入下一步。
 v3.0 关键变化：Step 5/6 不再是"自己写测试 / 自己跑 fast lane"，而是**dispatch QA-owned skills + dispatch reference agents**；Step 7 是**验收 dispatch 返回的 evidence**。
 
-### Step 0 — Select QA Level（v3.3 新增 — 入口先问，软 gate）
+### Step 0 — Collect QA Intake（v3.4 — 入口结构化采集，四项必填）
 
-**第一个动作**应是 `AskUserQuestion` 问 QA 级别。**诚实边界**（CLAUDE.md §0.1）：hook 看不见 `AskUserQuestion`、看不见激活的 skill，所以平台**无法硬锁"ask 必须第一"**——改用 substitute 文件 + 窄 gate 兜底。L0（只挖架构不测）已并入 **Step 1.7 强制前置**，故只问 L1-L4（正好 ≤4 选项）：
+**第一个动作**是**一次 `AskUserQuestion` 问四件事**(不是只问级别)，照 GSD"先把信息灌进 required artifact 才能往下走"的模式(GSD plan-phase 没有 `PROJECT.md`/`REQUIREMENTS.md` 就进行不下去)。**诚实边界**(CLAUDE.md §0.1)：hook 看不见 `AskUserQuestion`、看不见激活的 skill，所以平台**无法硬锁"ask 必须第一"**——改用 required-artifact + 窄 gate 兜底（见下）。
 
-| 级别 | 用途 | 大致对应 preset |
-|---|---|---|
-| **L1** Quick self-check | dev 分支提交前自检：Static + risk-selected 关键层，fail-fast | quick-check |
-| **L2** PR-review gate | PR 门禁：按 risk 在 changed surfaces 上铺层 | focused-qa-gate |
-| **L3** Release readiness | 发布就绪：完整 evidence bundle | release-readiness |
-| **L4** Commercial cert | 客户可见/合规：+Visual/A11y/Perf，**强制 budget approval** | commercial-cert |
+**四个必问(一次 `AskUserQuestion`，≤4 问)**：
 
-答完立即 `bash "$HOME/.claude/scripts/qa-sdk.sh" level.select L<n>` 写 `.qa/state/level-selected.json`（`qa-entry-ask-required.js` 据此放行 evidence/gate 命令；窄 gate 只拦 `qa-sdk evidence.run/evidence.append/gate.check`，不碰其它 Bash，fail-open）。
+1. **级别 (level)** — L1-L4：
+   | 级别 | 用途 | 大致对应 preset |
+   |---|---|---|
+   | **L1** Quick self-check | dev 提交前自检：Static + risk-selected 关键层，fail-fast | quick-check |
+   | **L2** PR-review gate | PR 门禁：按 risk 在 changed surfaces 上铺层 | focused-qa-gate |
+   | **L3** Release readiness | 发布就绪：完整 evidence bundle | release-readiness |
+   | **L4** Commercial cert | 客户可见/合规：+Visual/A11y/Perf，**强制 budget approval** | commercial-cert |
+2. **范围 / change-set (scope)** — `git-diff`(默认,当前改动) / `named-target`(点名一个模块·流程) / `release`(整发布) / `whole-product`。**+ 一句话 detail**(diff base / 目标名)。补"不知道测啥"的洞。
+3. **模式 (mode)** — `execution`(真跑) / `plan-only`(还没 CI) / `design-only`(纯方案)。
+4. **功能判据来源 (acceptance_criteria)** — `gsd-plan`(给 PLAN.md 引用) / `user-inline`(用户内联给标准) / `none-acknowledged`(明确承认没有功能 oracle)。补"对照什么标准"的洞(§1 / §3.7 / Q3)。**非 `none-acknowledged` 时必须给 detail**(spec 引用或内联标准)。
 
-**级别是意图，risk 是真相**：L<n> 只设下限，Step 2 `qa-risk-classifier` + Floor Rules（§3.6）只能把级别**往高抬**不能往低压——auth/payment 即使选 L1 也会被 floor 抬到 High/Critical。
+答完立即把四项落盘：
+
+```
+bash "$HOME/.claude/scripts/qa-sdk.sh" intake.write \
+  --level L<n> --scope-kind <git-diff|named-target|release|whole-product> --scope-detail "<...>" \
+  --mode <execution|plan-only|design-only> --acceptance <gsd-plan|user-inline|none-acknowledged> [--acceptance-detail "<...>"] \
+  --decided-by user
+```
+
+写出 `.qa/state/intake.json`。**`--decided-by user` 只有在你真的回答了上面的 AskUserQuestion 时才填**；非交互场景(subagent / CI / 无真人)只能填 `--decided-by model-default`。**Gate**：`qa-entry-ask-required.js` 拦住 `qa-sdk evidence.run/evidence.append/gate.check`，直到 intake.json **五项齐全且 `decided_by=user`** 为止——strict 下 **model-default(self-fill)会被拒**(legacy `level.select` 更不足以解锁)。窄 gate 只拦那三个命令、fail-open。**诚实天花板**：hook 能强制"完整的、标记 user 的 intake 存在"，**仍不能证明真是人填的**(模型可谎称 `user`；平台看不见 AskUserQuestion)。真正的真人输入只在**交互主循环**(AskUserQuestion 真弹给用户)成立；非交互必然 model-default → 被 strict gate 挡下,逼你拿真人 intake 再继续。
+
+**级别是意图，risk 是真相**：L<n> 只设下限，Step 2 `qa-risk-classifier` + Floor Rules(§3.6)只能把级别**往高抬**不能往低压——auth/payment 即使选 L1 也会被 floor 抬到 High/Critical。
 
 ### Step 0.5 — Build durable to-do（v3.3 新增 — 账本兜底 /clear）
 
