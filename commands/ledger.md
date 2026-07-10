@@ -1,0 +1,55 @@
+---
+description: Update this repo's durable work ledger (.goals/LEDGER.md) — record the current goal, 当前断点, and next step (CLAUDE.md §0.7 layer-2). On-demand human-readable ledger; pairs with the auto machine trail (.harness/runs.jsonl via ledger-autolog hook). Use to checkpoint progress so a /clear or new session can resume.
+allowed-tools: Read, Write, Edit, Bash
+---
+
+# /ledger — checkpoint durable progress
+
+Maintain `<repo>/.goals/LEDGER.md` — the §0.7 layer-2 durable, human-readable progress ledger — so
+cross-session / multi-phase work is always resumable. This is the SEMANTIC layer a hook cannot write
+(a hook only records metadata; what was *achieved / 断点 / next* must be written by the model or you).
+
+## Process
+
+1. **Resolve target**: repo root via `git rev-parse --show-toplevel` (fallback: cwd). Target = `<root>/.goals/LEDGER.md`.
+2. **If it exists** → Read it. If it contains a one-line redirect to a project-owned tracker (e.g. `STATUS.md`), follow/append THERE instead — never duplicate ledgers.
+3. **If missing** → create `.goals/LEDGER.md` with the §0.7 skeleton: `当前指针 (resume here)` / `完成 (done)` / `进行中 (in progress)` / `计划但未做 (planned)` / `待办 (todo)` / `备注 (notes)`.
+4. **Update it to reflect NOW**, from THIS session's actual work — read the conversation, do NOT invent:
+   - **当前指针**: one line — the next concrete step (so a fresh session resumes instantly).
+   - move finished items → `完成` with commit/evidence refs where they exist.
+   - record in-progress + blocked items honestly (CLAUDE.md §0.5: done ≠ mockup ≠ not-done).
+   - convert relative dates to absolute.
+5. **Honesty + scope**: keep it concise + truthful; `.goals/` is local-only by convention (gitignored) — do NOT commit it unless the user explicitly asks.
+
+## Archive / compaction (when the ledger outgrows itself)
+
+An append-only ledger eventually stops working as a resume entrypoint: the file grows past a
+single Read, and old blocks whose headers still say 进行中/待办 mislead fresh sessions into
+re-investigating closed work. **Trigger check** — propose archiving when either holds (ask the
+user first; never archive silently):
+
+- the file no longer fits in one Read (~25k tokens, roughly >1200 lines), or
+- closed / superseded history blocks dominate (> ~2/3 of blocks).
+
+**Procedure** (archive = move, never delete; git history keeps everything regardless):
+
+1. **Harvest live items first**: scan the blocks about to be archived for still-open backlog
+   ideas / conditional to-dos / research queues buried inside them; lift those into a small
+   `待办 backlog` section of the main ledger so they don't sink with the history.
+2. Move closed/superseded history blocks **verbatim** into `<root>/.goals/LEDGER-archive.md`
+   (also append-only; add a dated one-line header per archive pass).
+3. Keep in the main ledger: TL;DR / 当前指针, live blocks, 关键事实 / 不变量 sections, a
+   one-line-per-item done/commit index, and a pointer line
+   `> 历史块已归档 → .goals/LEDGER-archive.md（YYYY-MM-DD）`.
+4. **Safety**: don't archive a block that an open item still references; skip the whole pass if
+   another concurrent session may be writing the ledger; the repo's `.goals/` scope convention
+   (local-only vs tracked) stays whatever it already is.
+
+## Optional
+
+Show the recent machine trail (auto-logged by the `ledger-autolog` Stop hook):
+```
+node ~/.claude/orchestrator-runtime/shared/run-ledger.js list --limit 10
+```
+The machine trail (`.harness/runs.jsonl`) is metadata-only (tools / files / timestamp); this command
+writes the human semantic layer on top of it.

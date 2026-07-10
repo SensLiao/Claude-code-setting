@@ -28,10 +28,11 @@
       ]
     },
     "C": {
-      "label": "Progress-ledger discipline (Stop) — §0.7 durable-ledger reminder (SOFT, one-shot, fail-open)",
+      "label": "Progress-ledger discipline (Stop, §0.7) — reminder (nag when human ledger untouched) + autolog (auto machine-trail → .harness/runs.jsonl); both SOFT / non-blocking / fail-open",
       "default": true,
       "entries": [
-        { "event": "Stop", "runner": "node", "script": "hooks/ledger-reminder.js", "timeout": 5 }
+        { "event": "Stop", "runner": "node", "script": "hooks/ledger-reminder.js", "timeout": 5 },
+        { "event": "Stop", "runner": "node", "script": "hooks/ledger-autolog.js", "timeout": 5 }
       ]
     }
   }
