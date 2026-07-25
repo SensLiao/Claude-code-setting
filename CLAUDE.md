@@ -31,6 +31,17 @@
 - **技术细节降级到末尾**：确需保留的放回复末尾「技术附录」小段，或仅在用户**追问**时展开。
 - **诚实分三类，绝不混淆**：「真能跑的功能」≠「样片 / 原型 / mockup」≠「看不见的后端引擎」。让用户误以为样片=成品是红线。看不见、没做完、被 BLOCK 的，照实标。
 - **进度给绝对值**：用"7 大块完成 0 块 / 地基做了 2/3"这种用户能换算的口径，不要只报"67%"这种无锚点百分比。
+
+**减法规则（管长度）** — 加入 2026-07-26。上面五条管的是「怎么排序 / 用什么词 / 多诚实」，**没有一条管长度**；本组专管「砍什么」。纪律吸收自 `i-have-adhd`（MIT）——vendor-not-install：只跑规则，不装插件。
+
+- **不铺垫、不收尾**：开头直接给实质（业务三行本身是实质，不算铺垫）；结尾不重述已经说过的内容，不加"希望有帮助"类套话。
+- **砍岔路**：只答被问的那件事。"顺便提一下"的内容不主动展开——真重要就单独一句标出来，由用户决定要不要追。
+- **错误直说**：报错 / 失败 / 被 BLOCK 直接给事实 + 原因 + 修法，不加软化铺垫、不道歉、不自我检讨。
+- **列表封顶**：散文型 bullet 列表 ≤5 项，超了就合并或分层。**豁免**：§0.6 预览卡的 Agents 调度表、对比表、checklist 等**结构化产物**不受此限——截断它们等于丢信息。
+- **有清单就别重抄**：已用 Task 工具挂了实时 ToDo（§0.7 第 1 层）时，正文不复述整份计划，只留一行方位句（第 N 步 / 共 M 步 + 下一步）。
+
+技术附录同理：上面「技术细节降级到末尾」已写"或仅在用户追问时展开"——**默认不挂**，只在该轮确有必须留痕的验证证据 / 诚实边界时才加。
+
 - 本规则**不改变** §0 语言约定，也**不降低**任何 governance gate 的内部严谨度——只改**对外叙述的语言层**。内部该跑的 verdict / evidence / spec_hash 一样跑、一样严。
 
 ---
@@ -50,7 +61,7 @@
 - **与 spec_hash gate 组合，不替代**：workflow-spec 模式下，本卡就是 §16.13 / §18.5 Step 10 渲染的那张卡；`spec_hash` + sentinel + `<domain>-preview-gate.js` 照旧 enforce（卡是更丰富的 *render*，hook 是 *enforcement*）。prompt-only / ad-hoc 模式下没有 sentinel——卡是 instruction-layer 的坎：渲染 → 等确认 → 跑。
 - **覆盖默认路径**：本卡在 **prompt-only 默认路径**（含 Windows）也要出——这正是以前"什么都不显示"的缺口。
 - **例外**：用户已在本 session explicit 说"直接做 / 不用预览 / 自主推进到完成"时，可省去**等待**（仍建议先把卡渲染出来让用户事后可追溯），与 task-execution-protocol §例外 一致。
-- **确定性背书（2026-06-15）**：prompt-only 默认路径上本卡过去纯靠 instruction（模型可能漏渲染）。现由**全局 hook `plan-card-reminder.js`**（PreToolUse[Agent|Workflow]，注册于 `~/.claude/settings.json`）背书：≥3 个 agent fan-out 或任意 Workflow 启动而本轮未渲染计划卡时，**确定性注入提醒**（软提醒、不阻断——"卡是坎但不卡死流程"）。诚实边界：hook 只强制"提醒触发"，不强制卡的质量；格式仍按本节 prompt。登记见 `manifests/hook-registry.json` global_live。
+- **确定性背书现状（2026-07-24 更正）**：prompt-only 默认路径上本卡**目前纯靠 instruction**（模型可能漏渲染）。曾计划由全局 hook `plan-card-reminder.js`（PreToolUse[Agent|Workflow]）确定性注入软提醒，但该 hook **已写好、从未接线**——不在 `~/.claude/settings.json` 里，不会 fire。诚实边界：**当前此卡没有 hook 兜底，是纯 instruction-layer 的坎**。要启用需手动把它加进 settings.json 的 PreToolUse[Agent|Workflow]（登记见 `manifests/hook-registry.json` 的 `dormant_opt_in`）。
 
 ---
 
@@ -70,7 +81,7 @@
 
 **例外 / 边界**：简单档免；用户说"直接做"也仍维护实时 ToDo（它是进度窗口、不是审批坎，不触发等待）。本节**不新增任何 gate / 治理**，是纯执行纪律（instruction-layer），与任何 governed gate 的内部严谨度无关。
 
-**确定性背书（2026-06-15，更新上一句）**：第 3 层「收尾坎 / 必须汇报」现已从纯 instruction 升级为 hook 背书——**全局 hook `report-gate.js`**（Stop，注册于 `~/.claude/settings.json`）：非平凡轮次（用了 Agent/Task/Workflow 或 ≥3 文件改动）收尾若无汇报（closing 文本 < 阈值，默认 200 字符）即 `decision:block` 硬拦，逼模型补出 §0.5 汇报。loop-safe（`stop_hook_active`）+ fail-open（productivity gate 非 safety gate，绝不因报错断 session）。**它是面向"必须汇报"的轻量 productivity gate，仍非 governed verdict gate**——强制汇报"存在"、不强制质量，格式仍按 §0.5；与 §0.6 的 `plan-card-reminder.js` 配成一对。登记见 `manifests/hook-registry.json` global_live。
+**确定性背书现状（2026-07-24 更正）**：第 3 层「收尾坎 / 必须汇报」**目前仍是纯 instruction**（§0.5/§0.7 prompt 约束）。曾计划由全局 hook `report-gate.js`（Stop）在非平凡轮次收尾无汇报时 `decision:block` 硬拦，但该 hook **已写好、从未接线**——不在 `~/.claude/settings.json` 里，不会 fire。它是**轻量 productivity gate**（非 governed verdict gate；只强制汇报"存在"、不强制质量）：按 §3.7 逻辑，模型更诚实后这类脚手架可保持 opt-in，实测纯 instruction 的 §0.5 汇报已足够。要启用需手动把它加进 settings.json 的 Stop（登记见 `manifests/hook-registry.json` 的 `dormant_opt_in`）。**与 §0.6 的 `plan-card-reminder.js` 同为"已写好、未接线"的 opt-in。**
 
 ---
 
