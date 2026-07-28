@@ -85,12 +85,7 @@ Use these agents for code review:
 
 ### Security
 
-- Hardcoded credentials (API keys, passwords, tokens)
-- SQL injection (string concatenation in queries)
-- XSS vulnerabilities (unescaped user input)
-- Path traversal (unsanitized file paths)
-- CSRF protection missing
-- Authentication bypasses
+[security.md](security.md) §Mandatory Security Checks — 8 items, not repeated here.
 
 ### Code Quality
 

@@ -66,33 +66,17 @@ B. 任何**重派发**（即使只读）—— 补 §A 漏掉的"只读 fan-out 
 
 ### Step 4: Model 路由（仅 Claude subagent 适用）
 
-| 任务层级 | Model | 适用 |
-|---------|-------|------|
-| 决策层 | opus | 架构设计、方案选型、复杂 debug、安全审查、内容质量终审 |
-| 执行层 | sonnet | 功能开发、测试、常规 review、中等分析 |
-| 工具层 | haiku | 格式转换、文档更新、简单 CRUD |
+每次 spawn agent 必 **explicit** 指定 `model` —— 不指定 = 继承 parent，可能浪费 token 或低质量。
+
+三档 tier（`opus` 决策层 / `sonnet` 执行层 / `haiku` 工具层）+ 判断准则 + 任务路由速查表见 [performance.md](performance.md) §模型路由策略（单一真相源，不在此重复）。
 
 ### Step 5: 渲染计划预览卡 → 用户审查 → 执行
 
-**在执行任何生成操作 / 重派发之前**，必须先渲染 **PLAN-PREVIEW CARD（计划预览卡，坎）** —— 单一真相源 `~/.claude/orchestrator-runtime/shared/preview-template.md` 的 "Default user-facing card"（详见 [CLAUDE.md §0.6](../../CLAUDE.md)）。卡片不是纯文字，必须是**表 + 点线流程图**：
+**在执行任何生成操作 / 重派发之前**，必须先渲染 **PLAN-PREVIEW CARD（计划预览卡，坎）**，且**不是纯文字 —— 必须是表 + 点线流程图**。
 
-```
-╔══ 执行计划预览 · PLAN PREVIEW — {{Domain}} / {{mode}} ══╗
-🎯 目标 / 🧩 用到的能力 / ✅ 做完得到 / 📦 规模·成本 / 🚦 复杂度档 / 🤔 为什么这个形状
-
-── Agents 调度（表）──
-| # | 阶段/Agent | 模型 | 干什么 | 用的工具=作用 |   ← 工具列必填
-|---|-----------|------|--------|---------------|
-
-── 流程/结构图（dots & lines）──
-{{ascii_flow_diagram}}   图例: ──►串行 ═►parallel×N ◇gate ⟳loop [det]纯代码 ?=skip
-
-── 证据/产物 ──  - {{path}} …
-🔒 spec_hash（仅 workflow-spec）
-确认执行? OK/批准/跑 → 跑 · 改:说哪步 · 停:cancel
-```
-
-> 复杂度分档（§Step 1）决定卡的厚度：**简单**=跳过；**中等**=精简卡（表为主）；**复杂**=完整卡（表+图+成本）。这张卡取代了旧的纯文字"执行方案"摘要——同样含任务分类 / 匹配 skills / 执行者 / model / 理由，但以**表+图**呈现，并强制带"用的工具=作用"列和流程图。
+- 卡片模板单一真相源：`~/.claude/orchestrator-runtime/shared/preview-template.md` 的 "Default user-facing card"
+- 必含四件（业务三行 / Agents 调度表**工具列必填** / 点线流程图 / 确认坎）的完整规格：[CLAUDE.md §0.6](../../CLAUDE.md)
+- 复杂度分档（§Step 1）决定卡的厚度：**简单**=跳过；**中等**=精简卡（表为主）；**复杂**=完整卡（表+图+成本）
 
 **等用户确认后再开始执行。** 用户可以：
 - 确认 → 按方案执行
