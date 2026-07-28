@@ -48,18 +48,7 @@ downstream:
   - security-platform-secrets  # for secrets engineering review
   - security-platform-iac-cloud  # for IaC / cloud posture review
 description: >
-  Application Security (AppSec) orchestrator for commercial web/server projects.
-  Activate immediately when a project has backend / API / auth / user-data /
-  file-upload / payment / admin / multi-tenant / GenAI-agent surface, or nears
-  production. v3.0 GSD-lite engine: self-dispatches named subagents, an
-  appsec-sdk evidence sink, and 6 project hooks. Maps to NIST CSF 2.0 (Govern /
-  Identify / Protect / Detect / Respond / Recover) over a 6-layer capability map.
-  Use for threat modeling, dependency/supply-chain & SCA/secret/SAST scanning,
-  auth & authorization & input-validation & API security review, OWASP ASVS 5.0
-  / WSTG / API Top 10 mapping, security headers/cookies/session review,
-  remediation routing, DAST baseline planning. Casual: security review / is this
-  secure? / check for vulnerabilities / before I deploy. Does NOT perform active
-  scans — active validation is gated by `authorized-pentest-validation`.
+  Application Security (AppSec) orchestrator for commercial web/server projects. Activate immediately when a project has backend / API / auth / user-data / file-upload / payment / admin / multi-tenant / GenAI-agent surface, or nears production. v3.0 GSD-lite engine: self-dispatches named subagents + an appsec-sdk evidence sink + 6 project hooks. Maps to NIST CSF 2.0 (Govern/Identify/Protect/Detect/Respond/Recover) over a 6-layer capability map. Use for threat modeling, supply-chain/SCA/secret/SAST scanning, auth & authorization & input-validation & API security review, OWASP ASVS 5.0 / WSTG / API Top 10 mapping, headers/cookies/session review, remediation routing, DAST baseline planning. Casual: "security review / is this secure? / check for vulnerabilities / before I deploy". Does NOT perform active scans — active validation is gated by `authorized-pentest-validation`.
 trigger_phrases:
   - AppSec / 安全审查 / 威胁建模 / OWASP / API 安全
   - dependency audit / SAST / SCA / 安全 baseline

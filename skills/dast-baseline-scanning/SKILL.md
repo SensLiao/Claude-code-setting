@@ -24,17 +24,7 @@ downstream:
   - security-remediation (HIGH+ findings)
   - authorized-pentest-validation (manual upgrade path if active needed)
 description: >
-  Passive DAST baseline scanning workflow. Configures and runs OWASP ZAP Baseline
-  scan (spider + passive scan, NO active attacks) against authorized local / lab /
-  staging / preview targets only. Generates report, explains alerts, proposes
-  remediation. Does NOT perform active scan, full scan, exploitation, or any
-  attack on production or unauthorized targets. Wrapper-based by design — raw
-  ZAP CLI invocation is forbidden. Active validation is gated by
-  `authorized-pentest-validation` (manual hard gate). NEVER rename the skill name
-  — the wrapper safety boundary depends on this exact name being referenced in
-  routing tables.
-  Trigger phrases: "DAST baseline / ZAP baseline / passive 安全扫描 /
-  preview 安全检查 / staging security scan".
+  Passive DAST baseline scanning workflow — configures and runs an OWASP ZAP Baseline scan (spider + passive scan, NO active attacks) against authorized local / lab / staging / preview targets only; generates report, explains alerts, proposes remediation. Does NOT perform active scan, full scan, exploitation, or any attack on production or unauthorized targets. Wrapper-based — raw ZAP CLI invocation forbidden. Active validation is gated by `authorized-pentest-validation` (manual hard gate). NEVER rename the skill name — the wrapper safety boundary depends on this exact name in routing tables. Triggers: "DAST baseline / ZAP baseline / passive 安全扫描 / preview 安全检查 / staging security scan".
 ---
 
 # SKILL: dast-baseline-scanning

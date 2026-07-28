@@ -7,22 +7,7 @@ updated_date: 2026-06-22
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 description: >
-  Manually invoked project environment bootstrap workflow with selector-engine
-  composition. Use ONLY when the user explicitly invokes /claude-env-bootstrap.
-  Scans project signals into a 25-dimension signal_vector, asks high-leverage
-  questions to fill gaps, then evaluates declarative selectors from catalog.json
-  to compose a minimal-yet-complete .claude/ environment. v2.0.0 replaces v1.x
-  hardcoded inclusion tables with a data-driven selector engine — adding/removing
-  skills only requires editing catalog.json, not SKILL.md. Manual-first because
-  this skill writes files, copies skills, and generates CLAUDE.md.
-  v2.2.0 makes it usable on EXISTING / non-empty projects: EXECUTE file copies are
-  no-clobber (cp -n — never overwrites your existing files) and three incremental entry
-  modes are added — --scan-only (read-only assessment), --add <skill|subsystem>
-  (additively install one capability), --adopt (write a manifest over an existing
-  un-managed .claude/ without overwriting anything).
-  When user mentions "init project / bootstrap / 装环境 / configure claude /
-  set up claude environment / configure .claude/ / 初始化 .claude",
-  RECOMMEND `/claude-env-bootstrap` but DO NOT auto-execute.
+  Manually invoked project environment bootstrap workflow with selector-engine composition. Use ONLY when the user explicitly invokes /claude-env-bootstrap. Scans project signals into a 25-dimension signal_vector, asks high-leverage gap questions, then evaluates declarative selectors from catalog.json to compose a minimal-yet-complete `.claude/` environment. Manual-first because it writes files, copies skills, and generates CLAUDE.md. Usable on EXISTING / non-empty projects: file copies are no-clobber (`cp -n`) with incremental modes --scan-only / --add <skill|subsystem> / --adopt. When the user mentions "init project / bootstrap / 装环境 / configure claude / set up claude environment / 初始化 .claude", RECOMMEND `/claude-env-bootstrap` but DO NOT auto-execute.
 ---
 
 # claude-env-bootstrap v2.0.0 — Selector-Engine 智能装配

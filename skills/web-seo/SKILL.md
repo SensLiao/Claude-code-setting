@@ -15,23 +15,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 forbidden-tools: []
 disable-model-invocation: false
 description: >
-  Standard web SEO skill — make public web pages discoverable on traditional
-  search engines (Google / Bing / DuckDuckGo / Baidu / Yandex). Covers crawl
-  policy, indexability, canonicalization, hreflang, metadata, structured data
-  (schema.org / JSON-LD), Lighthouse SEO audit, and Search Console signal
-  monitoring. Script-first: runs Lighthouse / curl / parser before any AI
-  interpretation. Does NOT cover AI search / answer engines (use web-aeo),
-  Local SEO / Google Business Profile (use web-local-seo), App Store /
-  Play Store (use app-aso), or any security / access control concern
-  (escalate to appsec-security-orchestrator). Trigger phrases: "SEO /
-  Google Search / Bing search / technical SEO / on-page SEO / sitemap.xml /
-  robots.txt / canonical / structured data / Schema.org (general) /
-  Lighthouse SEO / Search Console / meta description / title tag / hreflang /
-  国际 SEO / canonical URL / 重定向 / 301 / 网站地图 / 搜索引擎收录 /
-  tech SEO CI / technical SEO gate / SEO CI gate / site-wide SEO crawl /
-  full-site SEO audit / unlighthouse / lighthouse-ci / lhci / SEO budget /
-  broken link check / 整站 SEO / SEO 进 CI / SEO 流水线门禁 / 全站爬虫审计 /
-  Lighthouse CI / SEO assertions / SEO regression gate".
+  Standard web SEO — make public pages discoverable on traditional search engines (Google / Bing / DuckDuckGo / Baidu / Yandex): crawl policy, indexability, canonicalization, hreflang, metadata, structured data (schema.org/JSON-LD), Lighthouse SEO audit, Search Console monitoring, and site-wide tech-SEO CI gates. Script-first (Lighthouse/curl/parser before AI). Not AI search/answer engines (→ web-aeo), Local SEO/GBP (→ web-local-seo), App/Play ASO (→ app-aso), or security/access control (→ appsec-security-orchestrator). Triggers: "SEO / Google/Bing search / technical SEO / on-page SEO / sitemap.xml / robots.txt / canonical / structured data / Lighthouse SEO / Search Console / meta description / hreflang / tech-SEO CI gate / unlighthouse / lighthouse-ci / full-site SEO audit / 网站地图 / 搜索引擎收录 / 整站 SEO / SEO 进 CI".
 ---
 
 # web-seo — 标准 Web SEO 子层

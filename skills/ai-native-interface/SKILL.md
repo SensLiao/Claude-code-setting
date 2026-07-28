@@ -1,16 +1,7 @@
 ---
 name: ai-native-interface
-description: >-
-  AI-native interaction-architecture / paradigm layer — 决定一个 AI 原生产品的"形状"和"一场会话的编排"，不是它"长什么样"。
-  这是一层 paradigm / interaction-architecture，与 L3 视觉风格（taste / luxury / brutalist）正交：它 COMPOSES on top of 锁定的 L3，
-  自己 NEVER 是一种 L3 视觉风格，绝不进任何 `l3_style` enum，绝不会被 style-lock 成"第 4 种风格"。
-  When to use: 当你在做一个"前门 = 开始一场对话 → 看到选项 → 收窄"形态的产品时——例如 agent-console 式控制台、AI 原生的客户交付物（给客户做 AI 原生产品）。
-  Owns (它管的): skeleton-library governance（骨架库治理）/ show-then-ask（先展示后追问排序）/ continuous-interface（连续界面，无页面）/
-  URL-as-conversation-state（URL 即对话状态）/ start-the-conversation 首屏 / homework-opener（做过功课的开场白）/ give-before-take + easy-exit（先给后取 + 让离开容易）。
-  Does NOT do (它不碰的): 视觉风格选型（L3 owns）/ 视觉 chassis authoring（UI-SPEC→chassis.yaml owns）/ ux-principles 的通用命名法则与事后审计（那是 ux-principles）/
-  build & eng（URL-state 实现、runtime 组装走 GSD / frontend-design）/ AI 面的 security（走 security-app-llm）。
-  Trigger phrases: "AI-native 界面 / 对话式产品 / 生成式 UI / generative UI / skeleton library / 骨架库 / show-then-ask / 先展示后追问 /
-  conversation as product / URL 即对话状态 / agent console 交互范式 / 给客户做 AI 原生产品".
+description: >
+  AI-native interaction-architecture / paradigm layer — 决定 AI 原生产品的"形状"和会话编排，不是"长什么样"。与 L3 视觉风格（taste/luxury/brutalist）正交：COMPOSES on top of 锁定的 L3，自己 NEVER 是 L3 风格、绝不进 `l3_style` enum。管：skeleton-library 治理 / show-then-ask / continuous-interface / URL-as-conversation-state / start-the-conversation。不碰：视觉风格选型（→ L3）/ chassis authoring（→ UI-SPEC）/ 通用 UX 法则（→ ux-principles）/ 实现与 runtime（→ GSD/frontend-design）/ AI security（→ security-app-llm）。触发词: "AI-native 界面 / 对话式产品 / generative UI / skeleton library / 骨架库 / URL 即对话状态 / agent console 交互范式 / 给客户做 AI 原生产品".
 type: paradigm-layer
 version: 1.0.0
 ---

@@ -6,22 +6,7 @@ created_date: 2026-05-23
 disable-model-invocation: false
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 description: >
-  An end-to-end frontend design-to-code workflow for "proposal-style"
-  projects — where you must show a client / boss a high-fidelity clickable
-  prototype but are not yet building production. Splits the work into three
-  structured stages (Reference → Anchors → Prototype) along a three-axis
-  matrix (Target × Direction × Stage). Each stage has explicit inputs,
-  outputs, and acceptance criteria, and uses structured docs (DIRECTION.md,
-  PAGE-WORKFLOW.md, PROMPTS.md per schema, BUILD-PROMPT generic + patch) to
-  hand off between stages instead of treating AI image generation as a black
-  box. Optimised for: pitching N parallel visual directions to the client,
-  funnelling down to 1-2 picks, then translating selected mockups into
-  static HTML/CSS prototypes that can be deployed to Vercel or screenshotted
-  into a proposal PDF. Pairs upstream with `prototyping-ui-directions`
-  (variant exploration) and downstream with `anchor-prototype-wave` or
-  `frontend-design` (production wave). Trigger phrases: "走 sens 流程 / 用
-  3-stage 设计流程 / 给客户出提案原型 / N 方向并行视觉探索 / Reference →
-  Anchors → Prototype / 我要做客户提案 demo,不上线".
+  End-to-end frontend design-to-code workflow for "proposal-style" projects — show a client/boss a high-fidelity clickable prototype before building production. Three stages (Reference → Anchors → Prototype) along a Target × Direction × Stage matrix, each with explicit inputs/outputs/acceptance and structured hand-off docs (DIRECTION.md / PAGE-WORKFLOW.md / PROMPTS.md / BUILD-PROMPT) instead of black-box AI image-gen. For pitching N parallel visual directions, funnelling to 1-2 picks, then translating mockups into static HTML/CSS deployable to Vercel or a proposal PDF. Pairs upstream with `prototyping-ui-directions`, downstream with `anchor-prototype-wave` / `frontend-design`. Triggers: "走 sens 流程 / 3-stage 设计流程 / 给客户出提案原型 / N 方向并行视觉探索 / Reference → Anchors → Prototype / 客户提案 demo 不上线".
 ---
 
 # sens-frontend-design — 3-Stage 提案型前端工作流

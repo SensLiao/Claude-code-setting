@@ -7,20 +7,7 @@ supersedes: v2.1.0
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash
 description: >
-  Take a visual anchor (chassis tokens + page list) and produce a
-  reviewable hi-fi prototype wave in ONE shot. The skill writes a master
-  gallery `index.html` (mirroring the `ui-lab/v2-anchor-prototypes/`
-  layout exactly) plus N per-surface `<slug>/index.html` pages. All
-  verification — deterministic validators, LLM grader, cross-AI review,
-  fix-on-fail loop — runs automatically and silently inside the pipeline.
-  No modes. No CLI flags. The user supplies the anchor + page list once;
-  the skill returns a reviewable gallery and only stops to ask when a
-  page's content is ambiguous or a surface escalates after 3 fix retries.
-  Pairs upstream with `prototyping-ui-directions` (for variant
-  exploration before the anchor is locked) and downstream feeds into
-  `frontend-design`. Trigger phrases: "用这个 anchor 出一波 prototype /
-  generate the wave from this anchor / 把这些页面照这个 anchor 全生成
-  出来 / take this chassis and produce N hi-fi mocks".
+  Take a visual anchor (chassis tokens + page list) and produce a reviewable hi-fi prototype wave in ONE shot: a master gallery `index.html` (mirroring `ui-lab/v2-anchor-prototypes/`) + N per-surface `<slug>/index.html`. All verification (deterministic validators, LLM grader, cross-AI review, fix-on-fail loop) runs automatically inside the pipeline; no modes, no flags. Stops to ask only when a page's content is ambiguous or a surface escalates after 3 retries. Pairs upstream with `prototyping-ui-directions`, downstream feeds `frontend-design`. Triggers: "用这个 anchor 出一波 prototype / generate the wave from this anchor / 把这些页面照这个 anchor 全生成 / take this chassis and produce N hi-fi mocks".
 ---
 
 # Anchor Prototype Wave — v3.0.0
