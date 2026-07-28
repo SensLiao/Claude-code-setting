@@ -138,7 +138,7 @@
 | QA 主线 | `enterprise-qa-testing` v3.2 | testing / QA / E2E / release readiness / CI gate | auto | **dual-mode**：prompt-only（默认）+ workflow-spec（显式 `/qa-quick-check` `/qa-focused-gate` `/qa-release-readiness` `/qa-commercial-cert`，§18.5 14-step launch contract）|
 | AppSec 主线 | `appsec-security-orchestrator` v3.0 | backend / API / auth / user-data / file-upload / payment / admin / production + 威胁建模 / SAST / SCA / secrets / IaC / 云配置 / CSF 2.0 / 事件响应 / 恢复（**完整 trigger 词表见 `manifests/skill-routing-policy.json` appsec_defensive；narrow routing 见 appsec_narrow_***）| auto when triggers present | **dual-mode**：prompt-only（默认）+ workflow-spec（`.appsec/config.json.execution_mode = "workflow-spec"`，§16.11 14-step authoring contract）|
 
-> **Subsystem hook scope clarification**：AppSec / QA / UIUX / L12 hooks are **project-installed-only**。各 SDK 的 `init` 是 canonical hook-installer（缺 `<sub>` config 自动建 → 复制 project-local hooks 进 `<project>/.claude/hooks/` → merge `<project>/.claude/settings.json`，全部经唯一 helper `orchestrator-runtime/shared/install-subsystem-hooks.js` 读 `manifests/hook-registry.json` 完成）：`bash ~/.claude/scripts/appsec-sdk.sh init` / `qa-sdk.sh init` / `uiux-sdk.sh init` / `python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py --project-root . init`。`claude-env-bootstrap` EXECUTE §7.1a 在子系统入选时**自动**跑对应 init（2026-05-30 起，hooks 为 project-local 自包含，随 repo clone/commit 走）。Fresh project 无对应 config file 时 **NO subsystem-hook enforcement**，只有 GSD hooks 全局 fire。详 [CANONICALS.md D3](docs/CANONICALS.md#d3--hook-scope-project-installed--clarify-docs)。
+> **Subsystem hook scope**：AppSec / QA / UIUX / L12 hooks 全是 **project-installed-only** —— 各 SDK 的 `init` 是 canonical installer（`appsec-sdk.sh` / `qa-sdk.sh` / `uiux-sdk.sh` / `discoverability-sdk.py`；`claude-env-bootstrap` 在子系统入选时自动跑）。**Fresh project 无对应 config 时 0 subsystem enforcement，只有 GSD hooks 全局 fire。** 详 [CANONICALS.md D3](docs/CANONICALS.md#d3--hook-scope-project-installed--clarify-docs)。
 
 ### 3.5 Workflow-spec 迁移范围锁定（2026-05-29 user lock）
 
@@ -173,24 +173,11 @@
 
 **Mode-asking 默认行为**：当 mode 不明确时，SKILL 主线问用户："请选 (1) prompt-only 快速 review，(2) workflow-spec 完整 audit + evidence persist；commercial-cert 必须 (2) 且需 budget approval。"
 
-**AppSec v3.0**（2026-05-25 — GSD-lite execution engine + Phase 6 扩展）：
-- 对齐 NIST CSF 2.0 六功能（Govern / Identify / Protect / Detect / Respond / **Recover**）
-- 路由 6-layer capability map（governance / app / platform / operations / response / compliance）
-- 标准升 ASVS 5.0（V1-V17，旧 V2-V13 标识符已 deprecated）
-- **25 个 sub-skill 已落地**（28 个 AppSec-family 含 dual pentest gates + GSD adapter；计数按下方实际枚举列表重算——2026-06-15 Wave A 落 +4 后 = 23 sub-skill / 26 family；本次 Wave B +2 new sub-skill（`dast-authenticated` / `security-pentest-exploitation-planning`）= 25 sub-skill / 28 family；2026-06-10 新增 `security-app-api` / `security-platform-supply-chain` / `security-compliance-privacy`；2026-06-14 新增 `security-response-red-purple-team`（红/紫队 ATT&CK 覆盖, planning-only）/ `security-viz`（安全可视化生成器）；2026-06-15 Wave A 新增 4 个、Wave B 新增 2 个见下）：
-  - governance: `security-governance-threat-modeling`
-  - app: `security-remediation`, `dast-baseline-scanning`, `dast-authenticated`（**RED-LINE** authenticated/登录态 DAST 双 gate，wrapper-only，passive baseline 与 exploitation 之间的中间层；HARD-REQUIRES ROE + 授权 staging/preview/lab target + 时间窗 + 人工授权，绝不 auto-scan、绝不打 production）, `security-app-fuzzing`（coverage-guided 模糊测试）, `security-app-sast-deep`（深度 taint/dataflow SAST）
-  - app overlay: `security-app-mobile` / `security-app-llm` / `security-app-multitenant` / `security-app-websocket` / `security-app-file-upload` / `security-app-api`
-  - platform: `security-platform-secrets` / `security-platform-iac-cloud`（**deepened** — §4.5 k8s 运行时编排 Kyverno / OPA Gatekeeper / Tetragon / Security Profiles Operator，conditional-k8s，纯 defensive）/ `security-platform-supply-chain`（**deepened** — reachability 降噪 + Prowler CSPM）
-  - response: `security-response-incident-response` / `security-response-recovery` / `security-response-red-purple-team`（红/紫队 ATT&CK 覆盖，planning-only，永不执行攻击）/ `pentest-scope-and-roe`（**deepened** — P6：`appsec-sdk retest.append` retest gate + 14 段企业 pentest-report 模板）/ `authorized-pentest-validation`
-  - pentest: `security-pentest-recon-scan`（模板化 recon+授权扫描）, `security-pentest-ai-redteam`（AI/agentic 红队）, `security-pentest-exploitation-planning`（exploitation / adversary-sim **planning-only** 参考，Metasploit / Sliver / Caldera / Pacu / BloodHound；Read-only，受双 gate 约束，**绝不**当 authorized-pentest-validation 的桥、绝不自动执行）——**三者均 planning-only，受 pentest-scope-and-roe + authorized-pentest-validation 双 gate 约束，绝不自动执行攻击**
-  - compliance: `security-compliance-payment` / `security-compliance-cn-data` / `security-compliance-privacy`
-  - visualization: `security-viz`（从 `.appsec/` + manifest 事实源渲染安全图：AI Agent 风险图 / 漏洞看板 / 证据 dashboard / pentest scope map；render-only，**不是** arch-viz 的代码结构图）
-- 共享模板库（`templates/`，数量见目录；含 threat-model-STRIDE / vuln-report / risk-register / security-test-plan / incident-response-initial / SECURITY.md / PENTEST-ROE.md，2026-06-14 新增 attack-coverage-template / overlay-checklist.template / security-policy.template / asset-inventory.schema / data-classification.schema / control-matrix.template / authz-matrix.schema / threat-model.schema.json / pentest-report.template）
-- **2026-06-14 企业级加固**：①通用**计划预览卡**（§0.6，执行前出 表+点线图 等确认）②渗透测试**主动提醒**（§16.9.5，AppSec 跑完自动弹 pentest 建议卡，调用仍 100% 手动）③7 个新 `appsec-sdk` 命令（`asset.inventory` / `data.classify` / `authz.matrix` / `attack.coverage` / `pentest.recommend` / `control.coverage` / `audit.package`）④企业 fact-source 模板（见上）⑤overlay-checklist BLOCK trap 修复（file-upload/multitenant/websocket/mobile 现可满足 §16.9 gate）⑥pentest 富化（type-matrix / box-selection / AI-Agent pentest / retest gate / 14 段企业报告模板）。参考库（OWASP/NIST/MITRE/工具官方资料）staged 于 `Desktop/harness building/ref/`，按需吸收进 `references/`。
-- Standardized finding schema（详 `appsec-security-orchestrator §9`）— 所有下游 security-remediation 必须接此 schema
-- **Routing regression test harness** at `~/.claude/tests/appsec-routing/` — 23 个 routing fixture 验证激活 / 拒绝 / 边界 / schema / handoff
-- **Hook 范围**：AppSec project hooks（枚举与触发以 `manifests/hook-registry.json` 为准——文档不写死数量，防 drift）通过 `appsec-sdk init` 注册到 `<project>/.claude/settings.json`，**不是 user-global** —— fresh project 无 `.appsec/config.json` 时 0 enforcement（只有 GSD hooks 全局 fire）
+**AppSec v3.0**（2026-05-25 — GSD-lite execution engine + Phase 6 扩展）：对齐 NIST CSF 2.0 六功能（Govern / Identify / Protect / Detect / Respond / **Recover**）+ 6-layer capability map（governance / app / platform / operations / response / compliance）+ ASVS 5.0（V1-V17，旧 V2-V13 标识符已 deprecated）。
+
+- **25 个 sub-skill / 28 个 AppSec-family** 的完整枚举、capability 表、共享模板库、`appsec-sdk` 命令、routing regression harness（`~/.claude/tests/appsec-routing/`）→ 全在 [`appsec-security-orchestrator`](skills/appsec-security-orchestrator/SKILL.md) §5 capability 表 + §8 路由表；各 sub-skill 另有自己的 description 在 skill 索引里。**本节不重复枚举**（2026-07-29 起，为削减常驻 context）。
+- Standardized finding schema（详 `appsec-security-orchestrator` §9）— 所有下游 `security-remediation` 必须接此 schema
+- **Hook 范围**：AppSec project hooks（枚举与触发以 `manifests/hook-registry.json` 为准，文档不写死数量防 drift）经 `appsec-sdk init` 注册到 `<project>/.claude/settings.json`，**不是 user-global** —— fresh project 无 `.appsec/config.json` 时 0 enforcement（只有 GSD hooks 全局 fire）
 
 **Pentest 双 gate**（security testing 特殊路径，绝不自动）：
 - `pentest-scope-and-roe`（visible governance，allowed-tools: Read only，落盘走 `pentest-scope-planner` agent 不自己 Write）：强制起草 ROE
@@ -338,74 +325,24 @@ spawn 多个 agent 或发起多个 tool call 前必须先判断依赖关系：
 
 > 新增 2026-05-25。UIUX 主线下子层，**不是**第 6 个 primary orchestrator。
 
-公开产物（web / docs / store listing）的"上线后被找到"治理。入口 skill：`discoverability-orchestrator`。
+公开产物（web / docs / store listing）的"上线后被找到"治理。入口 skill：`discoverability-orchestrator`（auto）。
 
-### 4 个 narrow skill
-
-| Skill | 域 | 触发关键词 |
-|---|---|---|
-| `web-seo` | 标准 Google/Bing search | SEO / robots.txt / sitemap / canonical / structured data / Lighthouse |
-| `web-aeo` | AI search / answer engines | AEO / ChatGPT Search / Claude Search / llms.txt / citability / **GEO**（AI search / Generative Engine Optimization） |
-| `web-local-seo` | **Local SEO**（2026-05-25 由 `web-geo` 改名） | Local SEO / Google Business Profile / Maps / NAP / near me / 附近 / 本地服务 / 实体店 |
-| `app-aso` | App Store / Google Play | ASO / app store / store listing / product page / screenshots / app keywords |
-
-### Post-launch 测量 / CI 扩展（2026-06-15 Wave B 新增 — L12 现覆盖 pre-launch audit + post-launch measurement）
-
-Wave B 给 3 个 narrow skill 加了**上线后**能力，L12 从"只做发布前体检"扩成"发布前 audit + 发布后测量"两段：
-
-- `web-aeo` §20 **AI citation tracking**（AI 引用追踪 / share of voice / 是否被 Perplexity·ChatGPT 引用）—— **measurement-only，永不进 gate**
-- `web-seo` §15 **tech-SEO CI gate**（unlighthouse / lighthouse-ci / lhci 整站 SEO 进 CI）—— feeds seo evidence channel
-- `app-aso` §16.6 **ASO measurement**（◇mobile：keyword difficulty / install funnel / App Store Connect Analytics）—— **measurement-only**
-
-启发式 / measurement 分数永远不能当 blocker（与既有 L12 铁律一致）；CI gate（web-seo §15）走 deterministic script，evidence 出来才解读。
-
-### Growth-execution skill（2026-06-15 新增 — **不是第 5 个 audit channel**）
-
-- `discoverability-growth`（auto via orchestrator）：growth / 关键词策略 / keyword strategy / content gap / 内容缺口 / 程序化 SEO / 该写什么内容。**它是 growth-execution（写什么内容 / 关键词缺口 / 程序化扩量），不引入新 evidence channel、不引入新 gate**——4 个 audit channel（seo / ai-search / local / aso）+ gate-result.yaml 不变。
+4 个 narrow audit skill：`web-seo`（标准 Google/Bing）· `web-aeo`（AI search / llms.txt / citability）· `web-local-seo`（Local SEO / Google Business Profile / Maps）· `app-aso`（App Store / Google Play）。外加 `discoverability-growth`（growth-execution：关键词策略 / 内容缺口 / 程序化 SEO —— **不引入新 evidence channel、不引入新 gate**）。各 skill 自带 description + 触发词，本节不重复。
 
 ### 命名陷阱
 
 - 本体系 **GEO = Generative Engine Optimization**（路由到 `web-aeo`）
-- Local SEO 已从 `web-geo` 改名为 `web-local-seo` 以消歧（2026-05-25 改名 web-local-seo）
-- 行业里有项目把 AI search 叫 "GEO"——本体系一律按 `web-aeo` 处理
-
-### 执行宪法 — Script-first, AI-last
-
-1. Deterministic script / API / CLI（Lighthouse / curl / Search Console API）
-2. Framework adapter（Next.js / Nuxt / Astro / Docusaurus / WordPress）
-3. Structured evidence parser
-4. AI synthesis from evidence
-5. Manual AI scan 仅在无 script / API / adapter 时使用（必标 lower confidence）
+- Local SEO 已从 `web-geo` 改名为 `web-local-seo` 以消歧（2026-05-25）
+- 行业里有项目把 AI search 叫 "GEO" —— 本体系一律按 `web-aeo` 处理
 
 ### 边界（不重叠声明）
 
-- **AppSec**：robots / noindex / llms.txt 是 crawler policy，**不是** access control。私密内容漏放给搜索引擎是 L12 标识 + escalate 给 AppSec，本子层不实施访问控制修复
+- **AppSec**：robots / noindex / llms.txt 是 **crawler policy，不是 access control**。私密内容漏放给搜索引擎是 L12 标识 + escalate 给 AppSec，本子层不实施访问控制修复
 - **QA**：L12 evidence 可被 `enterprise-qa-testing` 的 release evidence bundle 引用，不重叠测试策略
 - **UI 设计**：L12 是 UIUX **release 下游** gate，不在前期设计阶段触发
+- **Script-first, AI-last**：deterministic script / API / CLI 先行，evidence 出来才让 AI 解读；启发式 / measurement 分数**永远不能当 blocker**
 
-### GSD-lite Harness v1.0（2026-05-25 升级 — orchestrator 升 v1.2.0）
+### 详细规格（本节不重复）
 
-L12 从 prompt-only router 升级为 **execution harness**：orchestrator self-dispatches + 3 named agents + deterministic SDK + 5 project-level hooks + tag-scoped evidence + gate-result.yaml。
-
-| 组件 | 位置 | 作用 |
-|---|---|---|
-| SDK | `~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py` | 10 core + `measure.pull` / `measure.compare`（measurement-only）: init / classify / audit / evidence.append / evidence.validate / gate.check / report / mark-stale / explain / status（+ measure.pull / measure.compare 不进 gate.check） |
-| Agents | `~/.claude/agents/disc-{scope-classifier,evidence-validator,remediation-planner,measurement-puller}.md`（4 个，2026-06-15 加 `disc-measurement-puller` post-launch 真实指标回流） | 8-step workflow Step 1 / Step 5 / Step 6 + post-launch measurement（measurement-only，不进 gate） |
-| Hooks (项目) | `~/.claude/templates/discoverability/hooks/disc-*.js` | 复制到 `<project>/.claude/hooks/` |
-| Contract | `~/.claude/templates/discoverability/harness-contract.md` | ground truth；SDK / agents / hooks / orchestrator 必须对齐 |
-| Config | `<project>/discoverability.config.yaml` 新增 `harness:` 段 | strict_mode / required_channels / evidence_freshness_hours / deploy_commands |
-
-**8-step self-dispatch workflow**（SKILL.md §10）：Config → scope-classifier → SDK init → 4 narrow skills dispatch → evidence.append → evidence-validator → remediation-planner → gate.check → handoff (AppSec / QA / GSD)。
-
-**Gate decisions**：PASS / WARN / FAIL / BLOCKED / STALE。break change vs v1.1：evidence 路径加 `<tag>` 维度（`evidence/discoverability/<tag>/{seo,ai-search,local,aso}.json`）。
-
-**Safety-critical name freeze**（改名 = 打掉 safety gate）：5 skills + 3 agents + 5 hooks + 10 SDK commands。详 SKILL.md §15.1。
-
-**Hook 范围**：5 个 L12 hooks（`disc-deploy-gate` / `disc-evidence-required` / `disc-mark-stale` / `disc-robots-sitemap-guard` / `disc-session-context`）通过 `python ~/.claude/skills/discoverability-orchestrator/scripts/discoverability-sdk.py --project-root . init` 复制进 `<project>/.claude/hooks/` 并注册到 `<project>/.claude/settings.json`，**user-global 不 fire** —— fresh project 无 `discoverability.config.yaml` 时 0 enforcement。详 [CANONICALS.md D3](docs/CANONICALS.md#d3--hook-scope-project-installed--clarify-docs)。
-
-### 参考
-
-- Harness contract: [templates/discoverability/harness-contract.md](templates/discoverability/harness-contract.md)
-- 架构总图：[docs/L12-DISCOVERABILITY.md](docs/L12-DISCOVERABILITY.md)
-- Path-scoped 规则：[rules/discoverability-l12.md](rules/discoverability-l12.md)
-- 项目模板：[templates/discoverability/](templates/discoverability/)
+架构总图 · 8-step self-dispatch workflow · `discoverability-sdk.py` 命令集 · 4 个 `disc-*` agent · 5 个项目 hook · gate decisions（PASS / WARN / FAIL / BLOCKED / STALE）· post-launch measurement · safety-critical name freeze →
+[docs/L12-DISCOVERABILITY.md](docs/L12-DISCOVERABILITY.md) · [rules/discoverability-l12.md](rules/discoverability-l12.md) · [templates/discoverability/harness-contract.md](templates/discoverability/harness-contract.md)
