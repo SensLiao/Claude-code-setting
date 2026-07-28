@@ -15,29 +15,7 @@ allowed-tools: Read, Write, Bash, Grep, Glob
 forbidden-tools: []
 disable-model-invocation: false
 description: >
-  AI Discoverability / AEO skill — Answer Engine Optimization for AI search and
-  generative answer engines (ChatGPT Search / Claude Search / Perplexity /
-  Google AI Overviews / Gemini / Bing Copilot). Makes public content crawlable
-  by AI bots, extractable as self-contained passages, citable with clear
-  attribution, and machine-readable via llms.txt where appropriate. Wraps the
-  `zubair-trabzada/geo-seo-claude` repo as a vendored runner (citability
-  scorer, llms.txt validator/generator, brand entity scanner, PDF reporter).
-  Distinguishes search / training / user-initiated AI bots and treats
-  "allow AI search index" vs "allow training crawl" as two independent
-  business decisions. Does NOT cover standard Google/Bing SEO (→ web-seo),
-  Local SEO / Google Business Profile / NAP / Google Maps (→ web-local-seo),
-  App Store / Google Play ASO (→ app-aso), or any security topic
-  (→ appsec-security-orchestrator).
-  Trigger phrases: "AEO / Answer Engine Optimization / GEO / Generative Engine
-  Optimization / GEO 优化 / AI search / AI 引用 / AI Overviews / Google AI
-  Overviews / ChatGPT Search / Claude Search / Perplexity / Gemini /
-  Bing Copilot / OAI-SearchBot / GPTBot / ChatGPT-User / ClaudeBot /
-  Claude-SearchBot / Claude-User / Anthropic crawler / llms.txt /
-  llms-full.txt / citability / AI citation / answer block / answer engine /
-  brand entity / structured docs / AI-readable docs / machine-readable docs /
-  AI citation tracking / citation tracking / share of voice / am I cited by
-  ChatGPT / does Perplexity cite me / AI 引用追踪 / AI 引用监测 / 上线后 AI 有没有引用我 /
-  Perplexity 引用 / AI 引用率 / citation monitoring / answer engine tracking".
+  AI Discoverability / AEO — Answer Engine Optimization for AI search & generative answer engines (ChatGPT Search / Claude / Perplexity / Google AI Overviews / Gemini / Bing Copilot): makes public content AI-crawlable, extractable as self-contained passages, citable, and machine-readable via llms.txt. Not standard Google/Bing SEO (→ web-seo), Local SEO/GBP/Maps (→ web-local-seo), App Store ASO (→ app-aso), or security (→ appsec-security-orchestrator).
 ---
 
 # SKILL: web-aeo

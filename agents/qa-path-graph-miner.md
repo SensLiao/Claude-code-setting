@@ -1,6 +1,7 @@
 ---
 name: qa-path-graph-miner
-description: QA Architecture-Intake path-graph miner (enterprise-qa-testing §6 Step 1.7). Builds a dependency + route graph with per-edge provenance (source_tool + confidence), then derives changed-file → reverse-reachable → entrypoint → forward-to-sink critical_paths and the required test layers per path. Use PROACTIVELY at Step 1.7 after runtime detection. HONESTY CEILING: dynamic import / reflection / DI / runtime-registered + config-driven routes / cross-process edges are confidence:inferred|reduced, NEVER static-proven; graph tool missing => graph_status=BLOCKED => downstream coverage UNVERIFIED (never silent full-coverage). Read-only; emits PATH_GRAPH_SCHEMA.v1 JSON. Never writes evidence files (parent persists).
+description: >
+  QA Architecture-Intake path-graph miner (enterprise-qa-testing §6 Step 1.7). Builds a dependency + route graph with per-edge provenance (source_tool + confidence), then derives changed-file → reverse-reachable → entrypoint → forward-to-sink critical_paths + required test layers per path. Use PROACTIVELY at Step 1.7 after runtime detection. HONESTY CEILING: dynamic import / reflection / DI / runtime-registered + config-driven routes / cross-process edges are confidence:inferred|reduced, NEVER static-proven; graph tool missing => graph_status=BLOCKED => downstream coverage UNVERIFIED (never silent full-coverage). Read-only; emits PATH_GRAPH_SCHEMA.v1 JSON. Never writes evidence files (parent persists).
 tools: Read, Grep, Glob, Bash
 model: opus
 color: cyan

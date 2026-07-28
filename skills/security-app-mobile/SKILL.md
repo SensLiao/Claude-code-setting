@@ -31,18 +31,7 @@ downstream:
   - security-platform-secrets (mobile secret storage)
   - appsec-security-orchestrator (back with findings)
 description: >
-  Mobile application security overlay covering iOS and Android. Maps to OWASP
-  MASVS 2.x verification standard + MASTG testing guide. Covers **8 MASVS 2.x
-  control groups**: MASVS-STORAGE (local data) / MASVS-CRYPTO (mobile crypto) /
-  MASVS-AUTH (mobile auth flows) / MASVS-NETWORK (TLS, cert pinning) /
-  MASVS-PLATFORM (deep links, IPC, WebView) / MASVS-CODE (anti-tampering,
-  obfuscation) / MASVS-RESILIENCE (jailbreak/root detection) / **MASVS-PRIVACY**
-  (transparency, data minimization, app-specific privacy controls). Note:
-  MASVS v2.0.0 removed verification levels; depth is now driven by MAS Testing
-  Profiles. Activated for iOS / Android projects. Does NOT perform active
-  reverse engineering of third-party apps. Coordinates with Apple HIG official
-  docs for SwiftUI/HIG patterns and security-platform-secrets for Keychain / Keystore
-  practices.
+  Mobile application security overlay (iOS + Android), mapping to OWASP MASVS 2.x + MASTG. Covers the 8 MASVS 2.x control groups: STORAGE / CRYPTO / AUTH / NETWORK (TLS, cert pinning) / PLATFORM (deep links, IPC, WebView) / CODE (anti-tampering, obfuscation) / RESILIENCE (jailbreak/root detection) / PRIVACY. (MASVS v2 removed verification levels; depth driven by MAS Testing Profiles.) Activated for iOS / Android projects. Does NOT perform active reverse engineering of third-party apps. Coordinates with Apple HIG for SwiftUI patterns and security-platform-secrets for Keychain / Keystore.
 trigger_phrases:
   - mobile security / 移动安全 / iOS security / Android security
   - MASVS / MASTG / mobile app security

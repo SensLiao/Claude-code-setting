@@ -26,19 +26,7 @@ allowed-tools: Read, Grep, Glob, Write, Bash, Skill, Agent
 forbidden-tools: WebFetch
 disable-model-invocation: false
 description: >
-  L12 Discoverability orchestrator. 路由 commercial 项目"上线后被找到"
-  的 4 个 narrow skill (web-seo / web-aeo / web-local-seo / app-aso)，按 project type
-  决定激活与 gate 级别，输出 evidence-driven discoverability report。
-  本 skill 不执行设计、不执行 security、不替代 access control。
-  本 orchestrator 只承接高层协调语境；narrow 域单词由各自的 narrow skill 自行触发，
-  本 skill 不抢 narrow domain 触发权（详见 SKILL.md §2 路由表 + §2.5 GEO 消歧）。
-  Trigger phrases: "discoverability / 可发现性 / 上线后被找到 /
-  release readiness check (discoverability) / L12 audit /
-  我的网站怎么被 ChatGPT / Google 找到 /
-  AI search + 传统 SEO 一起做 / discoverability audit".
-  注：narrow 域单词（SEO / AEO / GEO / ASO 单独）一律不在此列，由各 narrow
-  skill 自己 trigger，本 orchestrator 不抢工。
-  v1.2 = GSD-lite harness — orchestrator self-dispatches 4 narrow skills + 3 disc-* agents + discoverability-sdk; writes evidence/discoverability/<tag>/gate-result.yaml as release gate.
+  L12 Discoverability orchestrator — 路由 commercial 项目"上线后被找到"的 4 个 narrow skill (web-seo / web-aeo / web-local-seo / app-aso)，按 project type 决定激活与 gate 级别，输出 evidence-driven discoverability report。不执行设计、不执行 security、不替代 access control。只承接高层协调语境；narrow 域单词由各自 narrow skill 自行触发，本 orchestrator 不抢（详 §2 路由表 + §2.5 GEO 消歧）。v1.2 GSD-lite harness：self-dispatches 4 narrow skills + 3 disc-* agents + discoverability-sdk，写 gate-result.yaml 作 release gate。Triggers: "discoverability / 可发现性 / 上线后被找到 / release readiness (discoverability) / L12 audit / 我的网站怎么被 ChatGPT / Google 找到 / AI search + 传统 SEO 一起做". 注：SEO/AEO/GEO/ASO 单独词不在此，归各 narrow skill。
 ---
 
 # Discoverability Orchestrator (L12)

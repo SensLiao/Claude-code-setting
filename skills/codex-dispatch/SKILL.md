@@ -1,6 +1,7 @@
 ---
 name: codex-dispatch
-description: Cross-AI dispatch playbook — the harness decision + discipline layer for using Codex (OpenAI codex CLI, GPT 系列模型) as a second model family for delegated execution and cross-model review. This skill does NOT shell out to `codex exec` itself; all execution is routed to the official `codex@openai-codex` plugin commands (`/codex:rescue` delegate · `/codex:review` review · `/codex:adversarial-review` challenge · `/codex:status` `/codex:result` `/codex:cancel` lifecycle · `/codex:setup` readiness). It carries the harness-specific discipline the generic plugin lacks — when-to-delegate decision tree, work-order template, scope/chunking caps, mandatory wave cross-review, Windows caveats, quota fallback, model-version lock, and the governed-gate boundary. Trigger phrases include "用 codex / 让 codex / 派给 codex / delegate to codex / codex 调度 / codex 跑一下 / cross-review with codex / 跨模型 review / 该不该用 codex / codex 怎么调用 / codex 委派 / 第二个模型审".
+description: >
+  Cross-AI dispatch playbook — the harness decision + discipline layer for using Codex (OpenAI codex CLI, GPT models) as a second model family for delegated execution and cross-model review. Does NOT shell out to `codex exec`; all execution routes to the official `codex@openai-codex` plugin commands (`/codex:rescue` delegate · `/codex:review` · `/codex:adversarial-review` · lifecycle · `/codex:setup`). Carries the discipline the plugin lacks: when-to-delegate tree, work-order template, scope caps, mandatory wave cross-review, Windows caveats, quota fallback, governed-gate boundary. Triggers: "用 codex / 派给 codex / delegate to codex / codex 调度 / cross-review with codex / 跨模型 review / 该不该用 codex / codex 委派".
 ---
 
 # codex-dispatch — Codex 跨模型调度 playbook

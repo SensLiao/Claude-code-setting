@@ -1,23 +1,7 @@
 ---
 name: shadcn-registry
 description: >
-  Scaffold and operate a self-hosted (private) shadcn component registry so you reuse YOUR OWN
-  design system across every project — distribute your components/blocks/hooks/tokens over plain
-  JSON-over-HTTP, framework-agnostic, no paywall, no MCP, just `npx shadcn`. Covers authoring
-  registry.json + per-item registry-item.json, the `shadcn build` step (emits flattened
-  public/r/*.json), hosting (static / Vercel / GitHub raw), consuming via `shadcn add <url>` or a
-  namespaced `@registry` in components.json, the one-command full-system install (registry:style /
-  registry:base), and wiring the registry's cssVars to design-token-pipeline outputs so your tokens
-  and components ship together. Use when the user wants a private/internal/self-hosted shadcn
-  registry, to publish a reusable component library, to share one design system across repos, or to
-  distribute their own UI primitives. Trigger phrases (EN): "self-hosted shadcn registry / private
-  shadcn registry / publish my components / reuse my design system across projects / shadcn registry
-  build / registry.json / distribute my UI library / internal component registry / shadcn add from my
-  registry". 触发词 (中文): "自建 shadcn registry / 私有组件库 / 自托管组件分发 / 复用我自己的设计系统 /
-  跨项目共享组件 / 把我的组件发布出去 / 内部 UI 组件 registry". Does NOT design the components or pick
-  the visual style (that is taste/luxury L3 + frontend-design); does NOT compile the tokens
-  themselves (that is design-token-pipeline) — it PACKAGES already-built components + tokens for
-  distribution.
+  Scaffold and operate a self-hosted (private) shadcn component registry — distribute YOUR components/blocks/hooks/tokens as JSON-over-HTTP (`npx shadcn`, framework-agnostic, no MCP), wiring registry cssVars to design-token-pipeline outputs so tokens + components ship together. Use for a private/self-hosted shadcn registry, publishing a reusable component library, or sharing one design system across repos. Triggers: "self-hosted/private shadcn registry / publish my components / reuse design system across projects / registry.json / 自建 shadcn registry / 私有组件库 / 跨项目共享组件 / 内部 UI 组件 registry". Not component design/style (→ taste/luxury + frontend-design), not token compilation (→ design-token-pipeline) — it PACKAGES built components.
 license: MIT
 ---
 

@@ -13,7 +13,7 @@
  *
  * RECORD-ONLY — never blocks (always exit 0). FAILS OPEN on any error (productivity gate, not a
  * safety gate; must never break a session). Loop-safe via stop_hook_active. Metadata only
- * (tools / files / last-request) — NOT a semantic "what was achieved" (that's /ledger's job).
+ * (tools / agents / files) — NOT a semantic "what was achieved" (that's /ledger's job).
  *
  * Tunables (env): CLAUDE_LEDGER_AUTOLOG_OFF=1 disable · CLAUDE_LEDGER_AUTOLOG_MINEDITS (default 3).
  */

@@ -1,20 +1,7 @@
 ---
 name: uiux-design-reviewer
 description: >
-  Pre-release design audit worker. Adversarially reviews implemented frontend across visual
-  hierarchy, spacing/rhythm, accessibility, token-adherence (chassis fidelity), and cross-surface
-  consistency, producing scored findings (per-pillar 1-4 + blocker/warning classification). Mirrors
-  gsd-ui-auditor's 6-pillar discipline but adds a TOKEN-ADHERENCE pillar (does the code actually use
-  the compiled design-token-pipeline outputs, or did it drift to raw hex/px?) and a CROSS-SURFACE
-  CONSISTENCY pillar (do landing/app/dashboard share the same chassis?). Captures Playwright
-  screenshot + axe a11y evidence via CLI when a dev server is running; code-only audit otherwise.
-  Read-only — emits a verdict, never edits code. Spawned by uiux-product-orchestrator at REVIEW (P5)
-  alongside gsd-ui-review, or directly by the user before a release. Does NOT replace gsd-ui-auditor
-  (GSD's UI-REVIEW.md 6-pillar gate stays the GSD source of truth) — this is the uiux-orchestrator
-  side reviewer that fans out across MANY surfaces and emphasizes token-adherence + consistency.
-  Trigger phrases (EN): "review the design before release / design audit / score the UI / check
-  token adherence / cross-surface consistency / a11y audit of these screens / 发布前设计审 /
-  设计评审 / 给 UI 打分 / 检查 token 一致性 / 跨 surface 一致性 / 多页面一起审".
+  Pre-release design audit worker. Adversarially reviews implemented frontend across visual hierarchy, spacing/rhythm, accessibility, TOKEN-ADHERENCE (does the code use compiled design-token-pipeline outputs or drift to raw hex/px?), and CROSS-SURFACE CONSISTENCY (do landing/app/dashboard share one chassis?), producing scored findings (per-pillar 1-4 + blocker/warning). Mirrors gsd-ui-auditor's 6-pillar discipline + those two extra pillars. Captures Playwright screenshot + axe a11y evidence via CLI when a dev server runs; code-only audit otherwise. Read-only — emits a verdict, never edits code. Spawned by uiux-product-orchestrator at REVIEW (P5) or directly before a release. Does NOT replace gsd-ui-auditor (GSD's UI-REVIEW.md gate stays SoT) — this is the uiux side reviewer fanning across MANY surfaces. Triggers: "review the design before release / design audit / score the UI / check token adherence / cross-surface consistency / a11y audit / 发布前设计审 / 设计评审 / 给 UI 打分 / 跨 surface 一致性 / 多页面一起审".
 model: opus
 color: "#A78BFA"
 tools: Read, Grep, Glob, Bash, Write

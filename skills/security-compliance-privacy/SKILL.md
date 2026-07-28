@@ -28,18 +28,7 @@ downstream:
   - security-remediation
   - security-response-incident-response  # breach clock (GDPR 72h / CCPA notice)
 description: >
-  Privacy & data-protection compliance overlay for jurisdictions OUTSIDE China —
-  EU/UK GDPR + California CCPA/CPRA. Covers lawful basis, data-subject / consumer
-  rights + DSAR workflow, consent, DPIA, records of processing (Art 30), 72h
-  breach notification, controller vs processor obligations + DPA contracts,
-  cross-border transfer (adequacy / SCCs / TIA post-Schrems II), privacy-by-design
-  (Art 25), data minimization & retention, special-category & sensitive data,
-  opt-out of sale/sharing + Global Privacy Control (GPC). Maps regulation onto
-  code/architecture. Does NOT cover China (→ security-compliance-cn-data), does
-  NOT cover PCI/payment (→ security-compliance-payment); composes alongside them.
-  Does NOT replace legal counsel — provides an engineering-facing baseline +
-  scope decisions + evidence prep. Privacy law evolves: verify time-sensitive
-  claims against current regulation / counsel.
+  Privacy & data-protection compliance overlay for jurisdictions OUTSIDE China — EU/UK GDPR + California CCPA/CPRA. Covers lawful basis, data-subject/consumer rights + DSAR, consent, DPIA, records of processing (Art 30), 72h breach notification, controller vs processor + DPA, cross-border transfer (adequacy / SCCs / TIA post-Schrems II), privacy-by-design (Art 25), data minimization & retention, special-category data, opt-out of sale/sharing + Global Privacy Control. Maps regulation onto code/architecture. Does NOT cover China (→ security-compliance-cn-data) or PCI/payment (→ security-compliance-payment); composes alongside them. Does NOT replace legal counsel — an engineering-facing baseline. Privacy law evolves: verify time-sensitive claims against current regulation / counsel.
 trigger_phrases:
   - GDPR / CCPA / CPRA / privacy compliance / data protection / 隐私合规 / 数据保护
   - DSAR / data subject rights / right to erasure / right to access / portability

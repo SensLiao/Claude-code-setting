@@ -21,10 +21,7 @@
         {"name": "gsd-phase-boundary.sh", "trigger": "Stop", "purpose": "Enforce GSD phase boundary"},
         {"name": "gsd-check-update.js", "trigger": "SessionStart", "purpose": "Check for GSD updates"},
         {"name": "gsd-session-state.sh", "trigger": "Stop", "purpose": "Persist session state"},
-        {"name": "gsd-statusline.js", "trigger": "Statusline", "purpose": "Render GSD statusline"},
-        {"name": "report-gate.js", "trigger": "Stop", "purpose": "Deterministic completion-report gate (HARD block): after a non-trivial turn (Agent/Task/Workflow used, or >=N file edits) whose closing assistant message has no report >= threshold chars, block the stop so the model must produce the CLAUDE.md §0.5/§0.6/§0.7 report. Enforces report PRESENCE, not quality; format stays prompt-guided. Loop-safe via stop_hook_active; FAILS OPEN (productivity gate, not safety); tunable via CLAUDE_REPORT_GATE_MINCHARS/MINEDITS/OFF"},
-        {"name": "plan-card-reminder.js", "trigger": "PreToolUse(Agent|Workflow)", "purpose": "Deterministic plan-preview-card reminder (SOFT — never blocks): on the >=3rd Agent/Task of a turn or ANY Workflow launch without a §0.6 plan-card rendered this turn, inject an additionalContext reminder (CLAUDE.md §0.6). At most once per turn; suppressed once a card marker appears; FAILS OPEN; tunable via CLAUDE_PLAN_CARD_MINAGENTS/OFF"},
-        {"name": "ledger-reminder.js", "trigger": "Stop", "purpose": "Deterministic durable-LEDGER reminder (SOFT, one-shot, fail-open): on a fan-out turn (Agent/Task/Workflow) where the whole session never touched a .goals/ or *LEDGER* file, decision:block once with a reminder to record the goal/断点 in <repo>/.goals/LEDGER.md (CLAUDE.md §0.7 layer-2 fixed entry) + a pointing project memory. Loop-safe via stop_hook_active; tunable via CLAUDE_LEDGER_REMINDER_OFF. Wired via wire-manifest batch C; bootstrap step 9 seeds the .goals/LEDGER.md stub."}
+        {"name": "gsd-statusline.js", "trigger": "Statusline", "purpose": "Render GSD statusline"}
       ]
     },
 
@@ -135,6 +132,24 @@
         {
           "name": "gsd-update-banner.js",
           "reason": "GSD statusline already registered; banner would duplicate notification. Available for users who prefer banner over statusline."
+        },
+        {
+          "name": "report-gate.js",
+          "reason": "Deterministic completion-report gate (Stop, HARD block on a sub-threshold closing report after a non-trivial turn). Written 2026-06-15 but never wired into settings.json; kept opt-in 2026-07-24 per CLAUDE.md §0.7 — the §0.5 report discipline runs on instruction alone and has proven sufficient. Productivity gate, not a governed verdict gate.",
+          "path": "hooks/report-gate.js",
+          "opt_in_via": "add to ~/.claude/settings.json Stop; tune via CLAUDE_REPORT_GATE_MINCHARS/MINEDITS, disable via CLAUDE_REPORT_GATE_OFF=1"
+        },
+        {
+          "name": "plan-card-reminder.js",
+          "reason": "Deterministic plan-preview-card reminder (PreToolUse[Agent|Workflow], SOFT — never blocks). Written 2026-06-15 but never wired into settings.json; kept opt-in 2026-07-24 per CLAUDE.md §0.6 — the plan-card 坎 runs on instruction alone.",
+          "path": "hooks/plan-card-reminder.js",
+          "opt_in_via": "add to ~/.claude/settings.json PreToolUse[Agent|Workflow]; disable via CLAUDE_PLAN_CARD_OFF=1"
+        },
+        {
+          "name": "ledger-reminder.js",
+          "reason": "Durable-LEDGER reminder (Stop, SOFT one-shot). Unwired 2026-07-24: /preclear reliably reconciles the ledger at session end (better timing + git reconcile), making the per-turn nag redundant. File kept on disk as opt-in.",
+          "path": "hooks/ledger-reminder.js",
+          "opt_in_via": "add to ~/.claude/settings.json Stop; disable via CLAUDE_LEDGER_REMINDER_OFF=1"
         }
       ]
     },
