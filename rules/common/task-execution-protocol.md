@@ -50,109 +50,19 @@ B. 任何**重派发**（即使只读）—— 补 §A 漏掉的"只读 fan-out 
 
 ### Step 3: 执行者路由
 
-本步骤分两层：
-- **3.1 内部执行者路由**：在 Claude 生态内部，决定由谁执行（主线程 / subagent / Codex）
-- **3.2 外部协作路由**：是否引入外部强推理模型（如 GPT-5.5 Thinking）作为上游设计师 + 下游验收官
+为每个子任务决定由谁执行：
 
-#### 3.1 内部执行者路由
+| 执行者 | 什么时候 |
+|---|---|
+| **Claude 主线程** | 需求理解与拆分 / 架构与方案决策 / 高风险事项（安全·权限·认证·支付·数据迁移·公共 API·核心逻辑）/ 最终审查与合并决策 / 是否接受 reviewer 意见 —— **固定不可委派** |
+| **Claude subagent** | 需要当前对话上下文，或外部模型不适合 |
+| **Codex**（官方 `codex@openai-codex` plugin） | 边界清晰、可验证的编码 / 测试 / 迁移 / 扫描（`/codex:rescue`）；跨模型 review（`/codex:review` · `/codex:adversarial-review`） |
+| **外部强推理模型**（GPT-5.5 Thinking 等） | 研究设计 / 论文 / 长链路 pipeline 的上游设计 + 下游验收（它设计、我施工） |
 
-为每个子任务决定由谁执行。Codex 走 **官方 plugin `codex@openai-codex`**（review 用 `/codex:review` 只读 / `/codex:adversarial-review` 对抗式；委派执行用 `/codex:rescue`，支持 `--model` / `--effort` / `--background`），不再走旧的 local skill。**何时用 Codex、用哪个命令、带什么纪律（切尺度 caps / wave 强制 cross-review / Windows UTF-8 / 版本号不写死 / governed-gate 边界 / 施工单模板）的完整 playbook 见 `~/.claude/skills/codex-dispatch/SKILL.md`** —— 本节是其速查，细则以该 skill 为准：
+优先级：**任务适配度 > 省 token**。判断模糊 → 留主线程（默认安全）。
 
-| 判断维度 | Codex（`codex@openai-codex` plugin） | Claude subagent | Claude 主线程 |
-|---------|------------------------|-----------------|--------------|
-| 任务性质 | 具体编码/测试/迁移/扫描/格式化（`/codex:rescue`）；跨模型 review（`/codex:review`、`/codex:adversarial-review`） | 需要当前上下文或 Codex 不适合 | 架构决策/审查/用户交互 |
-| 边界清晰度 | 输入输出明确 | 有一定模糊性 | 需要判断力 |
-| 风险等级 | 低（可验证） | 中 | 高（不可委派） |
-
-优先级：**任务适配度 > 省 token**。选最适合的执行者，节省 token 是附带收益。
-
-**固定不可委派（留 Claude 主线程，Codex 至多辅助调查不拍板）**：需求理解与任务拆分 / 架构与方案决策 / 高风险事项（安全·权限·认证·支付·数据迁移·公共 API·核心逻辑）/ 最终审查与合并决策 / 是否接受 reviewer 意见的判断。
-
-**额度 fallback**：Codex 返回额度错误（rate limit / quota / 402）时，立即 fallback 到 Claude subagent（`Agent` tool，按 Step 4 模型路由选 `sonnet`/`opus`）。
-
-**施工单模板**（经 `/codex:rescue` 委派执行任务时使用——边界清晰 + 可验证；纯 review 走 `/codex:review` 或 `/codex:adversarial-review`，可加 `focus`）：
-
-```
-## 任务目标
-{一句话}
-
-## 上下文摘要
-{Codex 需要的背景，≤500 字；它拿不到当前对话上下文}
-
-## 可改文件范围
-{明确列出可改的文件/目录}
-
-## 禁改文件范围
-{明确列出不可改的文件/目录}
-
-## 验收标准
-{明确、可验证的条件}
-
-## 必跑验证项
-{改完后必须执行的命令}
-
-## 返回格式
-1. 本轮完成内容（一句话）
-2. 修改文件列表
-3. 改动说明
-4. 验证结果
-5. 未完成项 / 风险项
-```
-
-#### 3.2 外部协作路由（GPT-5.5 Thinking ↔ Opus）
-
-**触发**：Step 1 判定为"复杂"且涉及研究设计 / 论文 / 长链路 pipeline，或用户粘贴了外部模型产出的 spec / review。简单和中等任务直接走 3.1。
-
-**分工**：外部强推理模型（GPT-5.5 Thinking）做上游设计 + 下游验收，Opus（当前主线程）做施工。
-
-| 任务类型 | 归谁 |
-|---------|------|
-| 研究拆解 / 实验矩阵 / ablation 设计 | GPT-5.5 |
-| 文献方法理解 / baseline 公平性判断 | GPT-5.5 |
-| 论文 / PPT 故事线 / 长文档润色 | GPT-5.5 |
-| 多文件代码修改 / refactor / debug / 跑脚本 | Opus |
-| 代码审查 / 方案复核 | GPT-5.5 |
-
-##### 五步循环
-
-```
-GPT-5.5   设计 spec + checklist
-   ↓
-Opus      改代码 + 跑测试 + 输出 diff summary
-   ↓
-GPT-5.5   review diff / 结果
-   ↓
-Opus      按 review 修 bug
-   ↓
-GPT-5.5   整理为实验记录 / report / slides
-```
-
-##### Opus 收到外部 spec 时的执行纪律
-
-1. 只做 spec 列出的任务——不顺手重构、不新增抽象、不改未列出的文件
-2. 保留现有 CLI / 接口——除非 spec 明确要求变更
-3. 执行完毕输出结构化摘要：修改文件列表、关键逻辑变更、潜在风险、测试命令
-4. spec 不明确 → 停下问用户，不替外部模型补决策
-
-##### spec 书写正反例
-
-反例（会幻读 / 越界）：
-> 帮我完成这个项目。
-
-正例（能精确执行）：
-> 1. 阅读 `train_medsam3_lora.py` 和 `dataset.py`
-> 2. 保持现有 CLI 参数不变
-> 3. 新增 `--p2t_prompt_json` 参数，在 dataloader 中读取 click side text
-> 4. 不修改 evaluation 逻辑
-> 5. 输出 diff summary 和测试命令
-
-##### 研究项目落地模板（P2T / MedSAM3 / ToothFairy3）
-
-| 阶段 | 归谁 | 任务 |
-|------|------|------|
-| 设计 | GPT-5.5 | 方法定义、实验矩阵、baseline 公平性、evaluation protocol、PPT 故事线 |
-| 施工 | Opus | 数据预处理、pipeline 改造、LoRA、evaluate_*.py、debug、跑实验 |
-| 验收 | GPT-5.5 | 结果解读、可信度判断、discussion、supervisor slides |
+> **完整 playbook 见 [`codex-dispatch`](../../skills/codex-dispatch/SKILL.md) skill** —— 2026-07-29 起按需加载、不再常驻。内含：何时委派的决策树 · 施工单模板 · 切尺度 caps · wave 强制 cross-review · Windows 注意事项 · 额度 fallback · governed-gate 边界 · 外部模型协作五步循环 + 收到外部 spec 的执行纪律 + spec 书写正反例。
+> 触发词："用 codex / 派给 codex / 跨模型 review / GPT-5.5 / 外部模型 / 外部 spec / 粘贴的方案"。
 
 ### Step 4: Model 路由（仅 Claude subagent 适用）
 
