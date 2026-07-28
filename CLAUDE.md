@@ -296,22 +296,11 @@ spawn 多个 agent 或发起多个 tool call 前必须先判断依赖关系：
 
 ### 2. Model Routing 强制 explicit
 
-每次 spawn agent（用 `Agent` tool）必 explicit 指定 `model` 参数，按任务层级选：
+每次 spawn agent（用 `Agent` tool）必 explicit 指定 `model` 参数：`opus` **决策层**（架构 / 方案选型 / 复杂多步 debug / 安全合规审查 / 最终签发）· `sonnet` **执行层**（功能开发 / 测试编写 / 常规 review，日常主力）· `haiku` **工具层**（格式转换 / 字段抽取 / 规则分类 / 批量清洗）。
 
-| 任务层级 | Model | 适用 |
-|---|---|---|
-| **决策层** | `opus` | 架构 / 方案选型 / 复杂多步 debug / 安全合规审查 / 高质量客户交付 / 最终签发 / planner / architect |
-| **执行层** | `sonnet` | 功能开发 / 测试编写 / 常规 review / 中等复杂度分析 / 大部分日常 agent 执行 / 特定 coding / 特定文件书写（已定好范围的小任务）|
-| **工具层** | `haiku` | 格式转换 / 文档更新 / 简单 CRUD / 规则分类 / 字段抽取 / 批量清洗 / 简单 routing 判断 |
+**不 explicit 指定 = 继承 parent，可能浪费 token 或低质量。**
 
-判断准则（**按任务复杂度 + 失败代价 + 输出用途，不按任务名字**）：
-- 错了代价大、跨模块、需要权衡 → opus
-- 范围清晰、已知模式、单文件 / 单功能 → sonnet
-- 高频重复、纯转换、纯填表 → haiku
-
-不 explicit 指定 = 继承 parent，可能浪费 token 或低质量。
-
-详细规则：`~/.claude/rules/common/performance.md`。
+判断按**任务复杂度 + 失败代价 + 输出用途，不按任务名字**。完整 tier 表 + 判断准则 + 任务路由速查表见 [rules/common/performance.md](rules/common/performance.md) —— 单一真相源，本节不重复。
 
 ---
 

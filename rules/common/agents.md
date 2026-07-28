@@ -39,18 +39,9 @@ No user prompt needed:
 
 ## Parallel Task Execution
 
-ALWAYS use parallel Task execution for independent operations:
+能并行必须并行（单 message 发多个 Agent / Bash / Read call）；有依赖、写冲突或资源争抢必须串行；判断模糊选串行。
 
-```markdown
-# GOOD: Parallel execution
-Launch 3 agents in parallel:
-1. Agent 1: Security analysis of auth module
-2. Agent 2: Performance review of cache system
-3. Agent 3: Type checking of utilities
-
-# BAD: Sequential when unnecessary
-First agent 1, then agent 2, then agent 3
-```
+> 完整判断规则 + 6 行场景对照表见 `CLAUDE.md` §4.5 第 1 条（Parallel-vs-Serial 调度纪律）—— 不在此重复。
 
 ## Multi-Perspective Analysis
 
