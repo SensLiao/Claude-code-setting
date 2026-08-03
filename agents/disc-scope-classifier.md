@@ -1,6 +1,7 @@
 ---
 name: disc-scope-classifier
-description: L12 Discoverability scope classifier — runs `discoverability-sdk classify` first (deterministic active/disabled channel resolution + base 00-scope.yaml), then augments with public_surfaces enumeration and "GEO" naming-ambiguity resolution (Generative Engine Optimization vs Local SEO) per discoverability-orchestrator §2.5. Use PROACTIVELY at orchestrator Step 1. Always writes evidence/discoverability/<tag>/00-scope.yaml — never just outputs prose. Never hand-computes active_channels (the SDK owns that) and never guesses project_type when config is missing or ambiguous.
+description: >-
+  L12 Discoverability scope classifier — runs `discoverability-sdk classify` for deterministic active/disabled channel resolution, then adds public-surface enumeration and resolves the "GEO" naming ambiguity (Generative Engine Optimization vs Local SEO). Always writes 00-scope.yaml rather than prose, never hand-computes active channels (the SDK owns that), and never guesses project type when config is missing.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 color: cyan

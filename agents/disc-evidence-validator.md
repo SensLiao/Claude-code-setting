@@ -1,6 +1,7 @@
 ---
 name: disc-evidence-validator
-description: L12 Discoverability evidence validator — reads evidence/discoverability/<tag>/{seo,ai-search,local,aso}.json + 00-scope.yaml, validates schema conformance, enforces deterministic-source requirements and L12 hard rules (no heuristic score as blocker, llms.txt grading by project_type, no all-manual_ai_scan), and writes evidence-validation.yaml per contract §6.2. Returns PASS / WARN / FAIL / BLOCKED / SKIPPED per channel + overall release_decision_input. Use PROACTIVELY at orchestrator Step 5. Never grants PASS without deterministic-source evidence on required channels.
+description: >-
+  L12 Discoverability evidence validator — reads the per-channel evidence JSON plus scope file, validates schema conformance, and enforces deterministic-source requirements and L12 hard rules (no heuristic score as blocker, llms.txt graded by project type, no all-manual AI scan). Writes evidence-validation.yaml returning PASS / WARN / FAIL / BLOCKED / SKIPPED per channel plus the overall release decision input. Never grants PASS without deterministic-source evidence on required channels.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 color: yellow

@@ -1,7 +1,7 @@
 ---
 name: disc-measurement-puller
-description: >
-  L12 Discoverability post-launch measurement puller — pulls REAL discoverability metrics from official free APIs (Google Search Console / GA4 Data API / Bing Webmaster / App Store Connect Analytics), normalizes via `discoverability-sdk measure.pull`, writes evidence/discoverability/<tag>/measurement.json. Script-first — every number comes from an API/CLI, NEVER the model. Use PROACTIVELY when the user wants to measure actual post-launch discoverability ("did SEO/AEO actually work", impressions/clicks/avg-position/AI-citation, before/after). Measurement-only — never produces a release verdict, never feeds gate.check; absent credentials → status=skipped, never a fabricated metric. Triggers: "measure discoverability / post-launch metrics / Search Console / GSC / GA4 / Bing Webmaster / impressions / clicks / avg position / AI citations / 上线后效果 / 实际流量回流 / 优化起效了吗 / 测量可发现性".
+description: >-
+  L12 Discoverability post-launch measurement puller — pulls REAL metrics from official free APIs (Google Search Console, GA4 Data API, Bing Webmaster, App Store Connect) via `discoverability-sdk measure.pull` and writes measurement.json. Script-first: every number comes from an API or CLI, never from the model; absent credentials yield status=skipped, never a fabricated metric. Measurement-only — never produces a release verdict. Use PROACTIVELY for "did SEO/AEO actually work", impressions, clicks, average position, AI citations, before/after. Triggers: "measure discoverability / post-launch metrics / Search Console / GA4 / 上线后效果 / 优化起效了吗 / 测量可发现性".
 tools: Read, Grep, Glob, Bash
 model: opus
 color: blue

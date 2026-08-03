@@ -5,13 +5,8 @@ status: stable
 created_date: 2026-05-24
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
-description: >
-  QA child skill — pre-test static quality gate. Auto-discovers package manager
-  and scripts; runs tsc + ESLint + Prettier + npm audit + git-secrets + schema/
-  OpenAPI lint; detects threshold weakening / disabled rules / generated-file
-  false-positives. Owns parent §4 Layer 1.
-  Trigger phrases: "static analysis / lint / typecheck / static baseline /
-  静态检查 / npm audit / 类型检查".
+description: >-
+  QA child skill - pre-test static quality gate: auto-discovers package manager and scripts, runs tsc + ESLint + Prettier + npm audit + git-secrets + schema/OpenAPI lint, and detects threshold weakening, disabled rules and generated-file false positives. Owns parent section 4 Layer 1.
 ---
 
 # qa-static-baseline

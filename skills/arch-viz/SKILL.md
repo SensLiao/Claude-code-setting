@@ -1,7 +1,7 @@
 ---
 name: arch-viz
-description: >
-  Use the local **arch-viz** CLI to turn any repo into a committable architecture bundle — offline interactive viewer (`viz/index.html`), `graph.json`, `architecture.svg`, `ARCHITECTURE.md` in `docs/architecture/`. Use when the user wants to visualize/map/diagram a repo's architecture, generate an architecture diagram or code-graph picture, or produce a shareable/committable architecture artifact for clients — even without naming the tool. Triggers: "visualize/map the architecture / architecture diagram / code graph / how is this codebase structured / 架构图 / 可视化架构 / 生成架构图 / 给客户看的架构图". For "who calls X / blast radius" symbol lookups use `codegraph-cli`; for a committable artifact prefer arch-viz over the Noncommercial `gitnexus-repo-map`.
+description: >-
+  Use the local arch-viz CLI to turn any repo into a committable architecture bundle — offline interactive viewer, `graph.json`, `architecture.svg` and `ARCHITECTURE.md` under `docs/architecture/`. Use when the user wants to visualize, map or diagram a repo architecture, or produce a shareable artifact for clients, even without naming the tool. For "who calls X / blast radius" symbol lookups use `codegraph-cli` instead. Triggers: "visualize/map the architecture / architecture diagram / code graph / how is this codebase structured / 架构图 / 可视化架构 / 生成架构图 / 给客户看的架构图".
 ---
 
 # arch-viz

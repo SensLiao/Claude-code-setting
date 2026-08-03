@@ -1,7 +1,7 @@
 ---
 name: security-viz
-description: >
-  Render security DIAGRAMS from existing AppSec / governance fact-sources (NOT from code — that is arch-viz). Use when the user wants a security diagram / visualization / to picture a project's security posture: AI-agent risk graph (agents × skills × tools × permissions with safety gates), vulnerability lifecycle Kanban, security evidence / release-decision dashboard, or pentest scope-boundary map. Reads what the harness registry + `.appsec/` artifacts already declare — adds no data collection, never runs scans. Triggers: "security diagram / 安全可视化 / 安全架构图 / AI agent risk graph / agent 权限图 / 漏洞看板 / security evidence dashboard / pentest scope map / DFD / trust boundary / attack surface map / ATT&CK coverage map". For CODE architecture use `arch-viz`; for the findings/decisions feeding these diagrams route through `appsec-security-orchestrator`.
+description: >-
+  Render security DIAGRAMS from existing AppSec and governance fact-sources — AI-agent risk graph (agents x skills x tools x permissions with safety gates), vulnerability lifecycle Kanban, security evidence and release-decision dashboard, or pentest scope-boundary map. Reads what the harness registry and `.appsec/` artifacts already declare: adds no data collection and never runs scans. For CODE architecture use `arch-viz`. Triggers: "security diagram / 安全可视化 / 安全架构图 / AI agent risk graph / agent 权限图 / 漏洞看板 / security evidence dashboard / pentest scope map / DFD / trust boundary / attack surface map".
 allowed-tools: Read, Bash, Grep, Glob, Write
 forbidden-tools: WebFetch
 model_note: "Sonnet 默认足够（确定性脚本渲染 + 读已有 fact-source）。涉及把图解读成 release 结论 / 客户对外汇报时升 opus 复核一次。绝不让本 skill 替代 appsec gate verdict。"

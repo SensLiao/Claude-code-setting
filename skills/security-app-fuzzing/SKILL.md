@@ -29,8 +29,8 @@ downstream:
   - security-remediation                   # crash-confirmed defect → fix → regression
   - security-app-sast-deep                 # crash points fed back as taint sink hypotheses
   - appsec-security-orchestrator           # back with findings
-description: >
-  Coverage-guided + structure-aware fuzzing for the project's OWN code and authorized targets. Wraps per-language fuzzing CLIs (libFuzzer / AFL++ / cargo-fuzz / Atheris / Jazzer / Go-native / JS fast-check) + ClusterFuzzLite for CI. Covers classic boundaries (parsers / deserializers / file-upload / crypto) AND this harness's main battlefield: AI-agent tool boundaries (tool-argument schemas, structured-output parsers, agent message-passing). Defensive only — fuzzes code you own; never an attack tool, never a network scanner. Crash findings feed the orchestrator §9 schema via appsec-sdk. Does NOT perform active scans, DoS, or exploitation; active validation stays gated by authorized-pentest-validation.
+description: >-
+  Coverage-guided and structure-aware fuzzing of code the project OWNS, wrapping per-language CLIs (libFuzzer / AFL++ / cargo-fuzz / Atheris / Jazzer / fast-check) plus ClusterFuzzLite in CI. Covers parsers, deserializers, crypto boundaries and AI-agent tool boundaries. Defensive only - never an attack tool or network scanner, no DoS, no exploitation.
 trigger_phrases:
   - fuzzing / fuzz test / fuzz testing / 模糊测试
   - libFuzzer / AFL++ / cargo-fuzz / Atheris / Jazzer / ClusterFuzzLite

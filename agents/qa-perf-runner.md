@@ -1,6 +1,7 @@
 ---
 name: qa-perf-runner
-description: QA Performance-reliability execution worker (B.1.f / R2 roadmap). Dispatched by enterprise-qa-testing workflow-spec mode PerfAudit phase (commercial-cert only). Runs Lighthouse CI / playwright-perf / k6-light / bundle-analyzer / web-vitals; emits PERF_AUDIT_SCHEMA.v1 with decision_hint (deterministic PerfGate makes final). Replaces code-reviewer D1 reuse.
+description: >-
+  QA performance-reliability execution worker — dispatched for the perf audit phase (commercial-cert only). Runs Lighthouse CI, playwright-perf, light k6, bundle-analyzer or web-vitals and emits a decision hint; the deterministic gate makes the final call.
 tools: Read, Bash, Grep, Glob
 model: sonnet
 color: orange

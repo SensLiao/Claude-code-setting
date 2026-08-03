@@ -5,13 +5,8 @@ status: stable
 created_date: 2026-05-24
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
-description: >
-  QA child skill — Contract layer. REST (OpenAPI) / GraphQL / event-driven
-  (AsyncAPI) / consumer-driven (Pact) contract testing. Detects breaking
-  changes, verifies provider/consumer compat, covers error contracts (4xx/5xx).
-  Forbids happy-path-only + provider drift without report. Owns parent §4 Layer 5.
-  Trigger phrases: "contract test / OpenAPI / Pact / AsyncAPI / GraphQL contract /
-  consumer-driven / API contract / 契约测试".
+description: >-
+  QA child skill - contract layer: REST (OpenAPI), GraphQL, event-driven (AsyncAPI) and consumer-driven (Pact) contract tests; breaking-change detection, provider/consumer compatibility, error contracts. No happy-path-only, no unreported provider drift. Owns parent section 4 Layer 5.
 ---
 
 # qa-contract-api

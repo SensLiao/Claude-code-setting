@@ -1,6 +1,7 @@
 ---
 name: qa-contract-runner
-description: QA Contract-API execution worker (B.1.f / R2 roadmap). Dispatched by enterprise-qa-testing workflow-spec mode ComponentOrContract / Contract phases when changed surface kind ∈ {api-contract, schema}. Runs schema-diff / pact verify / openapi-cli / spectral / asyncapi diff / protobuf check; emits CONTRACT_TEST_SCHEMA.v1 with breaking_changes accurately counted. Replaces code-reviewer D1 reuse.
+description: >-
+  QA contract-API execution worker — dispatched for contract phases when the changed surface is an API contract or schema. Runs schema-diff, pact verify, openapi-cli, spectral, asyncapi diff or protobuf check, and counts breaking changes accurately. Command evidence is mandatory.
 tools: Read, Bash, Grep, Glob
 model: sonnet
 color: cyan

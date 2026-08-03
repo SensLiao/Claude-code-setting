@@ -5,13 +5,8 @@ status: stable
 created_date: 2026-05-24
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
-description: >
-  QA child skill for flaky test detection, 8-category classification, quarantine
-  with accountability (owner + issue + expiry + repro + last_seen + unblock_condition),
-  and cleanup cadence. Owns parent §9 + §6 Step 8. Independent ops trigger
-  (oncall / project maintenance / quarterly flaky review).
-  Trigger phrases: "flaky test / retry pass / non-deterministic / quarantine /
-  flaky 治理 / 隔离 / CI 不稳定 / 测试不可靠".
+description: >-
+  QA child skill - flaky test detection, 8-category classification, and accountable quarantine (owner + issue + expiry + repro + last_seen + unblock_condition) with cleanup cadence. Also runs standalone for oncall or periodic flaky review. Owns parent section 9 + section 6 Step 8.
 ---
 
 # qa-flaky-governance

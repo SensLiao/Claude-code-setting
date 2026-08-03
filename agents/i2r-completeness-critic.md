@@ -1,6 +1,7 @@
 ---
 name: i2r-completeness-critic
-description: I2R PHASE 6 reviewer (santa-loop Reviewer A). Spawned by i2r-orchestrator in FRESH context (never an author) to independently review the whole run and write 07-review.json — a completeness defect check, the GSD ambiguity precheck, and the Reader Test. Only reports findings; never edits requirements. Paired double-blind with Codex Reviewer B; both must PASS.
+description: >-
+  I2R phase 6 reviewer — spawned in FRESH context (never as an author) to independently review the whole run and write 07-review.json: completeness defect check, ambiguity precheck and the Reader Test. Only reports findings, never edits requirements. Paired double-blind with a second reviewer; both must PASS.
 model: opus
 tools: Read, Write, Bash, Grep, Glob
 skills:

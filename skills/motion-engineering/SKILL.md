@@ -1,7 +1,7 @@
 ---
 name: motion-engineering
-description: >
-  Executable web-motion recipes on GSAP v3.13+ (free incl. all plugins) plus native View Transitions API and scroll-driven CSS: tweens/easing, timelines, ScrollTrigger (pin/scrub/parallax/batch), SplitText/Flip/Draggable, the 60fps transform/opacity contract, React via useGSAP, and prefers-reduced-motion. Use when implementing animation, scroll effects, parallax, pinned sections, text reveals, or page transitions. Triggers: "motion / animation / GSAP / ScrollTrigger / scroll animation / parallax / pin section / scrubbing / timeline / SplitText / text reveal / useGSAP / page transition / View Transitions / reduced motion / animation jank / 动效 / 动画 / 滚动动画 / 视差 / 钉住区块 / 文字逐字动画 / 页面转场 / 动画卡顿". Orthogonal to `emil-design-eng` (motion taste); consumes motion tokens from `design-token-pipeline`.
+description: >-
+  Executable web-motion recipes on GSAP v3.13+ (free including all plugins) plus the native View Transitions API and scroll-driven CSS — tweens and easing, timelines, ScrollTrigger (pin/scrub/parallax/batch), SplitText/Flip/Draggable, the 60fps transform-opacity contract, React via useGSAP, and prefers-reduced-motion. Triggers: "motion / animation / GSAP / ScrollTrigger / scroll animation / parallax / pin section / timeline / text reveal / useGSAP / page transition / View Transitions / reduced motion / animation jank / 动效 / 动画 / 滚动动画 / 视差 / 钉住区块 / 页面转场 / 动画卡顿". Consumes motion tokens from `design-token-pipeline`.
 license: MIT
 ---
 

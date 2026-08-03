@@ -5,14 +5,8 @@ status: stable
 created_date: 2026-05-24
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
-description: >
-  QA child skill — release / canary / production smoke safety. Only read-only
-  or explicitly reversible synthetic actions. Health checks / smoke routes /
-  rollback trigger / observability check / known-issue acknowledgement.
-  Forbids destructive prod test except with explicit auth + synthetic account
-  + rollback. Owns parent §4 Layer + Smoke.
-  Trigger phrases: "smoke test / release smoke / canary / production smoke /
-  post-deploy / rollback / 上线验证 / 灰度".
+description: >-
+  QA child skill - release / canary / production smoke safety: read-only or explicitly reversible synthetic actions only, health checks, smoke routes, rollback trigger, observability check, known-issue acknowledgement. Destructive production tests are forbidden without explicit authorization + synthetic account + rollback. Owns parent Smoke layer.
 ---
 
 # qa-smoke-release-safety

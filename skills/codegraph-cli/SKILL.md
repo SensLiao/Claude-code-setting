@@ -1,6 +1,7 @@
 ---
 name: codegraph-cli
-description: Use CodeGraph CLI as a lightweight local code-reading tool — find callers, callees, impact radius, affected tests, and a focused task context for any symbol in a local repo. CLI-only by default; never auto-enable the MCP server, never run the interactive installer, never let CodeGraph become a harness subsystem. Trigger phrases include: "CodeGraph CLI / callers / callees / impact / blast radius / affected tests / who calls / what calls / code context / 调用链 / 影响面 / 受影响测试 / 读代码 / 函数开发".
+description: >-
+  Use CodeGraph CLI as a lightweight local code-reading tool — callers, callees, impact radius, affected tests, and focused task context for any symbol in a local repo. CLI-only by default: never auto-enable the MCP server, never run the interactive installer, never let CodeGraph become a harness subsystem. Triggers: "CodeGraph CLI / callers / callees / impact / blast radius / affected tests / who calls / what calls / code context / 调用链 / 影响面 / 受影响测试 / 读代码".
 ---
 
 # codegraph-cli

@@ -1,6 +1,7 @@
 ---
 name: qa-risk-classifier
-description: QA risk classifier — computes Impact × Likelihood + Modifier Cap +10, applies enterprise-qa-testing Floor Rules (§3.6), and outputs Final Level (Low/Medium/High/Critical) plus Evidence Confidence. Use PROACTIVELY at §6 Step 2 of any enterprise-qa-testing dispatch. Never guess scores — always cite repo evidence (changed files, git diff, route classification, package presence).
+description: >-
+  QA risk classifier — computes Impact x Likelihood plus a capped modifier, applies the parent skill floor rules, and outputs the final level (Low / Medium / High / Critical) with evidence confidence. Never guesses scores: always cites repo evidence such as changed files, git diff, route classification or package presence.
 tools: Read, Grep, Glob, Bash
 model: opus
 color: red

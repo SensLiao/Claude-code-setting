@@ -1,7 +1,7 @@
 ---
 name: design-token-pipeline
-description: >
-  Compile design tokens (color/type/space/radius/shadow/motion) from one source of truth into multi-platform outputs — CSS custom properties, Tailwind v4 theme, TS/JS, iOS Swift, Android XML — via Style Dictionary v5 (+ Terrazzo for W3C DTCG, + sd-transforms for multi-brand × multi-theme). This is token-source → code COMPILATION, not visual-asset generation. Use for a design-token pipeline, multi-platform design system, dark-mode/multi-theme output, or wiring tokens into Tailwind/shadcn. Triggers: "design token(s) / token pipeline / Style Dictionary / DTCG / W3C design tokens / multi-theme / dark mode tokens / Tailwind theme from tokens / tokens to CSS variables / multi-brand theming / 设计变量 / 设计令牌 / token 管线 / 多主题 / 暗色模式 token / 多品牌主题". Does NOT pick palettes/brand visuals (→ theme-factory/brandkit/taste-skill) — it compiles an already-decided token set.
+description: >-
+  Compile design tokens (color, type, space, radius, shadow, motion) from one source of truth into multi-platform outputs — CSS custom properties, Tailwind v4 theme, TS/JS, iOS Swift, Android XML — via Style Dictionary v5 plus Terrazzo for W3C DTCG and sd-transforms for multi-brand and multi-theme. This is token-source to code COMPILATION, not visual-asset generation, and it compiles an already-decided token set rather than picking palettes. Triggers: "design token(s) / token pipeline / Style Dictionary / DTCG / multi-theme / dark mode tokens / Tailwind theme from tokens / tokens to CSS variables / 设计变量 / 设计令牌 / token 管线 / 多主题 / 暗色模式 token / 多品牌主题".
 license: MIT
 ---
 

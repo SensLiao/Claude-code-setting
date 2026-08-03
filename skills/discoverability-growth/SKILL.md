@@ -19,8 +19,8 @@ downstream: []
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 forbidden-tools: []
 disable-model-invocation: false
-description: >
-  L12 Discoverability GROWTH skill — the "what to publish/improve next to get found" layer. Turns real evidence (post-launch measurement + audit + crawls) into a prioritized growth backlog: keyword strategy, content-gap analysis, internal-linking, programmatic SEO. Script-first via advertools + seo-keyword-research-tool; AI only ranks the deterministic crawl/keyword output, never invents volumes/rankings. Downstream owner of disc-remediation-planner's `growth` tasks; CONSUMES measurement.json. Not on-page SEO mechanics (→ web-seo), AI-citation/llms.txt (→ web-aeo), Local SEO (→ web-local-seo), ASO (→ app-aso), metric pulling (→ disc-measurement-puller). Triggers: "growth / keyword strategy / keyword research / content gap / topic cluster / pillar content / programmatic SEO / pSEO / SEO backlog / what content should I write / internal linking / 增长 / 关键词策略 / 关键词研究 / 内容缺口 / 选题 / 程序化 SEO / 该写什么内容".
+description: >-
+  L12 Discoverability GROWTH layer — turns real evidence (post-launch measurement, audits, crawls) into a prioritized growth backlog: keyword strategy, content-gap analysis, internal linking, programmatic SEO. Script-first via advertools and keyword-research tooling; AI only ranks deterministic output and never invents volumes or rankings. Downstream owner of the remediation planner growth tasks and consumer of measurement.json. Not on-page SEO mechanics (web-seo), AI citation (web-aeo), Local SEO (web-local-seo) or metric pulling (disc-measurement-puller).
 ---
 
 # discoverability-growth — L12 Growth 子层

@@ -25,14 +25,8 @@ downstream:
   - security-remediation
   - security-platform-secrets (payment provider API keys)
   - compliance.audit (planned)
-description: >
-  Payment Card Industry Data Security Standard (PCI DSS 4.0.1) compliance
-  overlay. Helps determine SAQ scope, minimize PCI surface via redirect /
-  iframe / hosted-fields patterns, avoid storing PAN / CVV / track data,
-  enforce tokenization through PSP, and prepare evidence for QSA assessment.
-  Does NOT replace formal QSA audit — it's a developer-facing baseline check
-  + scope-reduction recommendations. Activated whenever payment processing
-  is in scope.
+description: >-
+  PCI DSS 4.0.1 overlay - determines SAQ scope, minimizes PCI surface via redirect / iframe / hosted-fields patterns, avoids storing PAN, CVV or track data, enforces PSP tokenization and prepares QSA evidence. A developer-facing baseline, not a formal QSA audit.
 trigger_phrases:
   - PCI DSS / 支付安全 / payment security / 卡数据安全
   - cardholder data / CHD / PAN / CVV

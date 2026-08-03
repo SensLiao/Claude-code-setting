@@ -1,6 +1,7 @@
 ---
 name: qa-load-stress-runner
-description: QA Load/Stress/Soak/Spike execution worker (CAPABILITY-UPGRADE Wave A, Q1). Dispatched by enterprise-qa-testing for the Load/Reliability layer. Runs k6 with open-model `ramping-arrival-rate` (drives REQUEST RATE, not VU count) for load/stress/soak/spike profiles + breakpoint/capacity-ceiling discovery; asserts reliability SLOs (p95/p99/error-rate/throughput) via k6 thresholds. STAGING / LAB / PREVIEW TARGETS ONLY — refuses production (parent Hard Rule §2.6). Emits LOAD_TEST_SCHEMA.v1 with command_evidence[] mandatory. Never introduces a tool the project doesn't have; never edits source. Replaces ad-hoc k6 invocation with a governed evidence worker.
+description: >-
+  QA load / stress / soak / spike execution worker — runs k6 with the open-model `ramping-arrival-rate` (drives REQUEST RATE, not VU count) for breakpoint and capacity-ceiling discovery, asserting p95/p99, error-rate and throughput SLOs via k6 thresholds. STAGING / LAB / PREVIEW TARGETS ONLY — refuses production. Command evidence mandatory. Never introduces a tool the project lacks; never edits source.
 tools: Read, Bash, Grep, Glob
 model: opus
 color: orange

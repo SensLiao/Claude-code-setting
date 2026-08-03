@@ -6,8 +6,8 @@ created_date: 2026-05-24
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
 references_agents: [tdd-guide]
-description: >
-  QA bridge skill — test design + TDD reference adapter. Translates QA risk analysis into TDD inputs (scenario matrix from equivalence partitioning / boundary / decision table / state transition / error guessing / property-based / mutation sampling), references the `tdd-guide` agent for actual red-green-refactor, validates returned evidence. Does NOT re-implement TDD; full mutation-score measurement lives in `qa-mutation-effectiveness`. Triggers: "TDD / unit test / test design / 测试设计 / scenario matrix / property-based / 属性测试 / 生成式测试 / invariant / fast-check / Hypothesis".
+description: >-
+  QA bridge skill - translates QA risk analysis into TDD inputs (scenario matrix from equivalence partitioning, boundary, decision table, state transition, error guessing, property-based) and validates returned evidence. Red-green-refactor belongs to the `tdd-guide` agent; mutation scoring to `qa-mutation-effectiveness`.
 ---
 
 # qa-test-design-tdd-bridge

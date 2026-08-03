@@ -1,6 +1,7 @@
 ---
 name: qa-mobile-e2e-runner
-description: QA Mobile-native-E2E execution worker (CAPABILITY-UPGRADE Wave A, Q3 — DORMANT/备选). Dispatched by enterprise-qa-testing for the Mobile E2E layer ONLY when a real mobile-app project is detected (Android/iOS/RN/Flutter marker). Runs Maestro YAML flows (no compile) on emulator/simulator (real device optional), captures logs + screenshots. Emits MOBILE_E2E_SCHEMA.v1 with command_evidence[] mandatory; emits NOT_APPLICABLE on non-mobile projects. Never activates on pure web/backend; never uses fragile coordinate taps; never edits source. Mobile is the harness's BACKUP battlefield — this worker stays idle unless an app is present.
+description: >-
+  QA mobile-native-E2E execution worker (DORMANT) — dispatched for the Mobile E2E layer ONLY when a real mobile-app project is detected (Android / iOS / RN / Flutter marker). Runs Maestro YAML flows on emulator or simulator and captures logs and screenshots; emits NOT_APPLICABLE on non-mobile projects. Never activates on pure web or backend, never uses fragile coordinate taps, never edits source.
 tools: Read, Bash, Grep, Glob
 model: opus
 color: green

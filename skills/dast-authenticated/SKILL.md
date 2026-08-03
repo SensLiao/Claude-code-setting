@@ -29,8 +29,8 @@ downstream:
   - security-remediation (HIGH+ findings)
   - authorized-pentest-validation (manual hard gate — exploitation upgrade path; 双门第二道)
   - appsec-sdk (evidence persist: dast layer)
-description: >
-  Authenticated / logged-in DAST guidance — plans an OWASP ZAP Automation Framework authenticated scan (browser auth context + spider + scan) and Nuclei-with-session against AUTHORIZED staging / preview / lab targets only. The middle layer between passive `dast-baseline-scanning` and full active exploitation — drives the scanner while LOGGED IN, reaching post-auth attack surface baseline cannot. RED-LINE: planning-first + DOUBLE-GATE. HARD-REQUIRES a completed `.planning/PENTEST-ROE.md` + in-scope target + active window + explicit human authorization BEFORE any authenticated active step. Wrapper-only — raw ZAP/Nuclei CLI FORBIDDEN. NEVER auto-scans. NO production, NO destructive/DoS, NO third-party/SaaS-control-plane. REFERENCES (never bypasses/weakens) `dast-baseline-scanning` + the `authorized-pentest-validation` manual gate. Read/planning-only. Triggers: "authenticated DAST / 登录态扫描 / logged-in scan / authenticated ZAP scan / ZAP authentication context / 认证后扫描 / post-auth DAST / session-based scan".
+description: >-
+  Authenticated / logged-in DAST planning — an OWASP ZAP Automation Framework authenticated scan (browser auth context, spider, scan) and Nuclei-with-session against AUTHORIZED staging / preview / lab targets only, reaching post-auth surface that passive baseline cannot. RED-LINE: planning-first + DOUBLE-GATE. HARD-REQUIRES a completed `.planning/PENTEST-ROE.md`, in-scope target, active window and explicit human authorization before any authenticated step. Wrapper-only, raw ZAP/Nuclei CLI FORBIDDEN, never auto-scans, no production, no destructive or DoS action. References `dast-baseline-scanning` and the `authorized-pentest-validation` gate, never bypassing them. Triggers: "authenticated DAST / 登录态扫描 / logged-in scan / authenticated ZAP scan / 认证后扫描 / post-auth DAST / session-based scan".
 ---
 
 # SKILL: dast-authenticated

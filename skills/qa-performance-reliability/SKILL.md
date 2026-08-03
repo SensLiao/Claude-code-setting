@@ -5,13 +5,8 @@ status: stable
 created_date: 2026-05-24
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
-description: >
-  QA child skill — Performance + reliability. Lighthouse CI budgets + bundle/
-  resource budget + k6 API/load smoke + route-class-aware budgets + cold/warm
-  path + p50/p95/p99 + variance control + threshold-weakening detection +
-  regression comparison. Owns parent §4 Layer 9.
-  Trigger phrases: "performance / Lighthouse / lhci / bundle budget / k6 /
-  load test / 性能预算 / 性能回归 / SLO".
+description: >-
+  QA child skill - performance and reliability: Lighthouse CI budgets, bundle and resource budgets, k6 API load smoke, route-class-aware budgets, cold/warm paths, p50/p95/p99 with variance control, threshold-weakening detection, regression comparison. Owns parent section 4 Layer 9.
 ---
 
 # qa-performance-reliability

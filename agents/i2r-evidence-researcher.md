@@ -1,6 +1,7 @@
 ---
 name: i2r-evidence-researcher
-description: I2R PHASE 2.5 specialist (conditional — only when routing requires search). Spawned by i2r-orchestrator to gather source-grounded evidence into 02b-evidence.json — terminology, constraints, standards, and comparable patterns. Search informs context; it NEVER invents product scope or overrides user intent. Every external fact carries a source_ref.
+description: >-
+  I2R phase 2.5 (conditional, only when routing requires search) — gathers source-grounded evidence into 02b-evidence.json: terminology, constraints, standards and comparable patterns. Search informs context and NEVER invents product scope or overrides user intent; every external fact carries a source reference.
 model: opus
 tools: Read, Write, Bash, Grep, Glob, WebSearch, WebFetch
 skills:

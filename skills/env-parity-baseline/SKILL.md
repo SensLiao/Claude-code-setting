@@ -4,8 +4,8 @@ version: 1.0.0
 status: stable
 created_date: 2026-05-24
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
-description: >
-  Cross-environment parity baseline & deployment-risk router. Detects dev/CI/staging/prod consistency gaps, injects a minimum baseline file set (.gitattributes / .editorconfig / env-validator / CI matrix / env-contract / runtime-manifest / deploy-parity-checklist), and routes deploy-layer concerns (Docker / Compose / k8s / systemd / Nginx / Terraform / Ansible) to downstream specialists rather than over-generating templates. Twelve-Factor X + III aligned; scoped to "detect + minimum contract + handoff", not a full deploy generator. Triggers: "环境一致性 / dev-prod parity / CRLF/LF / works on my machine / runtime version pin / .env.example / k8s configmap mismatch / 跨平台 / 部署环境".
+description: >-
+  Cross-environment parity baseline and deployment-risk router. Detects dev/CI/staging/prod consistency gaps, injects a minimum baseline file set (.gitattributes, .editorconfig, env validator, CI matrix, env contract, runtime manifest, deploy parity checklist), and routes deploy-layer concerns (Docker, Compose, k8s, systemd, Nginx, Terraform, Ansible) to downstream specialists instead of over-generating templates. Scoped to detect, minimum contract and handoff — not a full deploy generator. Triggers: "环境一致性 / dev-prod parity / CRLF/LF / works on my machine / runtime version pin / .env.example / k8s configmap mismatch / 跨平台 / 部署环境".
 ---
 
 # env-parity-baseline — 跨环境一致性基线 + 部署风险路由器

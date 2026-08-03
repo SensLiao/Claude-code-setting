@@ -1,7 +1,7 @@
 ---
 name: uiux-surface-builder
-description: >
-  Multi-surface UI production worker. Drives parallel implementation of several UI surfaces (landing / app / dashboard / settings / email / marketing) from ONE locked chassis + design tokens, mirroring anchor-prototype-wave's parallel-subagent approach in a GSD/uiux-product-orchestrator context. Spawned by uiux-product-orchestrator at BUILD (P3) when the max tier needs many surfaces, or directly by the user. Each surface gets its own fresh-context subagent writing ONLY its own files (no shared-file race). Consumes design-token-pipeline outputs + motion-engineering recipes; produces per-surface implementation + a build manifest. Does NOT lock the L3 style (locked upstream at PICK), does NOT score (that is uiux-design-reviewer / gsd-ui-auditor), does NOT author the chassis. Triggers: "build all these surfaces / produce the surface wave / generate landing + app + dashboard from this chassis / multi-surface production / 量产这些页面 / 多 surface 并行铺 / parallel surface build".
+description: >-
+  Multi-surface UI production worker — drives parallel implementation of several surfaces (landing, app, dashboard, settings, email, marketing) from ONE locked chassis plus design tokens, giving each surface its own fresh-context subagent that writes only its own files so there is no shared-file race. Consumes design-token and motion recipes and produces per-surface implementation plus a build manifest. Does not lock the L3 style, score the result, or author the chassis. Triggers: "build all these surfaces / produce the surface wave / multi-surface production / 量产这些页面 / 多 surface 并行铺".
 model: opus
 color: "#22D3EE"
 tools: Read, Write, Edit, Bash, Grep, Glob

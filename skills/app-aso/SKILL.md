@@ -19,8 +19,8 @@ downstream:
 allowed-tools: Read, Grep, Glob
 forbidden-tools: WebFetch
 disable-model-invocation: false
-description: >
-  App Store Optimization (ASO) — L12 Discoverability 子层，仅负责 iOS App Store + Google Play 商店内 discoverability：metadata、visual assets、localization、ratings/reviews、store experiments、product page optimization、ASO measurement（keyword difficulty / ranking / conversion / install funnel）。不做 web SEO / AI search / Local SEO / security，不写 app 实现代码。Triggers: "ASO / app store optimization / store listing / product page / app keywords / screenshots / ratings / store experiments / ASO measurement / 关键词排名 / 上架后效果 / 商店转化率 / 曝光量".
+description: >-
+  App Store Optimization (ASO) — store-side discoverability for the iOS App Store and Google Play: metadata, visual assets, localization, ratings and reviews, store experiments, product page optimization, and ASO measurement (keyword difficulty, ranking, conversion, install funnel). Not web SEO, AI search, Local SEO or security, and never writes app implementation code.
 ---
 
 # App Store Optimization (L12 / app-aso)

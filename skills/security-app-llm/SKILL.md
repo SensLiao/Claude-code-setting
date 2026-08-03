@@ -28,14 +28,8 @@ downstream:
   - security-remediation
   - security-platform-secrets (AI provider API keys)
   - appsec-security-orchestrator (back with findings)
-description: >
-  Security overlay for GenAI / LLM / Agentic AI applications. **OWASP LLM Top 10
-  alone is INSUFFICIENT** — this skill covers LLM01-LLM10 PLUS Agentic AI
-  specifics: tool-permission boundaries, memory/context poisoning, indirect prompt
-  injection from retrieved content, evals / guardrails, observability, model & data
-  provenance, human override paths, rollback behavior. Does NOT replace
-  gsd-ai-integration-phase (which designs AI features) — this is the security
-  overlay for what gsd-ai-integration-phase designs.
+description: >-
+  Security overlay for GenAI / LLM / Agentic AI applications - OWASP LLM Top 10 alone is INSUFFICIENT, so this adds agentic specifics: tool-permission boundaries, memory and context poisoning, indirect prompt injection from retrieved content, evals and guardrails, provenance, human override paths, rollback. Secures what `gsd-ai-integration-phase` designs.
 trigger_phrases:
   - LLM security / AI security / GenAI security / 生成式 AI 安全
   - prompt injection / 提示词注入 / indirect prompt injection

@@ -1,6 +1,7 @@
 ---
 name: appsec-reviewer
-description: Application security code review specialist. Use PROACTIVELY when reviewing code that handles authentication, authorization, user input, API endpoints, file upload, payments, session/cookie/token handling, security headers, or any backend/server-side logic. Flags OWASP Top 10, ASVS gaps, and API Top 10 issues. Does NOT perform active scans. MUST BE USED before any backend/API/auth code is shipped to production.
+description: >-
+  Application security code review specialist. Use PROACTIVELY when reviewing code that handles authentication, authorization, user input, API endpoints, file upload, payments, session and token handling, security headers, or any server-side logic. Flags OWASP Top 10, ASVS gaps and API Top 10 issues. Performs no active scans. MUST BE USED before backend/API/auth code ships to production.
 model: sonnet
 tools: Read, Grep, Glob, Bash
 ---

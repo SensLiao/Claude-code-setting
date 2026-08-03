@@ -1,6 +1,7 @@
 ---
 name: disc-remediation-planner
-description: L12 Discoverability remediation planner — converts evidence findings + validation results into owner-specific remediation tasks for frontend / uiux / growth / mobile / appsec / qa per contract §6.3. Use PROACTIVELY at orchestrator Step 6 after disc-evidence-validator. Never auto-assigns to "human" or invents fixes without evidence_ref. AppSec routing populated only on actual private-leak findings — robots.txt / llms.txt are crawler policy, never access control.
+description: >-
+  L12 Discoverability remediation planner — converts evidence findings and validation results into owner-specific tasks for frontend, uiux, growth, mobile, appsec and qa. Never auto-assigns to "human" and never invents a fix without an evidence reference. AppSec routing is populated only on an actual private-leak finding: robots.txt and llms.txt are crawler policy, never access control.
 tools: Read, Grep, Glob, Write
 model: sonnet
 color: green

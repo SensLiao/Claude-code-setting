@@ -1,7 +1,8 @@
 ---
 name: idea-to-requirements-orchestrator
-description: Automatically orchestrates the conversion of raw ideas, vague product requests, messy feature concepts, business needs, or agent-system ideas into a reviewed Markdown requirements package. Produces clarified intent, scope, functional requirements, non-functional requirements, acceptance criteria, constraints, locked decisions, and a PRD. Never produces code, implementation plans, architecture, roadmap, task breakdown, database design, API design, file structure, or UI/UX.
-when_to_use: Use when the user asks to clarify an idea, define requirements, convert ideas into functional/non-functional requirements, prepare a feature for downstream planning, analyze product scope, turn a messy request into a PRD, or design the functional behavior of a system before implementation. Do not use when the user is already asking for implementation, coding, debugging, architecture implementation, task execution, UI/UX, or roadmap planning; hand those to the appropriate downstream orchestrator.
+description: >-
+  Turns raw ideas, vague product requests, messy feature concepts or agent-system ideas into a reviewed Markdown requirements package — clarified intent, scope, functional and non-functional requirements, acceptance criteria, constraints, locked decisions, PRD. Use to clarify an idea, define requirements, analyze scope, or prepare a feature for downstream planning. Never produces code, implementation plans, architecture, roadmap, task breakdown, DB/API design, file structure or UI/UX — hand those to the downstream orchestrator.
+when_to_use: Use to clarify an idea, define functional and non-functional requirements, analyze scope, or turn a messy request into a PRD before implementation. Not for implementation, coding, debugging, task execution, UI/UX or roadmap planning.
 context: fork
 agent: i2r-orchestrator
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent, AskUserQuestion

@@ -27,13 +27,8 @@ downstream:
   - security-remediation  # if scoping reveals findings
   - appsec-security-orchestrator  # back to orchestrator with output
   - pentest-scope-and-roe  # if model surfaces need for active validation
-description: >
-  Structured threat modeling workflow producing a STRIDE register, abuse cases,
-  attack surface inventory, and control gap analysis. Output drives the project
-  Risk Register and downstream remediation. Map to NIST CSF 2.0 ID.RA and NIST
-  SP 800-154. Trigger on new system, new external interface, auth model change,
-  third-party integration, file upload, multi-tenancy introduction, GenAI / Agent
-  introduction, or major architecture refactor. Does NOT perform active testing.
+description: >-
+  Structured threat modeling producing a STRIDE register, abuse cases, attack surface inventory and control gap analysis that feed the Risk Register and downstream remediation. Maps to NIST CSF 2.0 ID.RA. Triggers on a new system, new external interface, auth model change, third-party integration, file upload, multi-tenancy, GenAI-agent introduction, or major architecture refactor. Performs no active testing.
 trigger_phrases:
   - threat model / 威胁建模 / STRIDE / 攻击面 / abuse case
   - 安全架构评审 / 架构变更安全审 / 新接口安全评估

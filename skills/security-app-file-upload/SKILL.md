@@ -25,13 +25,8 @@ downstream:
   - security-remediation
   - security-platform-secrets (signed URL secrets)
   - appsec-security-orchestrator (back with findings)
-description: >
-  File upload security overlay covering polyglot files, content-type sniffing,
-  AV / CDR scanning, sandbox parsing, filename / path injection, archive bombs,
-  signed URL design, storage backend isolation, served-back Content-Disposition,
-  and image / document specific parser hardening. Maps to OWASP File Upload
-  Cheat Sheet + ASVS 5.0 V5. Activated whenever multipart upload / file
-  handling exists.
+description: >-
+  File upload security overlay - polyglots, content-type sniffing, AV/CDR scanning, sandboxed parsing, filename and path injection, archive bombs, signed URLs, storage backend isolation, served-back Content-Disposition, and parser hardening.
 trigger_phrases:
   - file upload security / 文件上传安全 / upload validation
   - polyglot file / 多语言文件

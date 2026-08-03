@@ -24,14 +24,8 @@ upstream:
 downstream:
   - security-remediation
   - appsec-security-orchestrator (back with findings)  # IAM concerns → orchestrator §5.3 iam capability (no dedicated skill yet)
-description: >
-  Multi-tenant isolation overlay. Reviews tenant ID propagation through every
-  layer (request → auth → query → cache → log → background job → analytics →
-  webhook → backup → export). Maps to OWASP Multi-Tenant Cheat Sheet + ASVS V4
-  /V8 + API Top 10 (API1 BOLA, API5 BFLA). Activated for SaaS / B2B / shared
-  infrastructure projects. Does NOT replace IAM design — route IAM concerns to
-  orchestrator §5.3 iam capability (no dedicated skill yet); this skill overlays
-  tenant-specific isolation concerns on top of IAM patterns.
+description: >-
+  Multi-tenant isolation overlay - traces tenant ID propagation through every layer: request, auth, query, cache, log, background job, analytics, webhook, backup, export. Overlays tenant isolation on IAM patterns rather than replacing IAM design.
 trigger_phrases:
   - multi-tenant / 多租户 / multitenancy / SaaS
   - tenant isolation / 租户隔离

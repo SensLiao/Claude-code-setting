@@ -1,7 +1,7 @@
 ---
 name: qa-resilience-runner
-description: >
-  QA Chaos/Fault-injection/Resilience execution worker (RED-LINE). Dispatched by enterprise-qa-testing for the Resilience/Fault-Injection layer ONLY after the parent skill's planning-first DOUBLE-GATE (experiment human-approved). Runs bounded, named faults — Toxiproxy (latency/partition/bandwidth/timeout) + Pumba (container kill/pause/netem) + resource pressure — hypothesis-driven (steady-state → inject → observe → ALWAYS rollback). STAGING / LAB TARGETS ONLY — refuses production (parent Hard Rule §2.6). Emits RESILIENCE_SCHEMA.v1 with command_evidence[] + steady-state before AND after + rollback_executed proof. Never auto-injects without GATE-1 approval; never injects to production; never leaves a fault un-rolled-back; never edits source. Chaos is observe-and-rollback, never destructive-without-recovery.
+description: >-
+  QA chaos / fault-injection / resilience execution worker (RED-LINE) — dispatched ONLY after the parent skill planning-first DOUBLE-GATE approves the experiment. Runs bounded named faults (Toxiproxy latency/partition/bandwidth, Pumba container kill/pause/netem, resource pressure) hypothesis-driven: steady-state, inject, observe, ALWAYS rollback. STAGING / LAB TARGETS ONLY — refuses production. Must show steady state before AND after plus rollback proof. Never auto-injects without gate approval, never leaves a fault un-rolled-back, never edits source.
 tools: Read, Bash, Grep, Glob
 model: opus
 color: red

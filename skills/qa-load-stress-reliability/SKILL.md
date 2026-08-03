@@ -6,8 +6,8 @@ created_date: 2026-06-15
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
 references_agents: [qa-load-stress-runner]
-description: >
-  QA child skill — load / stress / soak / spike + capacity + reliability SLO. k6-based (open-model `ramping-arrival-rate` driving REQUEST RATE, not VU count) for breakpoint/capacity-ceiling discovery + p95/p99/error-rate/throughput SLO assertions. STAGING / LAB / PREVIEW ONLY — never production (Hard Rule §2.6). Complements `qa-performance-reliability` (which does NOT do sustained load). Owns parent §4 Layer "Load/Reliability". Triggers: "load / stress / soak / spike test / breakpoint / capacity / 压测 / 负载测试 / 峰值 / k6 / RPS / sustained load / SLO 验证 / p99 latency / 吞吐".
+description: >-
+  QA child skill - load / stress / soak / spike plus capacity and reliability SLO: k6 open-model `ramping-arrival-rate` (drives REQUEST RATE, not VU count) for breakpoint and capacity-ceiling discovery, asserting p95/p99, error rate and throughput. STAGING / LAB / PREVIEW ONLY - never production (parent Hard Rule 2.6). Owns parent Load/Reliability layer.
 ---
 
 # qa-load-stress-reliability

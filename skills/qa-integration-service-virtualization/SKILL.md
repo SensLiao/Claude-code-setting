@@ -5,14 +5,8 @@ status: stable
 created_date: 2026-05-24
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
-description: >
-  QA child skill — Integration layer with service virtualization. Tests DB /
-  cache / queue / API client / message queue / third-party boundary via MSW /
-  Testcontainers / Docker Compose. Prefers real dependency over in-memory mock
-  at Medium+ risk. Covers idempotency / retry / timeout / network error /
-  partial failure. Owns parent §4 Layer 4.
-  Trigger phrases: "integration test / MSW / Testcontainers / Docker Compose /
-  集成测试 / 服务虚拟化 / API handler / DB test".
+description: >-
+  QA child skill - integration layer with service virtualization: DB, cache, queue, API client and third-party boundaries via MSW / Testcontainers / Docker Compose, covering idempotency, retry, timeout, network error and partial failure. Real dependency preferred over in-memory mock at Medium+ risk. Owns parent section 4 Layer 4.
 ---
 
 # qa-integration-service-virtualization

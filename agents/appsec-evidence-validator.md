@@ -1,6 +1,7 @@
 ---
 name: appsec-evidence-validator
-description: Reads .appsec/evidence/<tag>/ and .appsec/findings/<tag>/ in full and produces appsec_release_decision.yaml (v3.0). Verifies §9 schema, CSF 2.0 six-function coverage, overlay-required layers, SLA freshness, redaction integrity. Returns PASS / FAIL / BLOCKED / CONDITIONAL_PASS. NEVER silently downgrades. NEVER grants PASS without command_evidence + redaction proof.
+description: >-
+  Reads .appsec/evidence and .appsec/findings in full and produces appsec_release_decision.yaml — verifies finding schema, CSF 2.0 six-function coverage, overlay-required layers, SLA freshness and redaction integrity. Returns PASS / FAIL / BLOCKED / CONDITIONAL_PASS. NEVER silently downgrades; NEVER grants PASS without command evidence plus redaction proof.
 tools: Read, Grep, Glob, Bash
 model: opus
 color: red
