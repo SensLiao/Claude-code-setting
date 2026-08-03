@@ -35,20 +35,7 @@ downstream:
   - security-remediation  # 高危依赖 / 未签产物转 finding
   - appsec-security-orchestrator  # 回 orchestrator
 description: >
-  Software supply-chain security review — SBOM generation (CycloneDX / SPDX),
-  deep SCA beyond `npm/pip/cargo audit` (transitive vulns, lockfile integrity,
-  reachability, VEX suppression, license risk), provenance & artifact/image
-  signing (SLSA / in-toto / Sigstore-cosign), container image supply chain
-  (digest-pinned base + verify-on-deploy), dependency-confusion / typosquatting /
-  malicious-package defenses, and build-pipeline integrity. Also covers
-  reachability-based noise reduction (raw SBOM vuln lists are a candidate set,
-  not a worklist — ~92% contextual FP; prune to reachable+unmitigated) and
-  cloud posture management (CSPM via Prowler — live cloud config audit,
-  complementary to security-platform-iac-cloud's IaC-template scanning). Fills
-  the orchestrator §5.2 `sbom_signing` gap and deepens `sca`. Maps to OWASP Top
-  10:2025 A03, ASVS 5.0, SLSA, NIST SSDF / SP 800-161. Does NOT run active
-  exploitation — wrapper/CLI scanning on the local repo + read-only cloud
-  posture evaluation only.
+  Software supply-chain security review — SBOM (CycloneDX/SPDX), deep SCA beyond `npm/pip/cargo audit` (transitive vulns, lockfile integrity, reachability, VEX suppression, license risk), provenance & signing (SLSA / in-toto / Sigstore-cosign), container image supply chain (digest-pinned + verify-on-deploy), dependency-confusion / typosquatting defenses, build-pipeline integrity. Also reachability-based noise reduction (raw SBOM vuln lists are candidates not a worklist — prune to reachable+unmitigated) and cloud posture (CSPM via Prowler, complementary to security-platform-iac-cloud). Fills orchestrator §5.2 `sbom_signing`, deepens `sca`. Maps to OWASP 2025 A03 / ASVS 5.0 / SLSA / NIST SSDF. Does NOT run active exploitation — wrapper/CLI scanning on the local repo + read-only cloud posture only.
 trigger_phrases:
   - SBOM / software supply chain / 供应链安全
   - SCA / dependency vulnerability / 依赖漏洞 / transitive dependency

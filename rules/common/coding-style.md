@@ -62,12 +62,9 @@ Before writing code, stop at the first rung that holds:
 
 ## Code Quality Checklist
 
-Before marking work complete:
+Before marking work complete — the items this file owns:
 - [ ] Minimal — no speculative code, no unneeded dependency or abstraction (climbed the ladder); safety floor intact
-- [ ] Code is readable and well-named
-- [ ] Functions are small (<50 lines)
-- [ ] Files are focused (<800 lines)
-- [ ] No deep nesting (>4 levels)
-- [ ] Proper error handling
+- [ ] No mutation (immutable patterns used) — see §Immutability
 - [ ] No hardcoded values (use constants or config)
-- [ ] No mutation (immutable patterns used)
+
+> Readability / size / nesting / error handling / coverage: [code-review.md](code-review.md) §Review Checklist.

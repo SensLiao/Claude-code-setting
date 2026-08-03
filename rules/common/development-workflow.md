@@ -22,10 +22,7 @@ The Feature Implementation Workflow describes the development pipeline: research
 
 2. **TDD Approach**
    - Use **tdd-guide** agent
-   - Write tests first (RED)
-   - Implement to pass tests (GREEN)
-   - Refactor (IMPROVE)
-   - Verify 80%+ coverage
+   - RED → GREEN → IMPROVE, 80%+ coverage — full loop: [testing.md](testing.md)
 
 3. **Code Review**
    - Use **code-reviewer** agent immediately after writing code

@@ -10,6 +10,8 @@ paths:
   - "**/*.astro"
 ---
 > This file extends [common/hooks.md](../common/hooks.md) with web-specific hook recommendations.
+>
+> **STATUS: advisory, NOT wired** — no global formatter hook covers these files; the snippets below are per-project templates. Separately, `scripts/hooks/design-quality-check.js` **does** run globally on `.astro/.css/.html/.jsx/.scss/.svelte/.tsx/.vue` edits, but it emits design-quality reminders, not formatting.
 
 # Web Hooks
 

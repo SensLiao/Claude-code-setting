@@ -43,23 +43,13 @@ downstream:
   - appsec-evidence-validator  # agent (v3.0): release decision
   - security-remediation  # for finding → fix → regression test
   - dast-baseline-scanning  # passive DAST baseline
+  - dast-authenticated  # RED-LINE: logged-in DAST, planning-only, HARD-REQUIRES ROE + double gate
   - pentest-scope-and-roe  # if active validation requested
   - security-governance-threat-modeling  # for STRIDE / risk register
   - security-platform-secrets  # for secrets engineering review
   - security-platform-iac-cloud  # for IaC / cloud posture review
 description: >
-  Application Security (AppSec) orchestrator for commercial web/server projects.
-  Activate immediately when a project has backend / API / auth / user-data /
-  file-upload / payment / admin / multi-tenant / GenAI-agent surface, or nears
-  production. v3.0 GSD-lite engine: self-dispatches named subagents, an
-  appsec-sdk evidence sink, and 6 project hooks. Maps to NIST CSF 2.0 (Govern /
-  Identify / Protect / Detect / Respond / Recover) over a 6-layer capability map.
-  Use for threat modeling, dependency/supply-chain & SCA/secret/SAST scanning,
-  auth & authorization & input-validation & API security review, OWASP ASVS 5.0
-  / WSTG / API Top 10 mapping, security headers/cookies/session review,
-  remediation routing, DAST baseline planning. Casual: security review / is this
-  secure? / check for vulnerabilities / before I deploy. Does NOT perform active
-  scans — active validation is gated by `authorized-pentest-validation`.
+  Application Security (AppSec) orchestrator for commercial web/server projects. Activate immediately when a project has backend / API / auth / user-data / file-upload / payment / admin / multi-tenant / GenAI-agent surface, or nears production. v3.0 GSD-lite engine: self-dispatches named subagents + an appsec-sdk evidence sink + 6 project hooks. Maps to NIST CSF 2.0 (Govern/Identify/Protect/Detect/Respond/Recover) over a 6-layer capability map. Use for threat modeling, supply-chain/SCA/secret/SAST scanning, auth & authorization & input-validation & API security review, OWASP ASVS 5.0 / WSTG / API Top 10 mapping, headers/cookies/session review, remediation routing, DAST baseline planning. Casual: "security review / is this secure? / check for vulnerabilities / before I deploy". Does NOT perform active scans — active validation is gated by `authorized-pentest-validation`.
 trigger_phrases:
   - AppSec / 安全审查 / 威胁建模 / OWASP / API 安全
   - dependency audit / SAST / SCA / 安全 baseline
@@ -190,7 +180,10 @@ AppSec 是 commercial quality 的一部分，**不是上线前可选的加分项
 | Capability | canonical_id | 当前 skill / 状态 |
 |---|---|---|
 | sast | `security.app.sast` | 🟡 §16 Step 4 内（semgrep + appsec-reviewer agent） |
-| dast | `security.app.dast` | ✅ `dast-baseline-scanning` |
+| sast_deep | `security.app.sast_deep` | ✅ `security-app-sast-deep`（深度 taint / dataflow 分析，Step 4 的 semgrep floor 之上） |
+| fuzzing | `security.app.fuzzing` | ✅ `security-app-fuzzing`（coverage-guided 模糊测试） |
+| dast | `security.app.dast` | ✅ `dast-baseline-scanning`（passive baseline only） |
+| dast_authenticated | `security.app.dast_authenticated` | ✅ `dast-authenticated` — **RED-LINE**，登录态 DAST，wrapper-only；HARD-REQUIRES 完成的 ROE + 授权 staging/preview/lab target + 时间窗 + 人工授权。绝不 auto-scan、绝不打 production |
 | iast | `security.app.iast` | ⚪ 高成熟度选项 |
 | rasp | `security.app.rasp` | ⚪ 高成熟度选项 |
 | sca | `security.platform.supply_chain` | ✅ `security-platform-supply-chain`（deep SCA；§16 Step 4 npm/pip/cargo/trivy audit 仍是 inline floor）|
@@ -274,10 +267,18 @@ AppSec 是 commercial quality 的一部分，**不是上线前可选的加分项
 | 威胁建模 | `security-governance-threat-modeling` | §16 Step 6 |
 | Secrets 工程管理 | `security-platform-secrets` | 含 secrets / OIDC / 凭证轮换 |
 | IaC / Cloud 姿态 | `security-platform-iac-cloud` | 含 Terraform / Helm / K8s / 云资源 |
-| DAST baseline | `dast-baseline-scanning` | §16 Step 7（含 web/API） |
+| DAST baseline | `dast-baseline-scanning` | §16 Step 7（含 web/API），passive only |
+| DAST authenticated | `dast-authenticated` | **RED-LINE** 登录态扫描，wrapper-only。HARD-REQUIRES 完成的 ROE + 授权 staging/preview/lab target + 时间窗 + 人工授权；绝不 auto-scan、绝不打 production |
+| 深度 SAST | `security-app-sast-deep` | taint / dataflow，Step 4 semgrep floor 之上 |
+| 模糊测试 | `security-app-fuzzing` | coverage-guided fuzzing |
 | 修复 + 回归测试 | `security-remediation` | high+ finding |
 | Pentest ROE 起草 | `pentest-scope-and-roe` | §16 Step 8（user 请求 active 验证） |
+| Recon / 授权扫描（**planning-only**） | `security-pentest-recon-scan` | 模板化 recon + 授权扫描参考；受双 gate 约束 |
+| AI / agentic 红队（**planning-only**） | `security-pentest-ai-redteam` | AI surface 红队参考；受双 gate 约束 |
+| Exploitation 规划（**planning-only**） | `security-pentest-exploitation-planning` | Metasploit / Sliver / Caldera / Pacu / BloodHound **参考资料**，Read-only。**绝不**当 `authorized-pentest-validation` 的桥、绝不自动执行 |
 | Active 验证（手动） | `authorized-pentest-validation` | ROE 完成 + user explicit sign-off + hook 验证通过 |
+
+> 上面三个 `planning-only` pentest skill **永不自动执行攻击**，全部受 `pentest-scope-and-roe` + `authorized-pentest-validation` 双 gate 约束。它们产出计划与参考，执行权只在手动 gate 之后。
 
 **模型路由**：classifier / triager / validator / reviewer (L2+) 升 opus；常规整理留 sonnet；格式转换用 haiku。
 

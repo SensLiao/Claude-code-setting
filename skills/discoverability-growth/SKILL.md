@@ -20,26 +20,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 forbidden-tools: []
 disable-model-invocation: false
 description: >
-  L12 Discoverability GROWTH skill — the forward-looking "what to publish/improve
-  next to get found" layer. Turns real evidence (post-launch measurement +
-  pre-launch audit + crawls) into a prioritized growth backlog: keyword strategy,
-  content-gap analysis, internal-linking opportunities, and programmatic-SEO
-  patterns. Script-first via advertools (Scrapy SEO crawler + SERP/keyword
-  helpers) and seo-keyword-research-tool (autocomplete / related-keyword CLI);
-  AI only interprets the deterministic crawl/keyword output and ranks the
-  backlog — it never invents search volumes or rankings. This is the concrete
-  downstream owner for the `growth` tasks that disc-remediation-planner routes.
-  Does NOT do on-page SEO mechanics (robots/sitemap/canonical/metadata → web-seo),
-  AI-citation optimization (llms.txt/citability → web-aeo), Local SEO / GBP
-  (→ web-local-seo), ASO (→ app-aso), or post-launch metric PULLING
-  (→ disc-measurement-puller). It CONSUMES measurement.json, it does not produce it.
-  Trigger phrases (EN): "growth / keyword strategy / keyword research / content gap /
-  content-gap analysis / topic cluster / pillar content / content calendar /
-  programmatic SEO / pSEO / SEO backlog / what content should I write / internal
-  linking strategy / keyword opportunity / SERP gap / competitor content gap".
-  触发词 (中文): "增长 / 关键词策略 / 关键词研究 / 内容缺口 / 内容空白 / 选题 /
-  主题集群 / 内容日历 / 程序化 SEO / 增长 backlog / 该写什么内容 / 内链策略 /
-  关键词机会 / 竞品内容差距".
+  L12 Discoverability GROWTH skill — the "what to publish/improve next to get found" layer. Turns real evidence (post-launch measurement + audit + crawls) into a prioritized growth backlog: keyword strategy, content-gap analysis, internal-linking, programmatic SEO. Script-first via advertools + seo-keyword-research-tool; AI only ranks the deterministic crawl/keyword output, never invents volumes/rankings. Downstream owner of disc-remediation-planner's `growth` tasks; CONSUMES measurement.json. Not on-page SEO mechanics (→ web-seo), AI-citation/llms.txt (→ web-aeo), Local SEO (→ web-local-seo), ASO (→ app-aso), metric pulling (→ disc-measurement-puller). Triggers: "growth / keyword strategy / keyword research / content gap / topic cluster / pillar content / programmatic SEO / pSEO / SEO backlog / what content should I write / internal linking / 增长 / 关键词策略 / 关键词研究 / 内容缺口 / 选题 / 程序化 SEO / 该写什么内容".
 ---
 
 # discoverability-growth — L12 Growth 子层

@@ -7,19 +7,7 @@ allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
 references_agents: [qa-resilience-runner]
 description: >
-  QA child skill — chaos / fault-injection / resilience verification.
-  Hypothesis-driven chaos engineering (steady-state → inject → observe →
-  rollback) using bounded, named faults: Toxiproxy (network latency / partition /
-  bandwidth / timeout), Pumba (container kill / pause / netem), dependency
-  failure, and resource pressure. RED-LINE skill — PLANNING-FIRST + DOUBLE-GATE,
-  STAGING / LAB ONLY, NEVER production (parent Hard Rule §2.6 No destructive
-  production testing). Mirrors `pentest-scope-and-roe` governance: draft a
-  blast-radius-bounded experiment → human go → execute → always rollback.
-  Owns parent §4 Layer "Resilience/Fault-Injection" (new). Trigger phrases:
-  "chaos / chaos engineering / fault injection / resilience test / 混沌工程 /
-  韧性测试 / 故障注入 / Toxiproxy / Pumba / latency injection / 注入延迟 /
-  network partition / 网络分区 / container kill / 容器杀 / dependency failure /
-  依赖故障 / blast radius / 爆炸半径 / steady-state hypothesis / GameDay".
+  QA child skill — chaos / fault-injection / resilience verification. Hypothesis-driven (steady-state → inject → observe → rollback) with bounded, named faults: Toxiproxy (latency/partition/bandwidth/timeout), Pumba (container kill/pause/netem), dependency failure, resource pressure. RED-LINE skill — PLANNING-FIRST + DOUBLE-GATE, STAGING / LAB ONLY, NEVER production (parent Hard Rule §2.6); mirrors `pentest-scope-and-roe` governance: blast-radius-bounded experiment → human go → execute → always rollback. Owns parent §4 Layer "Resilience/Fault-Injection". Triggers: "chaos engineering / fault injection / resilience test / 混沌工程 / 韧性测试 / 故障注入 / Toxiproxy / Pumba / network partition / blast radius / GameDay".
 ---
 
 # qa-resilience-fault-injection

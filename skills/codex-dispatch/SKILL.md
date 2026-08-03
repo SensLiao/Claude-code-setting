@@ -1,6 +1,7 @@
 ---
 name: codex-dispatch
-description: Cross-AI dispatch playbook — the harness decision + discipline layer for using Codex (OpenAI codex CLI, GPT 系列模型) as a second model family for delegated execution and cross-model review. This skill does NOT shell out to `codex exec` itself; all execution is routed to the official `codex@openai-codex` plugin commands (`/codex:rescue` delegate · `/codex:review` review · `/codex:adversarial-review` challenge · `/codex:status` `/codex:result` `/codex:cancel` lifecycle · `/codex:setup` readiness). It carries the harness-specific discipline the generic plugin lacks — when-to-delegate decision tree, work-order template, scope/chunking caps, mandatory wave cross-review, Windows caveats, quota fallback, model-version lock, and the governed-gate boundary. Trigger phrases include "用 codex / 让 codex / 派给 codex / delegate to codex / codex 调度 / codex 跑一下 / cross-review with codex / 跨模型 review / 该不该用 codex / codex 怎么调用 / codex 委派 / 第二个模型审".
+description: >
+  Cross-AI dispatch playbook — the harness decision + discipline layer for using Codex (OpenAI codex CLI, GPT models) as a second model family for delegated execution and cross-model review. Does NOT shell out to `codex exec`; all execution routes to the official `codex@openai-codex` plugin commands (`/codex:rescue` delegate · `/codex:review` · `/codex:adversarial-review` · lifecycle · `/codex:setup`). Carries the discipline the plugin lacks: when-to-delegate tree, work-order template, scope caps, mandatory wave cross-review, Windows caveats, quota fallback, governed-gate boundary. ALSO owns collaboration with any external reasoning model (e.g. GPT-5.5 Thinking) acting as upstream designer + downstream reviewer, including the execution discipline for building against a spec authored outside this session. Triggers: "用 codex / 派给 codex / delegate to codex / codex 调度 / cross-review with codex / 跨模型 review / 该不该用 codex / codex 委派 / GPT-5.5 / 外部模型 / 外部 spec / 粘贴的方案 / 跨模型协作 / external spec / 别的模型给的方案".
 ---
 
 # codex-dispatch — Codex 跨模型调度 playbook
@@ -93,7 +94,17 @@ node "$CLAUDE_PLUGIN_ROOT/scripts/codex-companion.mjs" review "--wait"   # cwd =
 
 **别给 Codex**（→ 走 Claude opus subagent 而非 Codex）：单次产出 ≥ 5000 字 / ≥ 10 protocol 横向对比 / "需要先想清楚整体结构再写"的综合性长 survey。Codex 在"宽而长"的任务上会撞 context 上限（见 §5）。
 
-> 内部执行者路由（Codex vs Claude subagent vs 主线程）的完整规则见 `rules/common/task-execution-protocol.md` §3.1。本 skill 是它的 codex 操作细节展开。
+**固定不可委派（留 Claude 主线程；Codex 至多辅助调查，不拍板）** —— 上面的决策树覆盖前两项，完整清单是：
+
+1. 需求理解与任务拆分
+2. **架构与方案决策**
+3. 高风险事项（安全 · 权限 · 认证 · 支付 · 数据迁移 · 公共 API · 核心逻辑）
+4. **最终审查与合并决策**
+5. **是否接受 reviewer 意见的判断**（不机械执行 reviewer 意见 —— 先评估实际风险，见 `CLAUDE.md` §4 硬规则 10）
+
+**额度 fallback**：Codex 返回额度错误（rate limit / quota / 402）时，立即 fallback 到 Claude subagent（`Agent` tool，按 `rules/common/performance.md` 选 `sonnet`/`opus`）。详见 §7。
+
+> 内部执行者路由（Codex vs Claude subagent vs 主线程）的**完整规则住在本 skill**；`rules/common/task-execution-protocol.md` §3 只保留一句话骨架 + 指回这里（2026-07-29 起，为削减常驻 context）。
 
 ---
 
@@ -204,11 +215,71 @@ Codex 返回额度错误（rate limit / quota exceeded / 402）→ **立即 fall
 
 ---
 
-## 11. Cross-links
+## 11. 外部模型协作（GPT-5.5 Thinking ↔ Opus）
+
+> 2026-07-29 从 `rules/common/task-execution-protocol.md` §3.2 迁入。原先常驻每个 session，但只在"引入外部强推理模型"时才用得上 —— 现随本 skill 按需加载。
+> 与 §2-§10 的区别：那些讲**我派活给 Codex**；本节讲**外部模型派活给我**（它做上游设计 + 下游验收，我做施工）。
+
+**触发**：任务判定为"复杂"且涉及研究设计 / 论文 / 长链路 pipeline，或用户粘贴了外部模型产出的 spec / review。简单和中等任务不走本节。
+
+**分工**：外部强推理模型（GPT-5.5 Thinking）做上游设计 + 下游验收，Opus（当前主线程）做施工。
+
+| 任务类型 | 归谁 |
+|---------|------|
+| 研究拆解 / 实验矩阵 / ablation 设计 | GPT-5.5 |
+| 文献方法理解 / baseline 公平性判断 | GPT-5.5 |
+| 论文 / PPT 故事线 / 长文档润色 | GPT-5.5 |
+| 多文件代码修改 / refactor / debug / 跑脚本 | Opus |
+| 代码审查 / 方案复核 | GPT-5.5 |
+
+### 五步循环
+
+```
+GPT-5.5   设计 spec + checklist
+   ↓
+Opus      改代码 + 跑测试 + 输出 diff summary
+   ↓
+GPT-5.5   review diff / 结果
+   ↓
+Opus      按 review 修 bug
+   ↓
+GPT-5.5   整理为实验记录 / report / slides
+```
+
+### Opus 收到外部 spec 时的执行纪律
+
+1. 只做 spec 列出的任务——不顺手重构、不新增抽象、不改未列出的文件
+2. 保留现有 CLI / 接口——除非 spec 明确要求变更
+3. 执行完毕输出结构化摘要：修改文件列表、关键逻辑变更、潜在风险、测试命令
+4. spec 不明确 → 停下问用户，不替外部模型补决策
+
+### spec 书写正反例
+
+反例（会幻读 / 越界）：
+> 帮我完成这个项目。
+
+正例（能精确执行）：
+> 1. 阅读 `train_medsam3_lora.py` 和 `dataset.py`
+> 2. 保持现有 CLI 参数不变
+> 3. 新增 `--p2t_prompt_json` 参数，在 dataloader 中读取 click side text
+> 4. 不修改 evaluation 逻辑
+> 5. 输出 diff summary 和测试命令
+
+### 研究项目落地模板（P2T / MedSAM3 / ToothFairy3）
+
+| 阶段 | 归谁 | 任务 |
+|------|------|------|
+| 设计 | GPT-5.5 | 方法定义、实验矩阵、baseline 公平性、evaluation protocol、PPT 故事线 |
+| 施工 | Opus | 数据预处理、pipeline 改造、LoRA、evaluate_*.py、debug、跑实验 |
+| 验收 | GPT-5.5 | 结果解读、可信度判断、discussion、supervisor slides |
+
+---
+
+## 12. Cross-links
 
 - 执行引擎：官方 `codex@openai-codex` plugin（命令见 §2）
 - prompt 起草：官方内置 `gpt-5-4-prompting` skill（`user-invocable: false`，由 codex-rescue 内部用）
-- 内部执行者路由：`rules/common/task-execution-protocol.md` §3.1
+- 内部执行者路由：完整规则在本 skill §3；`rules/common/task-execution-protocol.md` §3 只留骨架 + 指针
 - 模型路由 / fallback 选档：`rules/common/performance.md`
 - 跨模型双盲收敛：`santa-loop` skill（Codex 当第二评审员）
 - governed-gate 哲学：`CLAUDE.md` §3.7 + 反模式区

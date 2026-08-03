@@ -13,7 +13,7 @@
  *
  * RECORD-ONLY — never blocks (always exit 0). FAILS OPEN on any error (productivity gate, not a
  * safety gate; must never break a session). Loop-safe via stop_hook_active. Metadata only
- * (tools / files / last-request) — NOT a semantic "what was achieved" (that's /ledger's job).
+ * (tools / agents / files) — NOT a semantic "what was achieved" (that's /ledger's job).
  *
  * Tunables (env): CLAUDE_LEDGER_AUTOLOG_OFF=1 disable · CLAUDE_LEDGER_AUTOLOG_MINEDITS (default 3).
  */
@@ -37,10 +37,6 @@ function isUserPrompt(e) {
   const hasText = bs.some(b => b && b.type === 'text' && (b.text || '').trim().length)
   const onlyToolResult = bs.length > 0 && bs.every(b => b && b.type === 'tool_result')
   return hasText && !onlyToolResult
-}
-function firstText(e) {
-  for (const b of blocksOf(e)) if (b && b.type === 'text' && (b.text || '').trim()) return b.text.trim()
-  return ''
 }
 function pathOf(b) {
   const inp = b && b.input
@@ -66,9 +62,9 @@ function main() {
   if (!entries.length) return allow()
 
   // current turn = everything after the last genuine user prompt
-  let turnStart = 0, lastPrompt = ''
+  let turnStart = 0
   for (let i = 0; i < entries.length; i++) {
-    if (isUserPrompt(entries[i])) { turnStart = i; lastPrompt = firstText(entries[i]) }
+    if (isUserPrompt(entries[i])) turnStart = i
   }
 
   const tools = new Set(), agents = [], files = new Set()
@@ -97,7 +93,6 @@ function main() {
       agents_used: agents,
       files_changed: Array.from(files),
       edit_count: files.size,
-      turn_summary: (lastPrompt || '').replace(/\s+/g, ' ').slice(0, 200),
     }, { cwd: payload.cwd || process.cwd() })
   } catch { /* fail-open: missing writer / IO error must never break a session */ }
 
