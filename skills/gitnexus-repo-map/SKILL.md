@@ -1,6 +1,7 @@
 ---
 name: gitnexus-repo-map
-description: Use GitNexus as a lightweight repo-exploration tool to read unfamiliar codebases, generate architecture/module/dependency maps, and inspect functional clusters. Treat GitNexus as a hand-held knife, NOT a harness subsystem — never run `gitnexus setup` automatically, never register Claude Code hooks, never modify global `~/.claude/`, and never promote `.claude/skills/generated/` into the canonical manifest. CLI-first; web UI is opt-in. Trigger phrases include: "GitNexus / repo map / visual code graph / architecture topology / read this open-source repo / 仓库架构 / 代码拓扑 / 模块地图 / clusters / 读开源项目".
+description: >-
+  Use GitNexus as a lightweight repo-exploration tool to read unfamiliar codebases, generate architecture/module/dependency maps, and inspect functional clusters. Treat GitNexus as a hand-held knife, NOT a harness subsystem — never run `gitnexus setup` automatically, never register Claude Code hooks, never modify global `~/.claude/`, and never promote `.claude/skills/generated/` into the canonical manifest. CLI-first; web UI is opt-in. Trigger phrases include: "GitNexus / repo map / visual code graph / architecture topology / read this open-source repo / 仓库架构 / 代码拓扑 / 模块地图 / clusters / 读开源项目".
 ---
 
 # gitnexus-repo-map
