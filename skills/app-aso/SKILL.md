@@ -20,20 +20,7 @@ allowed-tools: Read, Grep, Glob
 forbidden-tools: WebFetch
 disable-model-invocation: false
 description: >
-  App Store Optimization (ASO) skill. L12 Discoverability 子层之一，
-  仅负责 iOS App Store + Google Play 商店内的 discoverability：metadata、
-  visual assets、localization、ratings/reviews、store experiments、
-  product page optimization。不做 web SEO、不做 AI search、不做 Local SEO、
-  不做 security、不写 app 实现代码。
-  Trigger phrases: "ASO / app store optimization / iOS App Store / Google Play Store /
-  store listing / product page / app metadata / screenshots / app preview /
-  feature graphic / app keywords / ratings / reviews /
-  store experiments / product page optimization / PPO / custom product pages /
-  store discovery / app discoverability /
-  ASO measurement / keyword difficulty / keyword traffic / keyword ranking /
-  impressions / conversion rate / App Store Connect Analytics / Play Console metrics /
-  install funnel / 关键词难度 / 关键词排名 / 上架后效果 / 商店转化率 / 曝光量 /
-  ASO 测量 / app store analytics / store funnel".
+  App Store Optimization (ASO) — L12 Discoverability 子层，仅负责 iOS App Store + Google Play 商店内 discoverability：metadata、visual assets、localization、ratings/reviews、store experiments、product page optimization、ASO measurement（keyword difficulty / ranking / conversion / install funnel）。不做 web SEO / AI search / Local SEO / security，不写 app 实现代码。Triggers: "ASO / app store optimization / store listing / product page / app keywords / screenshots / ratings / store experiments / ASO measurement / 关键词排名 / 上架后效果 / 商店转化率 / 曝光量".
 ---
 
 # App Store Optimization (L12 / app-aso)

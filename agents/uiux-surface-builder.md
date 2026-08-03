@@ -1,19 +1,7 @@
 ---
 name: uiux-surface-builder
 description: >
-  Multi-surface UI production worker. Drives parallel implementation of several UI surfaces
-  (landing / app / dashboard / settings / email / marketing) from ONE locked design chassis
-  + design tokens, mirroring anchor-prototype-wave's parallel-subagent approach but for a
-  GSD/uiux-product-orchestrator context. Spawned by uiux-product-orchestrator at BUILD (P3)
-  when the max tier needs many surfaces, or directly by the user. Each surface gets its own
-  fresh-context build subagent that writes ONLY its own surface files (no shared-file race).
-  Consumes design-token-pipeline outputs (build/css/variables.css + Tailwind theme) and
-  motion-engineering recipes. Produces per-surface implementation + a manifest of what was
-  built. Does NOT lock the L3 style (that is already locked upstream at PICK), does NOT score
-  the result (that is uiux-design-reviewer / gsd-ui-auditor), does NOT author the chassis.
-  Trigger phrases (EN): "build all these surfaces / produce the surface wave / generate
-  landing + app + dashboard from this chassis / multi-surface production / 量产这些页面 /
-  按这个 chassis 把这几个 surface 全做出来 / 多 surface 并行铺 / parallel surface build".
+  Multi-surface UI production worker. Drives parallel implementation of several UI surfaces (landing / app / dashboard / settings / email / marketing) from ONE locked chassis + design tokens, mirroring anchor-prototype-wave's parallel-subagent approach in a GSD/uiux-product-orchestrator context. Spawned by uiux-product-orchestrator at BUILD (P3) when the max tier needs many surfaces, or directly by the user. Each surface gets its own fresh-context subagent writing ONLY its own files (no shared-file race). Consumes design-token-pipeline outputs + motion-engineering recipes; produces per-surface implementation + a build manifest. Does NOT lock the L3 style (locked upstream at PICK), does NOT score (that is uiux-design-reviewer / gsd-ui-auditor), does NOT author the chassis. Triggers: "build all these surfaces / produce the surface wave / generate landing + app + dashboard from this chassis / multi-surface production / 量产这些页面 / 多 surface 并行铺 / parallel surface build".
 model: opus
 color: "#22D3EE"
 tools: Read, Write, Edit, Bash, Grep, Glob

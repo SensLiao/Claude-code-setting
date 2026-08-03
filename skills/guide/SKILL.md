@@ -1,6 +1,7 @@
 ---
 name: guide
-description: "Top-level user guide for THIS Claude Code config — the five orchestration mainlines (which orchestrator to use when), how to start on a project (including the project-local claude-env-bootstrap), how to install/update/maintain the global config, and where the full skill index lives. Use when the user asks how to use this setup, what the orchestrators are, how to start on an existing project, how to set up a project's own .claude/, or for a help / guide / cheat-sheet of this configuration. Trigger phrases: guide / help / cheat sheet / how do I use this config / what are the orchestrators / how to start on a project / how to bootstrap a project / claude-env-bootstrap / 指南 / 帮助 / 怎么用 / 五条主线 / 这套配置怎么用 / 用户手册 / 老项目怎么用 / 给项目装环境."
+description: >
+  Top-level user guide for THIS Claude Code config — the five orchestration mainlines (which orchestrator when), how to start on a project (incl. project-local claude-env-bootstrap), how to install/update/maintain the global config, and where the full skill index lives. Use when the user asks how to use this setup, what the orchestrators are, how to start on an existing project, how to set up a project's `.claude/`, or wants a help/cheat-sheet of this config. Triggers: "guide / help / cheat sheet / how do I use this config / what are the orchestrators / how to start on a project / claude-env-bootstrap / 指南 / 帮助 / 怎么用 / 五条主线 / 这套配置怎么用 / 老项目怎么用".
 allowed-tools:
   - Read
 ---

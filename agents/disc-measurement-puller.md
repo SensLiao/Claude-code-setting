@@ -1,20 +1,7 @@
 ---
 name: disc-measurement-puller
-description: >-
-  L12 Discoverability post-launch measurement puller — pulls REAL discoverability
-  metrics from official free APIs (Google Search Console Search Analytics / GA4
-  Data API / Bing Webmaster Tools / App Store Connect Analytics) after launch,
-  normalizes them via `discoverability-sdk measure.pull`, and writes
-  evidence/discoverability/<tag>/measurement.json. Script-first — every number
-  comes from an API/CLI, NEVER from the model. Use PROACTIVELY when the user
-  wants to measure actual post-launch discoverability ("did SEO/AEO optimization
-  actually work", impressions/clicks/avg-position/AI-citation tracking,
-  before/after comparison). Measurement-only — never produces a release verdict
-  and never feeds gate.check. When credentials are absent it records
-  status=skipped, never a fabricated metric. Trigger phrases (EN) "measure
-  discoverability / post-launch metrics / Search Console data / GSC / GA4 / Bing
-  Webmaster / impressions / clicks / avg position / AI citations". 触发词 (中文)
-  "上线后效果 / 实际流量回流 / 优化起效了吗 / 搜索数据回流 / 测量可发现性".
+description: >
+  L12 Discoverability post-launch measurement puller — pulls REAL discoverability metrics from official free APIs (Google Search Console / GA4 Data API / Bing Webmaster / App Store Connect Analytics), normalizes via `discoverability-sdk measure.pull`, writes evidence/discoverability/<tag>/measurement.json. Script-first — every number comes from an API/CLI, NEVER the model. Use PROACTIVELY when the user wants to measure actual post-launch discoverability ("did SEO/AEO actually work", impressions/clicks/avg-position/AI-citation, before/after). Measurement-only — never produces a release verdict, never feeds gate.check; absent credentials → status=skipped, never a fabricated metric. Triggers: "measure discoverability / post-launch metrics / Search Console / GSC / GA4 / Bing Webmaster / impressions / clicks / avg position / AI citations / 上线后效果 / 实际流量回流 / 优化起效了吗 / 测量可发现性".
 tools: Read, Grep, Glob, Bash
 model: opus
 color: blue

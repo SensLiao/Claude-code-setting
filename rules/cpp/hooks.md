@@ -11,6 +11,8 @@ paths:
 # C++ Hooks
 
 > This file extends [common/hooks.md](../common/hooks.md) with C++ specific content.
+>
+> **STATUS: advisory.** These are commands to run manually before committing, not registered hooks — no global hook executes them.
 
 ## Build Hooks
 

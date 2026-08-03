@@ -1,6 +1,6 @@
 ---
-description: Pre-/clear self-review ritual — adversarially audit THIS session for gaps / weak spots / unverified claims / uncommitted work, reconcile the durable ledger against git reality (catches stale ledger blocks), then update .goals/LEDGER.md so a fresh session resumes cleanly. Run right before /clear or a context reset. Composes /ledger (does NOT duplicate it).
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob
+description: Pre-/clear self-review ritual — adversarially audit THIS session for gaps / weak spots / unverified claims / uncommitted work, reconcile the durable ledger against git reality (catches stale ledger blocks), sweep for background servers this session left running, then update .goals/LEDGER.md so a fresh session resumes cleanly. Run right before /clear or a context reset. Composes /ledger (does NOT duplicate it).
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 ---
 
 # /preclear — self-review + ledger reconcile before clearing
@@ -49,14 +49,42 @@ This is the check that catches a ledger block going stale while the reminder hoo
    - Ledger says **"下一步 = X"** but `git log` shows X already committed → **STALE block**. Flag + fix
      (this is exactly the failure mode this command exists to catch).
    - Ledger says **"done + commit `abc123`"** but that SHA / file isn't present → flag the mismatch.
-   - Work done **this session** not yet reflected in the ledger → carry into Step 3.
+   - Work done **this session** not yet reflected in the ledger → carry into Step 4.
 4. List every discrepancy found (or "ledger matches git — no drift").
 5. **Size / staleness-of-structure check**: if the ledger has outgrown a single Read (~>1200
    lines) or closed/superseded blocks dominate it, flag it and **propose** the `/ledger`
    Archive / compaction procedure (see `~/.claude/commands/ledger.md`). Never archive silently —
    it needs the user's go, and must be skipped while another session may be writing the ledger.
 
-## Step 3 — Update the ledger (reuse /ledger)
+## Step 3 — Background server / process sweep
+
+`/clear` (or a context reset) drops the visible handle to anything this session left running in the
+background — a dev/preview server, a `pm2` process, a file watcher, a tunnel. The next session can't
+see them, so they linger: ports stay held, resources leak, and the user forgets they exist. Catch them
+now, while this session still remembers starting them — the thing a fresh session cannot do.
+
+1. **Read THIS session first** (preclear's edge): scan the conversation for long-lived processes this
+   session launched — anything started with `run_in_background: true`, a trailing `&`, or `start` — with
+   an emphasis on servers and watchers: `npm/pnpm/yarn dev`, `vite`, `next dev`, `nuxt dev`, `astro dev`,
+   `python -m http.server`, `uvicorn`, `flask run`, `pm2 start`, plus tunnels (`ngrok`, `cloudflared`).
+2. **Confirm each is still alive** (started ≠ still running — it may have been stopped already, or died):
+   - Claude Code background shells: check the background-task list/status for shells still in a running
+     state (a finished / killed shell is already gone — don't report it).
+   - Ports: for each port identified, on Windows `netstat -ano | findstr :<port>` then
+     `tasklist /fi "pid eq <pid>"`; for pm2 use `pm2 list` (or `pm2 jlist`).
+   - Only report processes **this session started or is responsible for** — do NOT sweep every listener
+     on the machine, or you risk offering to kill something unrelated the user wants running.
+3. **Ask — never auto-kill.** If any session-owned server is still running, list each one (what it is /
+   port / how it was started) and ask the user with AskUserQuestion whether to stop it before clearing
+   (per-item, or stop-all / keep-all).
+   - **Stop** → run the matching teardown: kill the background shell, `pm2 stop <name>`, or
+     `taskkill /pid <pid> /f` (kill by the PID that owns the port). Confirm it is actually down.
+   - **Keep** → it MUST be folded into the ledger in Step 4 (当前指针 / 备注: `<port> — <server>, PID
+     <pid>, started via <cmd>, stop with <teardown>`). A kept server that isn't written down is exactly
+     the blind spot this step exists to prevent.
+4. Nothing session-owned still running → say so in one line and move on.
+
+## Step 4 — Update the ledger (reuse /ledger)
 
 Perform the `/ledger` process (see `~/.claude/commands/ledger.md`) to write the semantic layer a hook
 cannot:
@@ -66,17 +94,20 @@ cannot:
 - Set **当前指针** = the single next concrete step, so a fresh session resumes with zero thinking.
 - **Fold the self-review in**: a real gap from Step 1 becomes a 待办 / 断点 line so it survives the clear
   instead of evaporating with the context.
+- **Fold in any kept background server** from Step 3: record it under 当前指针 / 备注 with its port, PID,
+  how it was started, and how to stop it — so the next session inherits a live process it can actually see.
 - Convert relative dates to absolute.
 - Scope: `.goals/` is local-only by convention — **do NOT commit it unless the user explicitly asks.**
 
-## Step 4 — Report to the user (§0.5, business-level)
+## Step 5 — Report to the user (§0.5, business-level)
 
 Close with a short, plain-language summary:
 
 1. **自查发现** — N 条 (遗漏 / 薄弱 / 未验证 / 未提交), most-important first — or "无遗漏(已逐项核过)".
 2. **对账** — ledger 有没有过期块 / 对不上的地方，改了哪些。
 3. **ledger 已更新** — 断点 = 一句话的下一步。
-4. **能不能安全 clear** — 直接说"可以 /clear 了"，或列出"clear 前建议先处理的 M 件"（未提交、未验证等）。
+4. **后台进程** — 本 session 有无仍在跑的 server：关了哪些 / 留了哪些（留的已记进 ledger）；或"无后台常驻进程"。
+5. **能不能安全 clear** — 直接说"可以 /clear 了"，或列出"clear 前建议先处理的 M 件"（未提交、未验证、后台 server 等）。
 
 ---
 

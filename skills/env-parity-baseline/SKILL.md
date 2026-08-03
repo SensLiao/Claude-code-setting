@@ -5,17 +5,7 @@ status: stable
 created_date: 2026-05-24
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 description: >
-  Cross-environment parity baseline & deployment risk router. Detects gaps in
-  dev / CI / staging / prod consistency, injects a minimum set of baseline files
-  (.gitattributes / .editorconfig / env-validator / CI matrix / env-contract /
-  runtime-manifest / deploy-parity-checklist), and routes deployment-layer
-  concerns (Docker / Compose / Kubernetes / systemd / Nginx / Terraform /
-  Ansible) to downstream specialists rather than over-generating templates.
-  Aligned with Twelve-Factor X (dev/prod parity) and III (config in env), but
-  scoped to "detect + minimum contract + handoff", not "full deploy generator".
-  Trigger phrases: "环境一致性 / Windows vs 服务器 / CRLF / LF / dev-prod parity /
-  twelve-factor parity / works on my machine / runtime version pin / .env.example
-  / Dockerfile secret / k8s configmap mismatch / 跨平台 / 部署环境".
+  Cross-environment parity baseline & deployment-risk router. Detects dev/CI/staging/prod consistency gaps, injects a minimum baseline file set (.gitattributes / .editorconfig / env-validator / CI matrix / env-contract / runtime-manifest / deploy-parity-checklist), and routes deploy-layer concerns (Docker / Compose / k8s / systemd / Nginx / Terraform / Ansible) to downstream specialists rather than over-generating templates. Twelve-Factor X + III aligned; scoped to "detect + minimum contract + handoff", not a full deploy generator. Triggers: "环境一致性 / dev-prod parity / CRLF/LF / works on my machine / runtime version pin / .env.example / k8s configmap mismatch / 跨平台 / 部署环境".
 ---
 
 # env-parity-baseline — 跨环境一致性基线 + 部署风险路由器
