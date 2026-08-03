@@ -1,5 +1,5 @@
 ---
-description: Pre-/clear self-review ritual — adversarially audit THIS session for gaps / weak spots / unverified claims / uncommitted work, reconcile the durable ledger against git reality (catches stale ledger blocks), sweep for background servers this session left running, then update .goals/LEDGER.md so a fresh session resumes cleanly. Run right before /clear or a context reset. Composes /ledger (does NOT duplicate it).
+description: Pre-/clear self-review ritual — adversarially audit THIS session for gaps / weak spots / unverified claims / uncommitted work, reconcile the durable ledger against git reality (catches stale ledger blocks) AND against /ledger's 内容规范 (catches abuse — a ledger must stay a concise record of high-level 事项, not a dump-everything work log), sweep for background servers this session left running, then update .goals/LEDGER.md so a fresh session resumes cleanly. Run right before /clear or a context reset. Composes /ledger (does NOT duplicate it).
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 ---
 
@@ -51,7 +51,16 @@ This is the check that catches a ledger block going stale while the reminder hoo
    - Ledger says **"done + commit `abc123`"** but that SHA / file isn't present → flag the mismatch.
    - Work done **this session** not yet reflected in the ledger → carry into Step 4.
 4. List every discrepancy found (or "ledger matches git — no drift").
-5. **Size / staleness-of-structure check**: if the ledger has outgrown a single Read (~>1200
+5. **Content-discipline check (abuse audit)**: judge the ledger against the 内容规范 section of
+   `~/.claude/commands/ledger.md` — it must read as a concise record of high-level 事项, not a
+   work log. Flag abuse smells per block: pasted logs / diffs / code blocks, per-file
+   play-by-play of how work was done, inlined plan copies, analysis essays, the same fact
+   restated across blocks, or any single block sprawling far past its 1–3-line-per-item form.
+   Route fixes by weight: light trimming (condense a verbose item back to one line + evidence
+   ref) happens in Step 4's ledger update; wholesale compaction of offending blocks reuses the
+   `/ledger` Archive procedure (summarize in place, move verbatim detail to
+   `LEDGER-archive.md`) — and like archiving, needs the user's go first, never silent.
+6. **Size / staleness-of-structure check**: if the ledger has outgrown a single Read (~>1200
    lines) or closed/superseded blocks dominate it, flag it and **propose** the `/ledger`
    Archive / compaction procedure (see `~/.claude/commands/ledger.md`). Never archive silently —
    it needs the user's go, and must be skipped while another session may be writing the ledger.
@@ -104,7 +113,7 @@ cannot:
 Close with a short, plain-language summary:
 
 1. **自查发现** — N 条 (遗漏 / 薄弱 / 未验证 / 未提交), most-important first — or "无遗漏(已逐项核过)".
-2. **对账** — ledger 有没有过期块 / 对不上的地方，改了哪些。
+2. **对账** — ledger 有没有过期块 / 对不上的地方 / 内容不规范的块（流水账、贴 log、抄计划），改了哪些。
 3. **ledger 已更新** — 断点 = 一句话的下一步。
 4. **后台进程** — 本 session 有无仍在跑的 server：关了哪些 / 留了哪些（留的已记进 ledger）；或"无后台常驻进程"。
 5. **能不能安全 clear** — 直接说"可以 /clear 了"，或列出"clear 前建议先处理的 M 件"（未提交、未验证、后台 server 等）。
