@@ -286,6 +286,83 @@ async function doWire(fromInstall) {
   const v = verifyHooks(); if (v) console.log(`  settings.json hooks: ${v.ref} refs, ${v.broken.length} broken`);
 }
 
+// ---- skills: distribute skillOverrides ----------------------------------------------------
+// settings.json is a PRESERVE key (install/update never write it), so the recommended visibility
+// policy had no distribution channel at all — it lived only in whatever the user hand-merged on
+// one machine. This is that channel. Additive: keys the manifest does not name are left alone.
+// Why visibility matters: the skill listing has a hard total budget (1% of context). Over it the
+// platform keeps names and drops descriptions starting with the least-invoked skills, silently —
+// measured 2026-08-04, 112 of 173 entries were bare names, including three skills CLAUDE.md §3
+// requires to self-trigger. See manifests/skill-overrides.recommended.json.
+function doSkills() {
+  const mp = path.join(REPO, 'manifests', 'skill-overrides.recommended.json');
+  let man;
+  try { man = JSON.parse(fs.readFileSync(mp, 'utf8')); }
+  catch (e) { console.log(`  cannot read manifests/skill-overrides.recommended.json: ${e.message}`); process.exitCode = 2; return; }
+
+  const want = man.recommended_overrides || {};
+  if (!Object.keys(want).length) {
+    console.log('  manifest has an empty recommended_overrides — run: node tools/skill-visibility/generate.js --write');
+    process.exitCode = 2; return;
+  }
+
+  // Safety invariant, re-checked here so a hand-edited manifest cannot widen a manual gate:
+  // `name-only` still permits Skill(name) dispatch, so a gate must be hidden outright.
+  const weak = Object.keys(man.manual_gates || {}).filter(n => want[n] !== 'user-invocable-only' && want[n] !== 'off');
+  if (weak.length) {
+    console.log(`  REFUSING: manual gate(s) not hidden from the model: ${weak.map(n => `${n}=${want[n]}`).join(', ')}`);
+    console.log('  `name-only` keeps Skill(name) dispatch alive — fix the manifest before distributing it.');
+    process.exitCode = 1; return;
+  }
+
+  const sp = path.join(TARGET, 'settings.json');
+  let settings = {};
+  let hadFile = false;
+  try { settings = JSON.parse(fs.readFileSync(sp, 'utf8')); hadFile = true; } catch { settings = {}; }
+  const live = settings.skillOverrides || {};
+
+  const add = [], change = [], same = [];
+  for (const [k, v] of Object.entries(want)) {
+    if (!(k in live)) add.push(k);
+    else if (live[k] !== v) change.push(k);
+    else same.push(k);
+  }
+  const userOnly = Object.keys(live).filter(k => !(k in want));
+
+  const byVal = {};
+  for (const v of Object.values(want)) byVal[v] = (byVal[v] || 0) + 1;
+
+  console.log(`\n  manifest : ${Object.keys(want).length} entries (${Object.entries(byVal).map(([k, v]) => `${k}=${v}`).join(', ')})`);
+  console.log(`  live     : ${hadFile ? Object.keys(live).length + ' entries' : 'no settings.json at target'}`);
+  console.log(`\n  + add    : ${add.length}`);
+  add.slice(0, 12).forEach(k => console.log(`      + ${k} = ${want[k]}`));
+  if (add.length > 12) console.log(`      … and ${add.length - 12} more`);
+  console.log(`  ~ change : ${change.length}`);
+  change.forEach(k => console.log(`      ~ ${k} : ${live[k]} -> ${want[k]}`));
+  console.log(`  = same   : ${same.length}`);
+  console.log(`  · kept   : ${userOnly.length} live-only entr${userOnly.length === 1 ? 'y' : 'ies'} not named by the manifest (left untouched)`);
+  userOnly.slice(0, 8).forEach(k => console.log(`      · ${k} = ${live[k]}`));
+
+  if (!add.length && !change.length) { console.log('\n  live settings already match the manifest — nothing to do.'); return; }
+
+  if (!APPLY) { console.log('\n  (dry run — re-run with --apply to write settings.json)'); return; }
+
+  if (hadFile) {
+    // local date, not toISOString() — backups/<date>/ dirs in this tree are named in local time,
+    // and a UTC name lands a day off for anyone east of Greenwich.
+    const d = new Date();
+    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const bdir = path.join(TARGET, 'backups', day);
+    fs.mkdirSync(bdir, { recursive: true });
+    const bak = path.join(bdir, 'settings.json.pre-skills.bak');
+    fs.copyFileSync(sp, bak);
+    console.log(`\n  backup   : ${bak}`);
+  }
+  settings.skillOverrides = { ...live, ...want };   // additive: live-only keys survive
+  fs.writeFileSync(sp, JSON.stringify(settings, null, 2) + '\n');
+  console.log(`  settings.json updated — skillOverrides now ${Object.keys(settings.skillOverrides).length} entries.`);
+}
+
 // ---- dispatch ----
 (async () => {
   console.log(`claude-config: ${cmd}${APPLY ? '' : '  (DRY RUN — add --apply to write)'}`);
@@ -346,6 +423,8 @@ async function doWire(fromInstall) {
 
   if (cmd === 'wire') { await doWire(false); if (!APPLY) console.log('\n  DRY RUN. Re-run with --apply to write settings.json.'); return; }
 
+  if (cmd === 'skills') { doSkills(); return; }
+
   if (cmd === 'export-profile') {
     const entries = liveHookEntries();
     if (!entries) { console.log('  no settings.json found — nothing to export'); return; }
@@ -364,6 +443,6 @@ async function doWire(fromInstall) {
     return;
   }
 
-  console.log(`unknown command: ${cmd}. Use: status | install | update | wire | export-profile`);
+  console.log(`unknown command: ${cmd}. Use: status | install | update | wire | skills | export-profile`);
   process.exitCode = 1;
 })();
