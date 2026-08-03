@@ -7,7 +7,7 @@ updated_date: 2026-06-22
 disable-model-invocation: true
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 description: >-
-  Manually invoked project environment bootstrap (disable-model-invocation: true) — scans project signals into a signal_vector, asks high-leverage gap questions, then evaluates declarative selectors from catalog.json to compose a minimal-yet-complete `.claude/` environment. Manual-first because it writes files, copies skills and generates CLAUDE.md. Safe on EXISTING non-empty projects: copies are no-clobber with incremental modes --scan-only / --add / --adopt. On "init project / bootstrap / 装环境 / configure claude / 初始化 .claude", RECOMMEND `/claude-env-bootstrap` but never auto-execute.
+  Manually invoked project environment bootstrap (disable-model-invocation: true) — scans project signals into a signal_vector, asks high-leverage gap questions, then evaluates declarative selectors from catalog.json to compose a minimal-yet-complete `.claude/` environment. Manual-first because it writes files, copies skills and generates CLAUDE.md. Safe on EXISTING non-empty projects: copies are no-clobber with incremental modes --scan-only / --add / --adopt. On "init project / bootstrap / set up claude environment / configure claude / 装环境 / 初始化 .claude", RECOMMEND `/claude-env-bootstrap` but never auto-execute.
 ---
 
 # claude-env-bootstrap v2.0.0 — Selector-Engine 智能装配
