@@ -162,3 +162,52 @@ Layer 3 — Governance moat (own, strengthen every release):
 - `claude plugin marketplace add` / `claude plugin install` / `list` / `uninstall` / `update` — manage marketplace plugins from CLI. This is how `codex@openai-codex` (replacement for the deleted `codex-dispatch` skill) is managed.
 
 > **Governance reminder**: Teams / Tasks / Cron / Worktree / Monitor / messaging are all **Layer-1 mechanism** — consume, never rebuild. They do NOT weaken Governed Gate Mode (CLAUDE.md §3.7): a scheduled or backgrounded agent still cannot self-approve a release verdict, exempt redaction, or authorize its own pentest.
+
+---
+
+## Skill listing budget + visibility `[doc-cited 2026-08-03, partly session-confirmed]`
+
+Why a library this size loses descriptions, and which levers exist. Matters because auto-routing
+("主线 → orchestrator → narrower skill", CLAUDE.md §1/§2) depends on descriptions being visible.
+
+**Two independent limits**
+
+| Limit | Default | Setting |
+|---|---|---|
+| Per skill: `description` + `when_to_use` combined | **1,536 chars**, truncated past it | `skillListingMaxDescChars` |
+| Whole listing | **1% of the model context window** | `skillListingBudgetFraction`, or `SLASH_COMMAND_TOOL_CHAR_BUDGET` (fixed char count) |
+
+Over the total budget, Claude Code keeps names and **drops descriptions starting with the
+least-invoked skills** — not alphabetical, not by size. Inspect with `/context` (Skills row,
+accurate from v2.1.196+) or `/doctor` (cost estimate + biggest contributors).
+
+Doc-sync caveat: these three settings are documented in the skills doc but absent from the
+settings doc's available-settings table (upstream gap, see `cc-compat-matrix.md`).
+
+**Loading and precedence**
+
+- Sources: enterprise → personal (`~/.claude/skills/`) → project (`.claude/skills/`) → plugin
+  (namespaced) → bundled. `--add-dir` paths load their `.claude/skills/`;
+  `permissions.additionalDirectories` does **not**.
+- Same name across levels = **shadowing, one entry only**, and **personal wins over project**.
+  Consequence: a project copy of a same-named personal skill is inert — relevant to what
+  `claude-env-bootstrap` copies (its load-bearing output is project hooks, not skill copies).
+- Exception: nested monorepo `.claude/skills/` do not shadow; they get directory-qualified names
+  (`apps/web:deploy`), v2.1.203+.
+- No staging-directory feature exists. Discovery scans a fixed path list, so parking a skill
+  outside those paths hides it; symlinking it back activates it (symlinks supported, one load per
+  target).
+
+**`skillOverrides` visibility levels** (settings.json; also governs command-backed skills, never
+plugin skills)
+
+| Value | To the model | In `/` menu |
+|---|---|---|
+| `on` (default) | name + description | yes |
+| `name-only` | name only — `Skill(name)` dispatch still works | yes |
+| `user-invocable-only` | hidden | yes |
+| `off` | hidden | hidden |
+
+`off` is **session-confirmed on 2.1.220**: 16 language build/test commands set to `off` are present
+on disk yet absent from the session listing. An upstream issue reports `skillOverrides` being
+ignored when written to `settings.json` rather than via the `/skills` menu — not reproduced here.
