@@ -21,6 +21,25 @@ cross-session / multi-phase work is always resumable. This is the SEMANTIC layer
    - convert relative dates to absolute.
 5. **Honesty + scope**: keep it concise + truthful; `.goals/` is local-only by convention (gitignored) — do NOT commit it unless the user explicitly asks.
 
+## 内容规范 (content discipline)
+
+The ledger is a **concise record of high-level 事项** — a resume entrypoint, not a work log.
+The test for every line: *does a fresh session need this to resume correctly?* If not, it
+doesn't belong here.
+
+- **One item ≈ 1–3 lines**: what it is / state (完成 · 进行中 · 卡住) / evidence ref (commit SHA,
+  file path, test name). Detail lives at the ref, not in the ledger.
+- **Belongs**: goals, work-block outcomes, 当前指针 / 断点, blockers, key decisions + 不变量,
+  kept background processes, pointers to plans / docs.
+- **Does NOT belong (abuse smells)**:
+  - pasted logs / diffs / code blocks / error dumps (→ commit message, issue, or docs);
+  - per-file or per-tool-call play-by-play of *how* the work was done;
+  - full plan copies (plans live in `.goals/plans/` — link them, don't inline);
+  - long analysis / design essays (→ docs or ADR, link from here);
+  - the same fact restated across multiple blocks.
+- When an update genuinely needs that much detail, write it where it belongs and put ONE line +
+  a pointer here. `/preclear` Step 2 audits the ledger against this section.
+
 ## Archive / compaction (when the ledger outgrows itself)
 
 An append-only ledger eventually stops working as a resume entrypoint: the file grows past a
