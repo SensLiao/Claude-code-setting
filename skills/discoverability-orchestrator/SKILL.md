@@ -26,7 +26,7 @@ allowed-tools: Read, Grep, Glob, Write, Bash, Skill, Agent
 forbidden-tools: WebFetch
 disable-model-invocation: false
 description: >-
-  L12 Discoverability orchestrator — routes "will this be found after launch" work across the 4 narrow skills (web-seo / web-aeo / web-local-seo / app-aso), decides activation and gate level by project type, and writes an evidence-driven gate-result.yaml as a release gate. Takes only high-level coordination asks; single-domain words belong to the narrow skills. Does no design, no security, and never substitutes for access control. Triggers: "discoverability / 可发现性 / 上线后被找到 / release readiness (discoverability) / L12 audit / 我的网站怎么被 ChatGPT / Google 找到 / AI search + 传统 SEO 一起做".
+  L12 Discoverability orchestrator — routes "will this be found after launch" work across the 4 narrow skills (web-seo / web-aeo / web-local-seo / app-aso), decides activation and gate level by project type, and writes an evidence-driven gate-result.yaml as a release gate. Use when the ask spans more than one channel — ranking on Google AND being cited by AI assistants, or web plus app-store reach; a single-domain ask belongs to the narrow skill. Does no design, no security, and never substitutes for access control. Triggers: "rank higher on Google / show up in search results / get cited by ChatGPT / cited by AI search / found by AI assistants / discoverability / 可发现性 / 上线后被找到 / release readiness (discoverability) / L12 audit / 我的网站怎么被 ChatGPT / Google 找到 / AI search + 传统 SEO 一起做"
 ---
 
 # Discoverability Orchestrator (L12)
