@@ -31,12 +31,8 @@ downstream:
   - security-remediation  # 高危 misconfig 转 finding
   - security-platform-secrets  # 如发现 IaC 含 secret
   - appsec-security-orchestrator  # 回 orchestrator
-description: >
-  IaC and cloud posture security review — scan Terraform / CloudFormation / Helm /
-  K8s manifests / Ansible / Pulumi for misconfigurations, drift, exposure, and
-  compliance deviations. Routes container security (Dockerfile / image / runtime)
-  via this same skill or sub-handoffs. Maps to NIST SP 800-190, CIS Benchmarks,
-  and ASVS V13. Does NOT modify infrastructure — review and report only.
+description: >-
+  IaC and cloud posture security review - scans Terraform / CloudFormation / Helm / K8s manifests / Ansible / Pulumi plus container images for misconfiguration, drift and exposure. Review and report only - never modifies infrastructure.
 trigger_phrases:
   - IaC / Terraform / Helm / Pulumi / CloudFormation 安全
   - 云配置审查 / cloud posture / cloud misconfig

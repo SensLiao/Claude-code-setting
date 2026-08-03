@@ -1,6 +1,7 @@
 ---
 name: luxury
-description: Dark-first, typographically bold editorial design system. Pure black surfaces, pure white text, oversized Oswald headings, monochromatic hierarchy. Use when building fashion / lifestyle / architecture portfolio / high-end e-commerce / photography gallery / premium SaaS landing where the brand identity is built on restraint and exclusivity. Triggers on "luxury", "dark editorial", "high-end fashion", "monochrome bold typography", "exclusive premium", "architect portfolio", "fashion magazine UI".
+description: >-
+  Dark-first, typographically bold editorial design system — pure black surfaces, pure white text, oversized Oswald headings, monochromatic hierarchy. Use for fashion, lifestyle, architecture portfolio, high-end e-commerce, photography gallery or premium SaaS landing pages whose identity is built on restraint and exclusivity. Triggers: "luxury / dark editorial / high-end fashion / monochrome bold typography / exclusive premium / architect portfolio / fashion magazine UI".
 source: typeui.sh/skills/luxury
 license: typeui.sh redistributed; original at https://typeui.sh
 ---

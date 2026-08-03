@@ -1,6 +1,7 @@
 ---
 name: i2r-intake-clarifier
-description: I2R PHASE 1 specialist. Spawned by i2r-orchestrator to normalize a raw idea into 01-intake.json — separating STATED vs ASSUMED vs DECISION, applying the Mom-Test fluff filter, building an assumption map, scoring ambiguity, and listing blocking open_questions. Never fabricates; never asks the user directly.
+description: >-
+  I2R phase 1 — normalizes a raw idea into 01-intake.json, separating STATED from ASSUMED and DECISION, applying the Mom-Test fluff filter, building an assumption map, scoring ambiguity and listing blocking open questions. Never fabricates; never asks the user directly.
 model: opus
 tools: Read, Write, Bash, Grep, Glob
 skills:

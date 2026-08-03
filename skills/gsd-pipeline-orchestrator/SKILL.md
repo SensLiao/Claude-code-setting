@@ -1,6 +1,7 @@
 ---
 name: gsd-pipeline-orchestrator
-description: "Master GSD pipeline orchestrator — classifies the current phase, composes the right Tier 1-4 command sequence, embeds agent-team orchestration (single / parallel fan-out / GAN / santa-loop / convergence), and bridges GSD with the front-end 5-skill UI combo. Invoke ONCE before starting any non-trivial GSD work (new project, new phase, milestone boundary, cross-module refactor). Trigger phrases: 开新项目 / 开新 phase / 新功能 / 跨模块改造 / continue 上次 GSD / how should I run GSD on X. Skip for 1-3 line bugfix / reading code / when user says no-GSD. Execution: SKILL-direct only."
+description: >-
+  Master GSD pipeline orchestrator — classifies the current phase, composes the right Tier 1-4 command sequence, embeds agent-team orchestration (single / parallel fan-out / GAN / santa-loop / convergence), and bridges GSD with the front-end UI combo. Invoke ONCE before any non-trivial GSD work. Triggers: "开新项目 / 开新 phase / 新功能 / 跨模块改造 / continue 上次 GSD / how should I run GSD on X". Skip for 1-3 line bugfixes, reading code, or when the user says no-GSD.
 argument-hint: "[phase number or milestone | --classify-only | --print-plan]"
 allowed-tools:
   - Read

@@ -5,13 +5,8 @@ status: stable
 created_date: 2026-05-24
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
-description: >
-  QA child skill — Component layer. React/Vue/Svelte/Angular component tests
-  via Testing Library + jsdom or Storybook play function. Covers state matrix
-  (default/loading/error/empty/success/disabled/permission-denied), keyboard,
-  basic a11y smoke. Forbid implementation-detail tests. Owns parent §4 Layer 3.
-  Trigger phrases: "component test / Testing Library / Storybook play /
-  组件测试 / 交互测试 / UI 状态".
+description: >-
+  QA child skill - component layer: React/Vue/Svelte/Angular component tests via Testing Library + jsdom or Storybook play, over the state matrix (default/loading/error/empty/success/disabled/permission-denied) plus keyboard and a11y smoke. No implementation-detail tests. Owns parent section 4 Layer 3.
 ---
 
 # qa-component-behavior

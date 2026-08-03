@@ -34,8 +34,8 @@ upstream:
 downstream:
   - security-remediation  # 高危依赖 / 未签产物转 finding
   - appsec-security-orchestrator  # 回 orchestrator
-description: >
-  Software supply-chain security review — SBOM (CycloneDX/SPDX), deep SCA beyond `npm/pip/cargo audit` (transitive vulns, lockfile integrity, reachability, VEX suppression, license risk), provenance & signing (SLSA / in-toto / Sigstore-cosign), container image supply chain (digest-pinned + verify-on-deploy), dependency-confusion / typosquatting defenses, build-pipeline integrity. Also reachability-based noise reduction (raw SBOM vuln lists are candidates not a worklist — prune to reachable+unmitigated) and cloud posture (CSPM via Prowler, complementary to security-platform-iac-cloud). Fills orchestrator §5.2 `sbom_signing`, deepens `sca`. Maps to OWASP 2025 A03 / ASVS 5.0 / SLSA / NIST SSDF. Does NOT run active exploitation — wrapper/CLI scanning on the local repo + read-only cloud posture only.
+description: >-
+  Software supply-chain security review - SBOM (CycloneDX/SPDX), deep SCA beyond `npm audit` (transitive vulns, lockfile integrity, reachability pruning, VEX suppression, license risk), provenance and signing (SLSA / in-toto / cosign), digest-pinned container images, dependency-confusion and typosquatting defenses, build-pipeline integrity, plus CSPM cloud posture. Local repo scanning and read-only cloud posture only.
 trigger_phrases:
   - SBOM / software supply chain / 供应链安全
   - SCA / dependency vulnerability / 依赖漏洞 / transitive dependency

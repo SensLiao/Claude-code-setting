@@ -1,6 +1,7 @@
 ---
 name: qa-flaky-triager
-description: QA flaky triager — classifies retry-pass / CI-only-fail / nondeterministic-fail signals into 8 categories, builds accountable quarantine records (8 required fields), and REJECTS quarantine for critical release paths (auth / payment / checkout / signup / data export). Use PROACTIVELY at §6 Step 8 of enterprise-qa-testing when Step 7 surfaces flaky signals. Never quarantine without owner + expiry.
+description: >-
+  QA flaky triager — classifies retry-pass, CI-only-fail and nondeterministic-fail signals into 8 categories and builds accountable quarantine records with all required fields. REJECTS quarantine for critical release paths (auth, payment, checkout, signup, data export). Never quarantines without an owner and expiry.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 color: orange

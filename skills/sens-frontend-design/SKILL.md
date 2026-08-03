@@ -5,8 +5,8 @@ status: stable
 created_date: 2026-05-23
 disable-model-invocation: false
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
-description: >
-  End-to-end frontend design-to-code workflow for "proposal-style" projects — show a client/boss a high-fidelity clickable prototype before building production. Three stages (Reference → Anchors → Prototype) along a Target × Direction × Stage matrix, each with explicit inputs/outputs/acceptance and structured hand-off docs (DIRECTION.md / PAGE-WORKFLOW.md / PROMPTS.md / BUILD-PROMPT) instead of black-box AI image-gen. For pitching N parallel visual directions, funnelling to 1-2 picks, then translating mockups into static HTML/CSS deployable to Vercel or a proposal PDF. Pairs upstream with `prototyping-ui-directions`, downstream with `anchor-prototype-wave` / `frontend-design`. Triggers: "走 sens 流程 / 3-stage 设计流程 / 给客户出提案原型 / N 方向并行视觉探索 / Reference → Anchors → Prototype / 客户提案 demo 不上线".
+description: >-
+  End-to-end frontend design-to-code workflow for proposal-style projects — show a client a high-fidelity clickable prototype before building production. Three stages (Reference, Anchors, Prototype) across a Target x Direction x Stage matrix, each with explicit inputs, outputs, acceptance and structured hand-off docs instead of black-box AI image generation. For pitching N parallel visual directions, funnelling to one or two picks, then turning mockups into static HTML/CSS for Vercel or a proposal PDF. Triggers: "走 sens 流程 / 3-stage 设计流程 / 给客户出提案原型 / N 方向并行视觉探索 / Reference → Anchors → Prototype / 客户提案 demo 不上线".
 ---
 
 # sens-frontend-design — 3-Stage 提案型前端工作流

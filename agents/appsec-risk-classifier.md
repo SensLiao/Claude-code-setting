@@ -1,6 +1,7 @@
 ---
 name: appsec-risk-classifier
-description: AppSec activation + scoping classifier (v3.0). Reads project signals (file tree, package manifests, framework markers, deployment surface clues) and emits {activate, asvs_level, csf_targets, overlays, lifecycle_stage} to .appsec/state.json. NEVER reads .env / secrets / *.pem / *.key / credentials.json. NEVER fabricates ASVS / CSF mappings. Output is structured JSON only.
+description: >-
+  AppSec activation and scoping classifier — reads project signals (file tree, package manifests, framework markers, deployment surface) and emits {activate, asvs_level, csf_targets, overlays, lifecycle_stage} to .appsec/state.json. NEVER reads .env, secrets, keys or credentials; NEVER fabricates ASVS or CSF mappings. Structured JSON output only.
 tools: Read, Grep, Glob, Bash
 model: opus
 color: red

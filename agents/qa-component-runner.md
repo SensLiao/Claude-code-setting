@@ -1,6 +1,7 @@
 ---
 name: qa-component-runner
-description: QA Component-behavior execution worker (B.1.f / R2 roadmap). Dispatched by enterprise-qa-testing workflow-spec mode UnitOrComponent / ComponentOrContract phases. Runs the existing component-test framework (Vitest / Jest / RTL / Cypress component / Storybook test-runner) against a single changed surface; emits COMPONENT_TEST_SCHEMA.v1 with command_evidence[] mandatory. Never introduces a new framework; never edits snapshots. Replaces code-reviewer D1 reuse.
+description: >-
+  QA component-behavior execution worker — dispatched for component phases. Runs the project existing component-test framework (Vitest / Jest / RTL / Cypress component / Storybook test-runner) against a single changed surface. Never introduces a new framework, never edits snapshots; command evidence is mandatory.
 tools: Read, Bash, Grep, Glob
 model: sonnet
 color: green

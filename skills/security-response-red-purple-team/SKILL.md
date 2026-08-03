@@ -30,8 +30,8 @@ downstream:
   - appsec-security-orchestrator  # attack-coverage evidence layer → release decision DE/RS coverage
   - security-viz  # render attack-coverage.yaml as a matrix diagram (ATT&CK Navigator-style)
   - pentest-scope-and-roe  # if gaps justify ACTIVE validation, hand the prioritized technique list to ROE drafting (manual path)
-description: >
-  Red Team / Purple Team PLANNING + COVERAGE-MAPPING skill (strictly defensive, NO execution). Maps the project's attack surface to relevant MITRE ATT&CK Enterprise techniques (+ ATLAS for AI surfaces), assesses each technique's control_status + detection_status from existing AppSec evidence, and plans purple-team coordination on a shared ATT&CK matrix. Maps to NIST CSF 2.0 DE + RS. Produces attack-coverage.yaml via `appsec-sdk attack.coverage <tag>`. NEVER runs attacks, NEVER does adversary emulation / stealth / persistence / exploitation, NEVER invokes active tooling — active validation stays behind the manual `authorized-pentest-validation` gate (never called here). Triggers: "red team / purple team / 红队 / 紫队 / ATT&CK coverage / MITRE ATT&CK / detection coverage / adversary emulation planning / TTP coverage / 检测覆盖".
+description: >-
+  Red team / purple team PLANNING and COVERAGE MAPPING - strictly defensive, no execution. Maps the attack surface to MITRE ATT&CK Enterprise techniques (plus ATLAS for AI surfaces), scores control_status and detection_status from existing AppSec evidence, and emits attack-coverage.yaml via `appsec-sdk attack.coverage <tag>`. NEVER runs attacks, adversary emulation, stealth or persistence - active validation stays behind the manual `authorized-pentest-validation` gate.
 trigger_phrases:
   - red team / 红队 / red-team planning
   - purple team / 紫队 / purple-team coordination

@@ -21,8 +21,8 @@ upstream:
 downstream:
   - security-remediation
   - appsec-security-orchestrator (back with findings)
-description: >
-  Per-endpoint API security review overlay executing OWASP API Security Top 10:2023 (BOLA / broken auth / BOPLA mass-assignment + excessive data exposure / unrestricted resource consumption / BFLA / sensitive business flows / SSRF / misconfiguration / inventory / unsafe third-party consumption). The harness maps API Top 10 in appsec-security-orchestrator §6.3 but no skill did the per-endpoint review — this is it. COMPOSES on the base ASVS V6/V7/V8 auth review by the appsec-reviewer agent; references it, does NOT duplicate. Passive / static + authorized-test-account logic checks only — NO active exploitation (gated by authorized-pentest-validation). Activated for REST / GraphQL / gRPC surfaces.
+description: >-
+  Per-endpoint API security review overlay for REST / GraphQL / gRPC, executing OWASP API Security Top 10:2023 (BOLA, broken auth, BOPLA, resource consumption, BFLA, sensitive business flows, SSRF, misconfiguration, inventory, third-party consumption). Composes on the appsec-reviewer agent base auth review. Static and authorized-test-account checks only - no active exploitation.
 trigger_phrases:
   - API security / API Top 10 / 接口安全 / API 鉴权
   - BOLA / BFLA / mass assignment / broken object level authorization

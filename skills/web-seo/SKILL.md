@@ -14,8 +14,8 @@ downstream: []
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 forbidden-tools: []
 disable-model-invocation: false
-description: >
-  Standard web SEO — make public pages discoverable on traditional search engines (Google / Bing / DuckDuckGo / Baidu / Yandex): crawl policy, indexability, canonicalization, hreflang, metadata, structured data (schema.org/JSON-LD), Lighthouse SEO audit, Search Console monitoring, and site-wide tech-SEO CI gates. Script-first (Lighthouse/curl/parser before AI). Not AI search/answer engines (→ web-aeo), Local SEO/GBP (→ web-local-seo), App/Play ASO (→ app-aso), or security/access control (→ appsec-security-orchestrator). Triggers: "SEO / Google/Bing search / technical SEO / on-page SEO / sitemap.xml / robots.txt / canonical / structured data / Lighthouse SEO / Search Console / meta description / hreflang / tech-SEO CI gate / unlighthouse / lighthouse-ci / full-site SEO audit / 网站地图 / 搜索引擎收录 / 整站 SEO / SEO 进 CI".
+description: >-
+  Standard web SEO - make public pages discoverable on traditional search engines (Google / Bing / DuckDuckGo / Baidu / Yandex): crawl policy, indexability, canonicalization, hreflang, metadata, structured data (schema.org / JSON-LD), Lighthouse SEO audit, Search Console monitoring, site-wide tech-SEO CI gates. Script-first - deterministic crawl and audit output before AI interpretation. Not AI answer engines (web-aeo), Local SEO (web-local-seo) or App Store ASO (app-aso).
 ---
 
 # web-seo — 标准 Web SEO 子层

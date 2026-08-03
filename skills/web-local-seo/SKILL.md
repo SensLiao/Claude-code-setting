@@ -18,8 +18,8 @@ downstream: []
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 forbidden-tools: []
 disable-model-invocation: false
-description: >
-  Local SEO — Google Business Profile / Google Maps / NAP consistency / LocalBusiness schema / Apple Maps / Bing Places. L12 Discoverability 子层。覆盖 GBP 审查、NAP 跨平台一致性、LocalBusiness JSON-LD、service-area landing page 门、reviews/hours/photos 维护、多 maps presence。仅适用于有真实线下接触点（店面/办公室/工作室）或上门服务区域（service area business）的业务；纯 online / SaaS / 全球分发产品走 web-seo + web-aeo，不进这里。Triggers: "Local SEO / 本地 SEO / Google Business Profile / GBP / Google Maps / NAP 一致性 / LocalBusiness schema / service area / 实体店 / near me / 附近的".
+description: >-
+  Local SEO - Google Business Profile review, NAP consistency across platforms, LocalBusiness JSON-LD, service-area landing pages, reviews/hours/photos upkeep, Apple Maps and Bing Places presence. Only for businesses with a real physical touchpoint (storefront, office, studio) or a service area; pure online, SaaS or globally distributed products go to `web-seo` + `web-aeo`.
 ---
 
 # web-local-seo — Local SEO 子层（L12）

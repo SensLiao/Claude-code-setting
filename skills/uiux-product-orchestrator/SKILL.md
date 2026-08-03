@@ -15,8 +15,8 @@ downstream:
   - uiux-gsd-contract-validator     # the one bridge agent
   - enterprise-qa-testing           # visual regression baseline handoff
   - appsec-security-orchestrator    # frontend security review for user-data surfaces
-description: >
-  Use when UI/UX design, visual direction, reference research, style selection, design system, brand visual, screenshot-to-code, or UI audit work begins. GSD-native UIUX contract gate — a thin GSD-bridge PLUS a 6-phase quality engine (GROUND→EXPLORE→PICK→BUILD→UNIFY→REVIEW, ask-first min/optimal/max) driving create/optimize reference-first, looping review until it passes. Mirrors GSD UI-SPEC.md / UI-REVIEW.md into `.uiux/lock/chassis.yaml` + `.uiux/decisions/<tag>/uiux_release_decision.yaml`, enforces L3 style mutex, and is the `/gsd-ship` release gate. Does NOT replace `/gsd-ui-phase` / `/gsd-ui-review` / `gsd-ui-researcher` / `gsd-ui-checker` / `gsd-ui-auditor` (GSD-owned SoT). Routes UIUX skills (L0-L8). Triggers: "UI/UX 设计 / 视觉方向 / 参考研究 / 风格选型 / design system / 品牌视觉 / 前端 design / 截图还原 / UI audit / chassis lock / release readiness UI".
+description: >-
+  Use when UI/UX design, visual direction, reference research, style selection, design system, brand visual, screenshot-to-code, or UI audit work begins. GSD-native UIUX contract gate plus a 6-phase quality engine (GROUND, EXPLORE, PICK, BUILD, UNIFY, REVIEW at ask-first min/optimal/max) that drives create and optimize reference-first, looping review until it passes. Mirrors GSD UI-SPEC.md / UI-REVIEW.md into `.uiux/`, enforces L3 style mutex, and acts as the `/gsd-ship` release gate. Does not replace the GSD-owned UI commands and agents. Triggers: "UI/UX 设计 / 视觉方向 / 参考研究 / 风格选型 / design system / 品牌视觉 / 前端 design / 截图还原 / UI audit / chassis lock / release readiness UI".
 ---
 
 # UIUX Product Orchestrator v2.3 — GSD-native UI Contract Gate + Quality Combination Engine

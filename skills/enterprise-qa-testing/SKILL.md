@@ -25,16 +25,8 @@ children:
   - qa-flaky-governance
   - qa-smoke-release-safety
   - qa-evidence-bundle
-description: >
-  商业级 QA orchestrator：通过风险模型选择测试层，调度 QA-owned sub-skills，
-  reference 已有 execution agents (tdd-guide / e2e-runner / code-reviewer)，
-  聚合可审计 release evidence。**它不是单纯测试生成器，也不重复实现 E2E/TDD agents**。
-  Use for QA strategy, layered test automation (static / unit/TDD / component /
-  integration / contract / E2E / visual / a11y / perf / smoke / evidence),
-  CI quality gates, release readiness evidence, and routing to AppSec/Pentest.
-  Trigger phrases: "测试策略 / QA / SDET / E2E / 集成测试 / visual regression /
-  release readiness / CI 质量门禁 / 验收测试 / commercial quality / 工业级测试".
-  Also the entry point for slash commands /qa-quick-check, /qa-focused-gate, /qa-release-readiness, /qa-commercial-cert.
+description: >-
+  Commercial-grade QA orchestrator — picks test layers from a risk model, dispatches QA-owned sub-skills, references existing execution agents (tdd-guide / e2e-runner), and aggregates auditable release evidence. Not a test generator and never re-implements the E2E/TDD agents. Use for QA strategy, layered automation (static / unit / component / integration / contract / E2E / visual / a11y / perf / smoke / evidence), CI quality gates, release-readiness evidence, and AppSec routing. Triggers: "测试策略 / QA / SDET / E2E / 集成测试 / visual regression / release readiness / CI 质量门禁 / 验收测试 / 工业级测试". Entry point for /qa-quick-check, /qa-focused-gate, /qa-release-readiness, /qa-commercial-cert.
 execution_modes:
   - prompt-only:  default; §6 9-step inline dispatch + qa-sdk evidence persist
   - workflow-spec: opt-in via .qa/config.json.execution_mode = "workflow-spec" OR

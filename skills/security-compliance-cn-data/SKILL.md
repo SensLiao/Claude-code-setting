@@ -29,14 +29,8 @@ downstream:
   - security-remediation
   - compliance.audit (planned)
   - appsec-security-orchestrator (back with findings)
-description: >
-  China data protection compliance overlay. Covers PIPL (Personal Information
-  Protection Law) + DSL (Data Security Law) + CSL (Cybersecurity Law) + 数据
-  出境安全评估办法 + 个人信息出境标准合同 + 2024 跨境流动新规 + 网络数据安全
-  管理条例 + GenAI 服务管理办法. Activated for projects processing Chinese
-  user personal information, projects with China-resident users, OR data
-  export from China. Does NOT replace formal legal counsel — provides
-  engineering-facing baseline + scope decisions + evidence preparation.
+description: >-
+  China data protection overlay - PIPL, Data Security Law, Cybersecurity Law, cross-border transfer security assessment and the personal-information export standard contract, network data regulations, GenAI service rules. For projects processing Chinese personal information or exporting data from China. Engineering baseline and evidence prep, not legal counsel.
 trigger_phrases:
   - PIPL / 个人信息保护法 / 中国数据合规
   - 数据出境 / 跨境数据 / data export from China

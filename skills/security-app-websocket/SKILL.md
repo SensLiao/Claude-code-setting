@@ -23,13 +23,8 @@ upstream:
 downstream:
   - security-remediation
   - appsec-security-orchestrator (back with findings)
-description: >
-  WebSocket and Server-Sent Events (SSE) security overlay. Covers handshake
-  authentication, origin verification, message-level validation, rate limiting,
-  channel authorization, idle/heartbeat handling, frame size limits, disconnect
-  semantics, and log discipline (HTTP access log ONLY covers upgrade request,
-  not subsequent frames). Maps to OWASP WebSocket Cheat Sheet + ASVS V17.
-  Activated for projects using WebSocket / Socket.IO / SignalR / SSE / long-poll.
+description: >-
+  WebSocket and Server-Sent Events security overlay - handshake authentication, origin verification, message-level validation, rate limiting, channel authorization, heartbeat handling, frame size limits, disconnect semantics, and frame-level log discipline (HTTP access logs cover only the upgrade request).
 trigger_phrases:
   - WebSocket security / WS security / 长连接安全
   - SSE security / server-sent events

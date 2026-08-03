@@ -6,13 +6,8 @@ created_date: 2026-05-24
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
 references_agents: [e2e-runner]
-description: >
-  QA bridge skill — E2E coverage gate. Prepares Playwright/browser E2E scope
-  (flow / risk / browsers / roles / tenants / data / cleanup / artifacts /
-  retry policy / trace requirement), references `e2e-runner` agent for actual
-  execution, validates returned evidence. Does NOT re-implement Playwright runner.
-  Trigger phrases: "E2E test / Playwright / journey test / browser test /
-  e2e coverage / 端到端测试 / 用户旅程".
+description: >-
+  QA bridge skill - E2E coverage gate: prepares browser E2E scope (flows, risk, browsers, roles, tenants, data, cleanup, artifacts, retry and trace policy) and validates returned evidence. Execution belongs to the `e2e-runner` agent - never re-implements the Playwright runner.
 ---
 
 # qa-e2e-coverage-gate

@@ -1,6 +1,7 @@
 ---
 name: qa-a11y-runner
-description: QA Accessibility execution worker (B.1.f / R2 roadmap). Dispatched by enterprise-qa-testing workflow-spec mode A11yAudit phase (commercial-cert only). Runs axe-core / Lighthouse a11y / pa11y / playwright-axe across changed surfaces; emits A11Y_AUDIT_SCHEMA.v1 with decision_hint (deterministic A11yGate makes final). Replaces code-reviewer D1 reuse.
+description: >-
+  QA accessibility execution worker — dispatched for the a11y audit phase (commercial-cert only). Runs axe-core, Lighthouse a11y, pa11y or playwright-axe across changed surfaces and emits a decision hint; the deterministic gate makes the final call.
 tools: Read, Bash, Grep, Glob
 model: sonnet
 color: yellow

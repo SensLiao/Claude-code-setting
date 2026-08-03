@@ -26,12 +26,8 @@ upstream:
 downstream:
   - security-remediation  # 把发现的 leak / misconfig 转 finding
   - appsec-security-orchestrator  # 回 orchestrator
-description: >
-  Secrets engineering and management review — central storage, rotation, audit,
-  least exposure, OIDC short-lived credentials, and leak detection. Maps to OWASP
-  Secrets Management Cheat Sheet + ASVS 5.0 V11/V13 + GitHub OIDC migration.
-  Does NOT just run gitleaks — that's the floor. This skill covers the full
-  secrets lifecycle: storage, distribution, rotation, audit, revocation, post-incident.
+description: >-
+  Secrets engineering review across the full lifecycle - central storage, distribution, rotation, audit, revocation, post-incident handling, OIDC short-lived credentials and leak detection. Running a secret scanner is the floor, not the scope.
 trigger_phrases:
   - secrets / 凭证 / 密钥管理 / API key 管理
   - Vault / Secrets Manager / KMS

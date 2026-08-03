@@ -28,15 +28,8 @@ downstream:
   - compliance.reporting (recovery report to regulator if required)
   - appsec-security-orchestrator (Release Evidence §15 Recovery Specifics)
   - security-remediation (any defect found during recovery)
-description: >
-  CSF 2.0 RC (Recover) function skill — owns backup validation, restore testing,
-  RTO/RPO verification, BCP / DR plan execution, customer / regulator recovery
-  communications, and post-incident recovery review. Activated after
-  security-response-incident-response completes containment and eradication
-  (RS → RC transition). Also activates for scheduled recovery exercises and
-  pre-launch DR readiness checks. Does NOT perform incident detection or
-  containment (that's incident-response). Does NOT modify production backups
-  destructively.
+description: >-
+  CSF 2.0 RC (Recover) skill - backup validation, restore testing, RTO/RPO verification, BCP/DR plan execution, customer and regulator recovery communications, post-incident recovery review. Runs after incident-response completes containment, and for scheduled recovery exercises or pre-launch DR readiness. Never destructively modifies production backups.
 trigger_phrases:
   - recovery / 恢复 / RC / disaster recovery / DR / 灾难恢复
   - business continuity / BCP / 业务连续性

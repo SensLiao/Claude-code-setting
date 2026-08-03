@@ -1,6 +1,7 @@
 ---
 name: qa-static-baseline-runner
-description: QA Static Baseline execution worker (B.1.f / R2 roadmap). Dispatched by enterprise-qa-testing workflow-spec mode StaticBaseline phase. Auto-discovers package manager + scripts; runs tsc + ESLint + Prettier + npm audit + git-secrets + schema/OpenAPI lint. Emits STATIC_BASELINE_SCHEMA.v1 with command_evidence[] mandatory. Replaces code-reviewer D1 reuse — code-reviewer's review-default behavior is the wrong fit for execute-and-persist evidence workers.
+description: >-
+  QA static-baseline execution worker — dispatched for the StaticBaseline phase. Auto-discovers package manager and scripts, then runs tsc, ESLint, Prettier, npm audit, git-secrets and schema/OpenAPI lint. Command evidence is mandatory in its output.
 tools: Read, Bash, Grep, Glob
 model: sonnet
 color: blue

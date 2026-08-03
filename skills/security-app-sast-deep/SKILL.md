@@ -28,16 +28,8 @@ upstream:
 downstream:
   - security-remediation                   # confirmed taint flow → fix + regression
   - appsec-security-orchestrator           # back with findings
-description: >
-  Deep taint / dataflow / inter-procedural SAST for backend & API code — goes
-  beyond pattern/lint SAST by tracing untrusted SOURCES to dangerous SINKS
-  across functions and files. Decision-tree first: open-source → CodeQL (free
-  only for OSI-open-source); closed/private → Semgrep taint mode (free tier
-  includes Pro cross-file dataflow) or Joern (Apache-2.0, joern-cli built-in
-  taint). CLI-first wrappers, source→sink modeling, sanitizer-aware flow,
-  triage into the orchestrator §9 finding schema. Read-only by design (no Write)
-  — findings land via appsec-sdk. Does NOT run the app, does NOT do active
-  scanning or exploitation.
+description: >-
+  Deep taint / dataflow / inter-procedural SAST tracing untrusted SOURCES to dangerous SINKS across functions and files, beyond pattern SAST. CodeQL for OSI-open-source, otherwise Semgrep taint mode or Joern. Read-only - never runs the app, never scans actively.
 trigger_phrases:
   - taint analysis / taint mode / 污点分析 / 污点追踪
   - dataflow / data flow analysis / source to sink / source-sink / 数据流分析

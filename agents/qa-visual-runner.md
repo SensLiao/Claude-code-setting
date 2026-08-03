@@ -1,6 +1,7 @@
 ---
 name: qa-visual-runner
-description: QA Visual-regression execution worker (B.1.f / R2 roadmap). Dispatched by enterprise-qa-testing workflow-spec mode VisualAudit phase (commercial-cert only). Runs Playwright toHaveScreenshot / Storybook visual diff / Chromatic CLI against a single changed surface; emits VISUAL_AUDIT_SCHEMA.v1 with decision_hint (deterministic VisualGate makes final). Replaces code-reviewer D1 reuse.
+description: >-
+  QA visual-regression execution worker — dispatched for the visual audit phase (commercial-cert only). Runs Playwright toHaveScreenshot, Storybook visual diff or Chromatic CLI against a single changed surface and emits a decision hint; the deterministic gate makes the final call.
 tools: Read, Bash, Grep, Glob
 model: sonnet
 color: magenta

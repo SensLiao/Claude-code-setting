@@ -6,8 +6,8 @@ created_date: 2026-06-15
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
 references_agents: [qa-mutation-runner]
-description: >
-  QA child skill — mutation testing for TEST-SUITE effectiveness: does the existing suite actually catch injected bugs (mutation score), NOT whether the code works. StrykerJS (JS/TS, `thresholds.break`) + cargo-mutants (Rust, `--in-diff`) + mutmut (Python) + PIT (JVM), scoped to HIGH/CRITICAL modules' diff for cost. Distinct from coverage: coverage = "lines ran", mutation = "tests would notice if the line broke". Owns parent §4 Layer "Mutation/Test-Effectiveness". Triggers: "mutation testing / mutation score / 变异测试 / 变异得分 / Stryker / cargo-mutants / mutmut / PIT / surviving mutants / test effectiveness / are my tests any good".
+description: >-
+  QA child skill - mutation testing for TEST-SUITE effectiveness: whether the existing suite catches injected bugs (mutation score), not whether the code works. StrykerJS (`thresholds.break`) / cargo-mutants (`--in-diff`) / mutmut / PIT, scoped to the diff of HIGH and CRITICAL modules for cost. Owns parent Mutation/Test-Effectiveness layer.
 ---
 
 # qa-mutation-effectiveness

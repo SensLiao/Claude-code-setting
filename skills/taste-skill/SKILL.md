@@ -1,8 +1,8 @@
 ---
 name: taste-skill
 aliases: [design-taste-frontend]
-description: >
-  Senior UI/UX Engineer and the DEFAULT L3 style for premium frontend work. Architects interfaces overriding default LLM biases via three tunable dials (design variance / motion intensity / visual density) PLUS switchable STYLE VARIANT MODES (§11): clean editorial / Notion / Linear / warm-monochrome / minimalist SaaS (Mode A), $150k-agency depth with nested double-bezel cards + fluid-glass nav (Mode B), heavy GSAP scrollytelling / pinning / scroll-reveal (Mode C). Enforces metric-based rules, strict component architecture, hardware acceleration, anti-AI-slop typography and color. Default pick for "make it look premium / high-end / 高级 / 好看 / 有质感 / 精致" when no other L3 style (luxury, brutalist) is explicitly named.
+description: >-
+  Senior UI/UX engineer and the DEFAULT L3 style for premium frontend work. Overrides default LLM design bias via three tunable dials (design variance / motion intensity / visual density) plus switchable STYLE VARIANT MODES: clean editorial, Notion, Linear, warm-monochrome and minimalist SaaS (Mode A); agency-grade depth with nested double-bezel cards and fluid-glass nav (Mode B); heavy GSAP scrollytelling, pinning and scroll-reveal (Mode C). Enforces metric-based rules, strict component architecture, hardware acceleration, anti-AI-slop typography and color. Default pick for "make it look premium / high-end / 高级 / 好看 / 有质感 / 精致" when no other L3 style is named.
 ---
 
 # High-Agency Frontend Skill

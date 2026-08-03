@@ -31,15 +31,8 @@ downstream:
   - appsec-security-orchestrator  # forensics bridge per §6 (no dedicated skill yet) + NIST SP 800-86 inline
   - security-remediation (root-cause fix per vuln finding)
   - compliance.reporting (regulatory notification)
-description: >
-  Incident response workflow per NIST SP 800-61 Rev. 3 (CSF 2.0 aligned RS function).
-  Covers preparation / detection / analysis / containment / eradication / recovery
-  transition / lessons learned. Owns severity classification, incident commander
-  role assignment, communications cadence, decision log, evidence chain-of-custody
-  initiation. Hands off to security-response-recovery when RS → RC transition
-  conditions are met. Does NOT perform offensive operations on attackers.
-  Trigger phrases: "incident response / 事件响应 / IR / 安全事件 / breach response /
-  data breach / 数据泄露 / IC declared / pager / SEV-1 / SEV-2".
+description: >-
+  Incident response per NIST SP 800-61 Rev. 3 (CSF 2.0 RS) - preparation, detection, analysis, containment, eradication, recovery transition, lessons learned. Owns severity classification, incident commander assignment, communications cadence, decision log and evidence chain-of-custody initiation. Hands off to `security-response-recovery` at the RS-to-RC transition. No offensive operations against attackers.
 trigger_phrases:
   - incident response / 事件响应 / IR / 安全事件
   - breach / data breach / 数据泄露 / 入侵

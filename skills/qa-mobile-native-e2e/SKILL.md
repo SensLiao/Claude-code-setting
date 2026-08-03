@@ -7,8 +7,8 @@ allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
 references_agents: [qa-mobile-e2e-runner]
 activation: conditional   # 见 §2.1 Activation Gate — 缺 mobile-app marker 一律不激活
-description: >
-  QA child skill (DORMANT / 备选) — native mobile E2E via Maestro (Apache-2.0, YAML flows, no compile, Android / iOS / RN / Flutter, simulator-first). Mobile is the harness's BACKUP battlefield: capability built but dormant — ONLY activates when real mobile-app markers are present (Android/iOS/RN/Flutter); never fires on pure web/backend. Symmetric with `app-aso` + `security-app-mobile`. Owns parent §4 Layer "Mobile E2E" (conditional). Triggers (only when a mobile app is present): "mobile e2e / native app test / Maestro / 移动端 E2E / 原生 App 测试 / Android·iOS·RN·Flutter 测试 / 真机测试 / test my app on a phone".
+description: >-
+  QA child skill (DORMANT) - native mobile E2E via Maestro YAML flows (Android / iOS / RN / Flutter, simulator-first, no compile). Activates ONLY when real mobile-app markers are present; never fires on pure web or backend projects. Owns parent Mobile E2E layer (conditional).
 ---
 
 # qa-mobile-native-e2e

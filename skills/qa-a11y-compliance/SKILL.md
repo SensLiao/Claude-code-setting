@@ -5,14 +5,8 @@ status: stable
 created_date: 2026-05-24
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
-description: >
-  QA child skill — Accessibility compliance. axe scan + WCAG 2.2 A/AA
-  checklist + keyboard-only nav + focus order/trap/visible + accessible name
-  + form label/error association + color contrast + reduced motion + ARIA
-  misuse. Distinguish automated / semi-automated / manual. axe pass alone
-  ≠ a11y pass. Owns parent §4 Layer 8.
-  Trigger phrases: "accessibility / a11y / WCAG / axe / 无障碍 / 屏幕阅读器 /
-  键盘导航 / focus order".
+description: >-
+  QA child skill - accessibility compliance: axe scan + WCAG 2.2 A/AA checklist, keyboard-only nav, focus order/trap/visible, accessible name, form label and error association, contrast, reduced motion, ARIA misuse. An axe pass alone is not an a11y pass. Owns parent section 4 Layer 8.
 ---
 
 # qa-a11y-compliance

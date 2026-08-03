@@ -1,6 +1,7 @@
 ---
 name: qa-runtime-detector
-description: QA Architecture-Intake runtime detector (enterprise-qa-testing §6 Step 1.7). Marker-bound classification of every runnable target (web / api / mobile / desktop / cli / library / worker / multi-service) plus how to start + health-probe each. Use PROACTIVELY at Step 1.7 before risk scoring / layer selection. NEVER defaults to "web app" — no marker / confidence conflict / type-known-but-no-entrypoint / only-low-confidence / host-incapable => decision=BLOCKED + blockers[]. Read-only; emits RUNTIME_DETECTION_SCHEMA.v1 JSON. Never writes evidence files (parent persists via qa-sdk).
+description: >-
+  QA architecture-intake runtime detector — marker-bound classification of every runnable target (web / api / mobile / desktop / cli / library / worker / multi-service) plus how to start and health-probe each. NEVER defaults to "web app": no marker, conflicting confidence, missing entrypoint or an incapable host all yield decision=BLOCKED with blockers listed. Read-only; the parent persists evidence.
 tools: Read, Grep, Glob, Bash
 model: opus
 color: cyan

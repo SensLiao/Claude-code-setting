@@ -27,8 +27,8 @@ upstream:
 downstream:
   - security-remediation
   - security-response-incident-response  # breach clock (GDPR 72h / CCPA notice)
-description: >
-  Privacy & data-protection compliance overlay for jurisdictions OUTSIDE China — EU/UK GDPR + California CCPA/CPRA. Covers lawful basis, data-subject/consumer rights + DSAR, consent, DPIA, records of processing (Art 30), 72h breach notification, controller vs processor + DPA, cross-border transfer (adequacy / SCCs / TIA post-Schrems II), privacy-by-design (Art 25), data minimization & retention, special-category data, opt-out of sale/sharing + Global Privacy Control. Maps regulation onto code/architecture. Does NOT cover China (→ security-compliance-cn-data) or PCI/payment (→ security-compliance-payment); composes alongside them. Does NOT replace legal counsel — an engineering-facing baseline. Privacy law evolves: verify time-sensitive claims against current regulation / counsel.
+description: >-
+  Privacy overlay for jurisdictions OUTSIDE China - EU/UK GDPR and CCPA/CPRA: lawful basis, data-subject rights and DSAR, consent, DPIA, Art 30 records, 72h breach notification, controller-processor DPAs, cross-border transfer (SCCs / TIA), privacy-by-design, retention, opt-out and Global Privacy Control. Engineering baseline, not legal counsel - verify time-sensitive claims against current regulation.
 trigger_phrases:
   - GDPR / CCPA / CPRA / privacy compliance / data protection / 隐私合规 / 数据保护
   - DSAR / data subject rights / right to erasure / right to access / portability

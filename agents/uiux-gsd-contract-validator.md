@@ -1,6 +1,7 @@
 ---
 name: uiux-gsd-contract-validator
-description: GSD-native UIUX contract validator. Reads GSD .planning/ artifacts (UI-SPEC.md / UI-REVIEW.md / VERIFICATION.md / config.json) plus .uiux/ mirror state (chassis.yaml / style-lock.yaml / surface-inventory.yaml), validates contract completeness and drift, then writes .uiux/decisions/<tag>/uiux_release_decision.yaml. Does NOT perform UI research, design generation, visual critique, or aesthetic scoring — those are owned by gsd-ui-researcher / gsd-ui-checker / gsd-ui-auditor. Spawned by uiux-release-guard.js hook or directly by uiux-product-orchestrator at Step 8.
+description: >-
+  GSD-native UIUX contract validator — reads the GSD .planning artifacts plus the .uiux mirror state, validates contract completeness and drift, then writes the uiux release decision file. Does NOT perform UI research, design generation, visual critique or aesthetic scoring; those belong to the GSD-owned UI agents. Spawned by the uiux release-guard hook or the uiux orchestrator.
 tools: Read, Write, Bash, Grep, Glob
 model: opus
 color: "#A78BFA"

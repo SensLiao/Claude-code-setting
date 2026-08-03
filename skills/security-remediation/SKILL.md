@@ -30,15 +30,8 @@ downstream:
   - appsec-security-orchestrator (返回 Release Evidence)
   - gsd-verify-work
   - enterprise-qa-testing
-description: >
-  Security finding remediation and regression workflow. Accepts any finding
-  conforming to the standardized finding schema (see appsec-security-orchestrator §9)
-  from any upstream security skill / agent. Produces minimum-viable code fixes,
-  security regression tests (RED → GREEN with stdout evidence), and updated SECURITY.md.
-  Use after any AppSec / DAST / pentest / threat-model / IaC / secrets review produces
-  HIGH+ findings.
-  Trigger phrases: "修复安全问题 / 安全漏洞修复 / security fix / regression test
-  for vulnerability / remediation".
+description: >-
+  Security finding remediation and regression workflow. Accepts any finding in the standardized schema (appsec-security-orchestrator section 9) from any upstream security skill or agent, and produces minimum-viable code fixes, security regression tests (RED to GREEN with stdout evidence) and an updated SECURITY.md. Use after any security review produces HIGH+ findings.
 ---
 
 # SKILL: security-remediation

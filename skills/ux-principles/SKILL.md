@@ -1,6 +1,7 @@
 ---
 name: ux-principles
-description: UX foundation skill — bring named laws, heuristic audits, tactical typography/spacing rules, and product-teardown audit lens to any frontend design work. Use BEFORE designing (which laws to honor, which to avoid), DURING designing (tactical lookups for spacing/hierarchy/color/typography), and AFTER designing (NN 10-heuristic audit, Built-for-Mars-style teardown). Pairs with `prototyping-ui-directions` (exploration), `taste-skill` (single-page craft), `anchor-prototype-wave` (production wave), `luxury-editorial-site-builder` (landing page special). Trigger phrases include "ux audit / ux 审 / 评估这个 UX / 用 NN heuristic 检查 / 哪些 Laws of UX 适用 / built for mars 视角 / 我这个 UX 哪里不行 / 我想做个 ux review".
+description: >-
+  UX foundation skill — named laws, heuristic audits, tactical typography and spacing rules, and a product-teardown audit lens for any frontend design work. Use BEFORE designing (which laws to honor or avoid), DURING (tactical lookups for spacing, hierarchy, color, type) and AFTER (NN 10-heuristic audit, Built-for-Mars-style teardown). Triggers: "ux audit / ux 审 / 评估这个 UX / 用 NN heuristic 检查 / 哪些 Laws of UX 适用 / built for mars 视角 / 我这个 UX 哪里不行 / 我想做个 ux review".
 type: orchestrator
 version: 1.0.0
 ---

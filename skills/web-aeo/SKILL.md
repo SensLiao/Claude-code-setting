@@ -14,8 +14,8 @@ downstream: [security-app-llm]
 allowed-tools: Read, Write, Bash, Grep, Glob
 forbidden-tools: []
 disable-model-invocation: false
-description: >
-  AI Discoverability / AEO — Answer Engine Optimization for AI search & generative answer engines (ChatGPT Search / Claude / Perplexity / Google AI Overviews / Gemini / Bing Copilot): makes public content AI-crawlable, extractable as self-contained passages, citable, and machine-readable via llms.txt. Not standard Google/Bing SEO (→ web-seo), Local SEO/GBP/Maps (→ web-local-seo), App Store ASO (→ app-aso), or security (→ appsec-security-orchestrator).
+description: >-
+  AI Discoverability / AEO - Answer Engine Optimization for AI search and generative answer engines (ChatGPT Search / Claude / Perplexity / Google AI Overviews / Gemini / Bing Copilot): makes public content AI-crawlable, extractable as self-contained passages, citable, and machine-readable via llms.txt. This is where "GEO = Generative Engine Optimization" routes; Local SEO belongs to `web-local-seo` and standard search to `web-seo`.
 ---
 
 # SKILL: web-aeo

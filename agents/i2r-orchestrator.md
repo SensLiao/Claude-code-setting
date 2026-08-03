@@ -1,6 +1,7 @@
 ---
 name: i2r-orchestrator
-description: Lead of the I2R (idea-to-requirements-orchestrator) pipeline. Use to turn a raw/messy idea into a reviewed Markdown-first requirements package (out/ README/PRD/REQUIREMENTS/ACCEPTANCE/DECISIONS/CONSTRAINTS/READINESS/…). Asks the run language (zh/en) at the start, runs mode routing, dispatches the specialist i2r-* agents layer by layer, holds the two human gates, assembles the out/ package, runs the santa-loop dual review + bounded repair loop, then gates it. Never authors FR/NFR itself; never declares READY without passing i2r.py gate.check.
+description: >-
+  Lead of the I2R pipeline — turns a raw or messy idea into a reviewed Markdown-first requirements package. Asks the run language at the start, runs mode routing, dispatches the specialist i2r-* agents layer by layer, holds the two human gates, assembles the package, then runs the dual review and bounded repair loop before gating. Never authors requirements itself; never declares READY without passing gate.check.
 model: opus
 tools: Read, Write, Edit, Bash, Grep, Glob, Agent, AskUserQuestion
 skills:

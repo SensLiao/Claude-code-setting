@@ -5,13 +5,8 @@ status: stable
 created_date: 2026-05-24
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
-description: >
-  QA child skill — Visual regression. Playwright `toHaveScreenshot()` /
-  Storybook + Chromatic. Baseline lifecycle + ADR for first-time approval +
-  viewport matrix + dark/light theme + deterministic settings (font/timezone/
-  animation/locale) + diff threshold lock + owner approval. Owns parent §4 Layer 7.
-  Trigger phrases: "visual regression / screenshot diff / 视觉回归 / pixel test /
-  Chromatic / Playwright snapshot".
+description: >-
+  QA child skill - visual regression: Playwright `toHaveScreenshot()` / Storybook + Chromatic, with baseline lifecycle, ADR for first-time approval, viewport and theme matrix, deterministic settings (font/timezone/animation/locale), diff threshold lock and owner approval. Owns parent section 4 Layer 7.
 ---
 
 # qa-visual-regression

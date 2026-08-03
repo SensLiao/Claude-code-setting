@@ -5,14 +5,8 @@ status: stable
 created_date: 2026-05-24
 allowed-tools: Read, Bash, Grep, Glob
 parent: enterprise-qa-testing
-description: >
-  QA child skill for test data, environment, fixture, factory, role-matrix,
-  tenant-matrix, time control, PII policy, environment parity. Owns parent
-  §6 Step 4. Required at Medium+ risk; additional rules at High/Critical.
-  Can be triggered standalone (developer needs fixture/role matrix without
-  full QA review).
-  Trigger phrases: "test data / fixture / factory / role matrix / tenant matrix /
-  seed / cleanup / 测试数据 / 测试环境 / multi-tenant 测试 / PII policy".
+description: >-
+  QA child skill - test data, environments, fixtures, factories, role matrix, tenant matrix, time control, PII policy, environment parity. Required at Medium+ risk with extra rules at High/Critical; also runs standalone when a developer just needs a fixture or role matrix. Owns parent section 6 Step 4.
 ---
 
 # qa-test-data-environment

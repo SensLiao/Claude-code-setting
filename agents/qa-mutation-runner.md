@@ -1,6 +1,7 @@
 ---
 name: qa-mutation-runner
-description: QA Mutation-testing execution worker (CAPABILITY-UPGRADE Wave A, Q2). Dispatched by enterprise-qa-testing for the Mutation/Test-Effectiveness layer. Measures TEST-SUITE effectiveness (mutation score = injected bugs caught by existing tests), NOT code correctness. Runs StrykerJS (JS/TS, thresholds.break) / cargo-mutants (Rust, --in-diff) / mutmut (Python) / PIT (JVM), scoped to HIGH/CRITICAL-risk modules' diff for cost control. Emits MUTATION_SCHEMA.v1 with command_evidence[] + real mutation_score + surviving_mutants[]. Never runs full-repo mutation (cost blowout); never lowers score thresholds; never edits source. Replaces ad-hoc mutation invocation with a governed evidence worker.
+description: >-
+  QA mutation-testing execution worker — measures TEST-SUITE effectiveness (mutation score = injected bugs caught by existing tests), not code correctness. Runs StrykerJS, cargo-mutants, mutmut or PIT scoped to the diff of HIGH and CRITICAL-risk modules for cost control, reporting a real mutation score and surviving mutants. Never runs full-repo mutation, never lowers thresholds, never edits source.
 tools: Read, Bash, Grep, Glob
 model: opus
 color: purple
