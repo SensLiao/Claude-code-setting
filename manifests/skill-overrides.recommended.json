@@ -2,14 +2,12 @@
   "schema_version": "1.0.0",
   "generated_date": "2026-05-23",
   "description": "Recommended `skillOverrides` patch for ~/.claude/settings.json. Each entry sets visibility for a skill. Apply selectively. Do NOT auto-apply this file — it is a recommendation for the user to merge into settings.json via /claude-env-bootstrap or manual edit.",
-
   "visibility_legend": {
     "on": "Name + description in Claude context; appears in / menu. (default)",
     "name-only": "Name only in Claude context; appears in / menu.",
     "user-invocable-only": "Hidden from Claude context; appears in / menu (user can invoke).",
     "off": "Hidden from Claude context; hidden from / menu."
   },
-
   "recommended_overrides": {
     "claude-env-bootstrap": "user-invocable-only",
     "authorized-pentest-validation": "user-invocable-only",
@@ -17,9 +15,46 @@
     "anchor-prototype-wave": "user-invocable-only",
     "brutalist-skill": "user-invocable-only",
     "output-skill": "user-invocable-only",
-    "skill-creator": "name-only"
+    "skill-creator": "name-only",
+    "qa-a11y-compliance": "name-only",
+    "qa-component-behavior": "name-only",
+    "qa-contract-api": "name-only",
+    "qa-e2e-coverage-gate": "name-only",
+    "qa-flaky-governance": "name-only",
+    "qa-integration-service-virtualization": "name-only",
+    "qa-load-stress-reliability": "name-only",
+    "qa-mobile-native-e2e": "name-only",
+    "qa-mutation-effectiveness": "name-only",
+    "qa-performance-reliability": "name-only",
+    "qa-resilience-fault-injection": "name-only",
+    "qa-smoke-release-safety": "name-only",
+    "qa-static-baseline": "name-only",
+    "qa-test-data-environment": "name-only",
+    "qa-test-design-tdd-bridge": "name-only",
+    "qa-visual-regression": "name-only",
+    "security-app-api": "name-only",
+    "security-app-file-upload": "name-only",
+    "security-app-fuzzing": "name-only",
+    "security-app-llm": "name-only",
+    "security-app-mobile": "name-only",
+    "security-app-multitenant": "name-only",
+    "security-app-sast-deep": "name-only",
+    "security-app-websocket": "name-only",
+    "security-compliance-cn-data": "name-only",
+    "security-compliance-payment": "name-only",
+    "security-compliance-privacy": "name-only",
+    "security-governance-threat-modeling": "name-only",
+    "security-platform-iac-cloud": "name-only",
+    "security-platform-secrets": "name-only",
+    "security-platform-supply-chain": "name-only",
+    "security-remediation": "name-only",
+    "security-response-incident-response": "name-only",
+    "security-response-recovery": "name-only",
+    "security-response-red-purple-team": "name-only",
+    "security-pentest-ai-redteam": "name-only",
+    "security-pentest-exploitation-planning": "name-only",
+    "security-pentest-recon-scan": "name-only"
   },
-
   "rationale": {
     "claude-env-bootstrap": "Bootstrap has side effects (writes files, copies skills, modifies CLAUDE.md). v1.1 design: manual-first via /claude-env-bootstrap. Do not let Claude auto-fire on phrases like 'orchestrator' or 'project setup'.",
     "authorized-pentest-validation": "Active security validation MUST NEVER auto-trigger. Hard gate via disable-model-invocation:true at SKILL.md level AND user-invocable-only at settings.json level — defense in depth.",
@@ -28,13 +63,11 @@
     "brutalist_style": "brutalist-skill: experimental L3 style — requires explicit user opt-in by name.",
     "name_only_collection": "skill-creator: useful but description should not autoload to avoid drift; user-typed name still triggers. (Cross-model review/delegation is now the official Codex plugin codex@openai-codex — /codex:review, /codex:adversarial-review, /codex:rescue — not a local skill.)"
   },
-
   "merge_strategy": {
     "preferred": "Use /claude-env-bootstrap to merge these into ~/.claude/settings.json `skillOverrides` block.",
     "manual": "Open ~/.claude/settings.json, locate top-level `skillOverrides`, merge entries from this file. Do NOT replace the entire block — additive merge only.",
     "rollback": "Pre-edit backup of settings.json is at ~/.claude/_backup-20260523-v4/settings.json. To revert this overrides patch: copy that file back."
   },
-
   "see_also": [
     "skills.manifest.json",
     "skill-routing-policy.json",
