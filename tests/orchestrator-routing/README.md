@@ -7,8 +7,23 @@ real prompts in fresh sessions and observe. (Automated subagents only approximat
 ## Setup (once)
 - Target repo: a throwaway, **not-bootstrapped** project. Default here:
   `D:/Project/Project_from_Other/routing-test` (a sibling of the config repo).
+- Seed it from `target/` in this directory, so the test is reproducible on another machine:
+  ```
+  cp -r tests/orchestrator-routing/target/. D:/Project/Project_from_Other/routing-test/
+  ```
+  Do not `npm install` — nothing is executed; the files exist to be *read*.
 - Do **not** run `claude-env-bootstrap` in the target — it would install project-local skills and
   change the routing surface, invalidating the test.
+- Do **not** make it a git repo: several fixtures scan for project state, and a git history would
+  add a signal the fixtures do not control.
+
+### About `target/` — deliberately flawed, never deploy it
+The seed app carries real defects on purpose, because they are what the fixtures route on:
+hardcoded credentials, a guessable `${username}-token`, no password hashing, no rate limiting, a
+comparison that succeeds when both sides are `undefined`, a token parked in `localStorage`, an
+unstyled sign-in page, no E2E runner, no CI, and no robots/sitemap/JSON-LD. It is fixture material,
+not a reference implementation. The README typo (`recieve`) is fixture 9's object — restore it if a
+run edits it away.
 
 ## Run (per fixture)
 1. Open a **FRESH** Claude Code session in the target repo. One fresh session per fixture
