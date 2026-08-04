@@ -1,7 +1,7 @@
 ---
 name: workflow-creator
 description: >-
-  Author runnable workflow scripts for the Workflow tool — deterministic multi-agent orchestration files with fresh-context subagents under plain-JS control flow (meta block, agent/parallel/pipeline/phase, schemas, determinism rules). Use to create, scaffold or fix a workflow or any `.claude/workflows/*.js` file, when a workflow errors, or when the user describes a repeatable multi-step parallel job worth packaging. Not for merely running an existing workflow or a one-off single-subagent task. Triggers: "make/create/write a workflow / turn this into a workflow / scaffold a multi-agent pipeline / orchestrate with subagents deterministically".
+  Author runnable workflow scripts for the Workflow tool — deterministic multi-agent orchestration under plain-JS control flow. Use to create, scaffold or fix a workflow or any `.claude/workflows/*.js` file, when a workflow errors, or when the user describes a repeatable multi-step parallel job worth packaging. Not for merely running an existing workflow or a one-off single-subagent task. Triggers: "make/create/write a workflow / turn this into a workflow / scaffold a multi-agent pipeline / orchestrate with subagents deterministically".
 ---
 
 # Workflow Creator
