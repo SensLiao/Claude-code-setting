@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 # Claude Code 配置一键安装脚本 — Windows (PowerShell)
 # =============================================================================
 # 用法：
@@ -167,18 +167,28 @@ Write-Host "  - 准备部署: $copiedCount 个文件"
 Write-Host "  - 跳过已存在: $skippedExisting"
 Write-Host "  - 做了占位符替换: $substitutedFiles"
 
+Write-Host ""
+Write-Warn "这个脚本只是无 node 环境的兜底 —— 它只复制文件。"
+Write-Host "  它不写 skillOverrides、不接线 hooks、不清 orphan、不写 pin。"
+Write-Host "  少了 skillOverrides，技能清单会停在平台默认：每个 skill 都抢描述预算，"
+Write-Host "  平台再按「调用最少优先丢」静默砍掉一批（本库实测 173 条里 112 条只剩裸名）。"
+Write-Host "  有 node 就改用完整路径："
+Write-Host "    node claude-config.js status         # 先看差异"
+Write-Host "    node claude-config.js update --apply # 覆盖 + skillOverrides + orphan + hooks"
+
 if (-not $Apply) {
     Write-Host ""
-    Write-Warn "这是 DRY-RUN。真正部署请加 -Apply："
+    Write-Warn "这是 DRY-RUN。仍要用本脚本部署请加 -Apply："
     Write-Host "    .\install.ps1 -Apply" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "  其它选项："
-    Write-Host "    .\install.ps1 -Apply -Force          # 覆盖已存在的文件"
+    Write-Host "    .\install.ps1 -Apply -Force          # 覆盖已存在的文件（默认跳过已存在！）"
     Write-Host "    .\install.ps1 -Apply -Target X:\path # 自定义目标位置"
 } else {
     Write-Host ""
     Write-Info "下一步:"
     Write-Host "  1. 启动 Claude Code 让它生成你的 settings.json (含 OAuth 登录)"
-    Write-Host "  2. 如需手动合并 settings.example.json 里的配置，编辑 $Target\settings.json"
-    Write-Host "  3. 在 ~/.claude.json 配置 MCP servers (见 mcp-configs/mcp-servers.json 参考)"
+    Write-Host "  2. 跑 node claude-config.js skills --apply 写入 skillOverrides（本脚本不做）"
+    Write-Host "  3. 跑 node claude-config.js wire --apply 接线 hooks（本脚本不做）"
+    Write-Host "  4. 在 ~/.claude.json 配置 MCP servers (见 mcp-configs/mcp-servers.json 参考)"
 }
