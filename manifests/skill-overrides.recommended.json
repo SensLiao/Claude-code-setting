@@ -28,12 +28,10 @@
     "app-aso": "CLAUDE.md §3 requires self-triggering; explicitly excluded from name-only.",
     "pentest-scope-and-roe": "Visible governance gate (CLAUDE.md §3) — it exists to remind Claude to confirm ROE before any active testing. Hiding it defeats its purpose. allowed-tools: Read only.",
     "guide": "Top-level user guide for this config. No orchestrator dispatches it, and it answers 'how do I use this' — needs to be recognisable unprompted.",
-    "arch-viz": "Standalone: no orchestrator dispatches it. Answers 'visualize the architecture' directly.",
-    "codegraph-cli": "Standalone: no orchestrator dispatches it. Answers 'who calls X / blast radius' directly.",
-    "codex-dispatch": "Standalone: no orchestrator dispatches it. Owns cross-model delegation, referenced by rules/common/task-execution-protocol.md as a trigger-word skill.",
-    "discoverability-growth": "Standalone growth layer under L12; the discoverability orchestrator does not dispatch it by name.",
-    "motion-engineering": "Standalone: no orchestrator dispatches it by name.",
-    "workflow-creator": "Standalone: no orchestrator dispatches it; user asks for a workflow in plain language."
+    "arch-viz": "Standalone: nothing in skills/ or agents/ dispatches it. Answers 'visualize the architecture' directly.",
+    "codegraph-cli": "Standalone: nothing in skills/ or agents/ dispatches it. Answers 'who calls X / blast radius' directly.",
+    "codex-dispatch": "Standalone: nothing in skills/ or agents/ dispatches it. Owns cross-model delegation, referenced by rules/common/task-execution-protocol.md as a trigger-word skill.",
+    "workflow-creator": "Standalone: nothing in skills/ or agents/ dispatches it; the user asks for a workflow in plain language."
   },
   "manual_gates": {
     "claude-env-bootstrap": "Bootstrap has side effects (writes files, copies skills, modifies CLAUDE.md). manual-first by design (CLAUDE.md §2) — must not auto-fire on phrases like 'project setup'.",
@@ -87,13 +85,11 @@
     "arch-viz": "on",
     "codegraph-cli": "on",
     "codex-dispatch": "on",
-    "discoverability-growth": "on",
     "discoverability-orchestrator": "on",
     "enterprise-qa-testing": "on",
     "gsd-pipeline-orchestrator": "on",
     "guide": "on",
     "idea-to-requirements-orchestrator": "on",
-    "motion-engineering": "on",
     "pentest-scope-and-roe": "on",
     "uiux-product-orchestrator": "on",
     "web-aeo": "on",
@@ -107,6 +103,7 @@
     "dast-authenticated": "name-only",
     "dast-baseline-scanning": "name-only",
     "design-token-pipeline": "name-only",
+    "discoverability-growth": "name-only",
     "emil-design-eng": "name-only",
     "env-parity-baseline": "name-only",
     "gitnexus-repo-map": "name-only",
@@ -193,6 +190,7 @@
     "luxury": "name-only",
     "luxury-editorial-site-builder": "name-only",
     "meeting-analyzer": "name-only",
+    "motion-engineering": "name-only",
     "prototyping-ui-directions": "name-only",
     "qa-a11y-compliance": "name-only",
     "qa-component-behavior": "name-only",
@@ -250,7 +248,8 @@
   },
   "known_limits": [
     "skillOverrides lives in live settings.json, a `claude-config.js` PRESERVE key — it is not distributed by install.sh/.ps1. Without the `skills` subcommand this list does not survive a reinstall or a new machine (ledger [ctx-1]).",
-    "The dispatched-vs-standalone split behind keep_on was derived by checking whether a skill's name appears in an orchestrator's SKILL.md or references/. That is substring matching: `guide` matched the ordinary English word and was rescued by hand. Treat the computed remainder as reviewed-by-human, not proven."
+    "The dispatched-vs-standalone split behind keep_on is substring matching over referencing files, so it errs in both directions: `guide` matched the ordinary English word and was rescued by hand. Re-derive it with `node tools/skill-visibility/generate.js --audit` and read the output; treat the result as reviewed-by-human, not proven.",
+    "CORRECTED 2026-08-04: the first pass scanned only the orchestrators' SKILL.md and references/, so it missed dispatch from agents/. `motion-engineering` (dispatched by agents/uiux-surface-builder.md) and `discoverability-growth` (dispatched by agents/disc-measurement-puller.md) were wrongly listed as standalone and have been moved out of keep_on. --audit now scans skills/, agents/ and commands/."
   ],
   "see_also": [
     "skills.manifest.json",

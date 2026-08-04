@@ -1,7 +1,7 @@
 ---
 name: codex-dispatch
 description: >-
-  Cross-AI dispatch playbook — the decision and discipline layer for using Codex (OpenAI codex CLI) as a second model family for delegated execution and cross-model review. Never shells out to `codex exec`; all execution routes through the official `codex@openai-codex` plugin commands. Carries the discipline the plugin lacks: when-to-delegate tree, work-order template, scope caps, mandatory wave cross-review, Windows caveats, quota fallback, governed-gate boundary. Also owns collaboration with any external reasoning model acting as upstream designer and downstream reviewer, including how to build against a spec authored outside this session. Triggers: "用 codex / 派给 codex / delegate to codex / 跨模型 review / 该不该用 codex / GPT-5.5 / 外部模型 / 外部 spec / 粘贴的方案 / 跨模型协作".
+  Cross-AI dispatch playbook — when to hand work to Codex (OpenAI codex CLI) as a second model family, and how to run cross-model review. Execution goes through the official `codex@openai-codex` plugin, never a raw `codex exec`. Also covers building against a spec authored by an external reasoning model. Triggers: "用 codex / 派给 codex / delegate to codex / 跨模型 review / GPT-5.5 / 外部模型 / 外部 spec / 跨模型协作".
 ---
 
 # codex-dispatch — Codex 跨模型调度 playbook
