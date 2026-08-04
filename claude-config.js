@@ -416,6 +416,15 @@ function doSkills() {
 
     const pin = writePin();
     console.log(`\n  pin: ${APPLY ? 'written' : 'would write'} .config-source.json @ ${pin.installed_sha ? pin.installed_sha.slice(0, 8) : '?'}`);
+
+    // skillOverrides is NOT optional. Copying the skill files without it leaves the listing at the
+    // platform default, where every skill claims description budget and the platform silently drops
+    // whichever it deems least-invoked — measured on this library: 112 of 173 entries reduced to
+    // bare names, including skills CLAUDE.md §3 requires to self-trigger. A deploy that stops at
+    // file copy therefore produces a config that is wrong, not merely incomplete, so this runs as
+    // part of every install/update rather than as a separate step someone has to remember.
+    doSkills();
+
     await doWire(true);
     if (!APPLY) console.log('\n  DRY RUN. Re-run with --apply to make changes.');
     return;
