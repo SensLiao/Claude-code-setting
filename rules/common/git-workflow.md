@@ -52,8 +52,9 @@ If asked how many commits something cost, measure it (`git rev-list --count`), n
 ## Commit Discipline
 
 > Vendored near-verbatim from the guidance Claude Code injects at session level (2026-08-24), so the rule
-> holds regardless of harness version. Composes with §Commit Granularity: approval sets a commit's outer
-> boundary; engineering intent shapes what goes inside it.
+> holds regardless of harness version. Composes with §Commit Granularity: the approved unit is a commit's
+> outer boundary — never split it by file, source or AI turn; engineering intent decides how many commits
+> that unit yields — two independently revertible changes inside one approved batch still land separately.
 
 Create commits by coherent engineering intent, not by AI turn, file, or editing step.
 
