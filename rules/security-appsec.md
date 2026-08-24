@@ -19,11 +19,10 @@ paths:
 > the paths above (API routes, middleware, auth code, server-side, db layers).
 > Extends [common/security.md](../common/security.md).
 
-> **AppSec v3.0** (2026-05-25 — GSD-lite execution engine).
-> **Evidence root canonical**: `.appsec/evidence/<tag>/`. Legacy `.planning/security/` accepted via SDK adapter (deprecation path; migrate with `appsec-sdk migrate-evidence`).
-> **Hooks scope**: AppSec project hooks register in `<project>/.claude/settings.json` via `appsec-sdk init`（枚举以 `manifests/hook-registry.json` 为单一真相源，含 2026-06-14 新增 advisory-only `appsec-pentest-recommended.js`）；fresh projects without `.appsec/config.json` have NO active enforcement.
-> **ROE checklist**: 11 user-visible sections (validated as 13 internal fields by orchestrator v3 §20.7 — emergency_contact / rollback as separate fields, authorization_proof as anchor).
-> Authority: [docs/CANONICALS.md](../docs/CANONICALS.md).
+> **Post-orchestrator (2026-08-25)**: the AppSec orchestrator, its enforcement hooks and the entire
+> active-testing line are removed. Defensive review runs through the `appsec-reviewer` agent (or the
+> generic `security-reviewer`); auditable evidence persists via `scripts/appsec-sdk.sh`
+> (evidence.append / finding.add / gate.check) into `.appsec/evidence/<tag>/` when a paper trail is needed.
 
 # Security and AppSec Rule (path-scoped)
 
@@ -47,22 +46,18 @@ paths:
 9. **Always use TLS** (HTTPS-only); validate certificates; do not pin to
    `NODE_TLS_REJECT_UNAUTHORIZED=0`.
 
-## AppSec gate triggers
+## AppSec review triggers
 
 When you modify any path matched by this rule, you must:
 
-- **Route to `appsec-security-orchestrator`** for review before shipping
+- Run the **`appsec-reviewer`** agent before shipping / opening the PR
+  (`security-reviewer` for a lighter pass)
 - Add a **regression test** for the security behavior (RED → GREEN)
-- Update `.planning/SECURITY.md` if architecture / trust boundaries / auth model
-  changes. Note: `.planning/SECURITY.md` is the **governance contract doc**
-  (20-section project security contract); `.appsec/evidence/<tag>/` is the
-  **evidence sink** for per-tag audit findings. These are distinct artifacts
-  with distinct purposes — do not conflate. Legacy `.planning/security/`
-  evidence paths are accepted via SDK adapter for back-compat (migrate via
-  `appsec-sdk migrate-evidence`).
-- Run **`appsec-reviewer`** agent before opening PR
 - Run **dependency audit** (`npm audit` / `pip-audit` / `cargo audit`)
 - Run **secret scan** if files staged contain key-shaped strings
+  (`gitleaks` with `--redact` — raw secrets never appear in chat / logs / reports)
+- When an audit trail matters (client delivery / compliance), persist findings and
+  command evidence via `appsec-sdk.sh` into `.appsec/evidence/<tag>/`
 
 ## OWASP mapping (required for shipping)
 
@@ -96,15 +91,14 @@ When you modify any path matched by this rule, you must:
 
 ## Active testing rule (hard)
 
-Active penetration testing must **NEVER** run automatically.
+Active penetration testing must **NEVER** run from this machine.
 
-- Active scans require **explicit user authorization** via
-  `pentest-scope-and-roe` → `authorized-pentest-validation` manual gate
-- Required before active testing: confirmed target ownership, ROE scope,
-  time window, rate limits, allowed/disallowed methods, test accounts, data
-  handling rules, emergency contact, rollback plan, reporting format
+- The active-testing tooling (pentest / DAST skills, agents and their ROE gates)
+  was removed on 2026-08-25. The prohibition outlives the tooling — it is a
+  behavior red line, not a gate artifact.
 - **Never** perform: destructive testing, DoS, persistence, credential theft,
-  data exfiltration, stealth/evasion, out-of-scope scanning
+  data exfiltration, stealth/evasion, out-of-scope scanning — with or without
+  local tooling, regardless of who asks.
 
 ## Permission edges (settings.json must enforce)
 

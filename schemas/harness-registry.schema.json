@@ -1,148 +1,44 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://claude.local/schemas/harness-registry.schema.json",
-  "title": "Harness Registry (realigned to live 2.0.0 shape)",
-  "description": "JSON Schema for manifests/harness.registry.json. REALIGNED 2026-06-14 (audit C3): the prior schema described a never-realized idealized shape and validated nothing; the live registry drifted from it on agents/hooks/sdks/evidence_roots/schemas/handoff_schemas/decision_semantics/name_freeze. This version matches the live 2.0.0 registry and is enforced by tests/harness/registry-schema.test.js via schemas/validate-registry.js (dependency-free). additionalProperties:true is used where the registry carries legitimately rich/heterogeneous content; required + enum + pattern pin the structural invariants that actually matter so real drift is still caught.",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "harness-registry.schema.json",
+  "title": "Harness Registry (post-orchestrator, v3)",
+  "description": "Shape of manifests/harness.registry.json after the 2026-08-25 orchestrator removal. The v2 orchestrator-era schema (primary_orchestrators / downstream_gates / name_freeze / decision_semantics) lives at tag pre-orchestrator-removal.",
   "type": "object",
-  "required": [
-    "schema_version",
-    "primary_orchestrators",
-    "downstream_gates",
-    "manual_first_skills",
-    "agents",
-    "hooks",
-    "sdks",
-    "evidence_roots",
-    "schemas",
-    "handoff_schemas",
-    "decision_semantics",
-    "name_freeze"
-  ],
+  "required": ["schema_version", "description", "evidence_kit", "hooks", "skills"],
   "additionalProperties": true,
   "properties": {
-    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "schema_version": { "type": "string", "pattern": "^3\\.\\d+\\.\\d+$" },
     "generated_date": { "type": "string" },
     "generated_by": { "type": "string" },
     "description": { "type": "string" },
-
     "primary_orchestrators": {
       "type": "array",
-      "minItems": 1,
-      "uniqueItems": true,
-      "items": { "$ref": "#/$defs/Orchestrator" }
+      "maxItems": 0,
+      "description": "Must stay empty. A non-empty list means an orchestrator was reintroduced without redesigning the registry — bump schema_version instead."
     },
-    "downstream_gates": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": { "$ref": "#/$defs/DownstreamGate" }
-    },
-    "manual_first_skills": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": { "$ref": "#/$defs/ManualFirstSkill" }
-    },
-    "agents": {
+    "evidence_kit": {
       "type": "object",
-      "patternProperties": { "^[a-z][a-z0-9_]*$": { "$ref": "#/$defs/AgentGroup" } },
-      "additionalProperties": false
+      "required": ["sdks", "agents", "evidence_roots"],
+      "properties": {
+        "sdks": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "validators_dir": { "type": "string" },
+        "shared_runtime": { "type": "string" },
+        "agents": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "evidence_roots": { "type": "array", "items": { "type": "string" } },
+        "note": { "type": "string" }
+      }
     },
     "hooks": {
       "type": "object",
-      "required": ["global_live", "project_installed"],
-      "additionalProperties": true,
+      "required": ["registry"],
+      "properties": { "registry": { "type": "string" } }
+    },
+    "skills": {
+      "type": "object",
+      "required": ["index"],
       "properties": {
-        "global_live": { "type": "object" },
-        "project_installed": { "type": "object" }
-      }
-    },
-    "sdks": {
-      "type": "object",
-      "patternProperties": { "^[a-z][a-z0-9_-]*$": { "$ref": "#/$defs/SdkEntry" } },
-      "additionalProperties": false
-    },
-    "evidence_roots": { "type": "object", "additionalProperties": true },
-    "schemas": {
-      "type": "object",
-      "required": ["harness_registry", "hook_registry"],
-      "additionalProperties": true
-    },
-    "handoff_schemas": {
-      "type": "object",
-      "required": ["default"],
-      "additionalProperties": true
-    },
-    "decision_semantics": {
-      "type": "object",
-      "required": ["gate_vocabulary"],
-      "additionalProperties": true,
-      "properties": { "gate_vocabulary": { "type": "object" } }
-    },
-    "name_freeze": {
-      "type": "array",
-      "minItems": 1,
-      "items": { "$ref": "#/$defs/NameFreezeEntry" }
-    },
-    "see_also": { "type": "array", "items": { "type": "string" } }
-  },
-
-  "$defs": {
-    "Orchestrator": {
-      "type": "object",
-      "required": ["name", "tier", "trigger_mode"],
-      "additionalProperties": true,
-      "properties": {
-        "name": { "type": "string", "minLength": 1 },
-        "tier": { "type": "string", "const": "primary" },
-        "trigger_mode": { "type": "string", "minLength": 1 },
-        "disable_model_invocation": { "type": "boolean" }
-      }
-    },
-    "DownstreamGate": {
-      "type": "object",
-      "required": ["name", "parent_orchestrator"],
-      "additionalProperties": true,
-      "properties": {
-        "name": { "type": "string", "minLength": 1 },
-        "parent_orchestrator": { "type": "string", "minLength": 1 }
-      }
-    },
-    "ManualFirstSkill": {
-      "type": "object",
-      "required": ["name", "reason"],
-      "additionalProperties": true,
-      "properties": {
-        "name": { "type": "string", "minLength": 1 },
-        "reason": { "type": "string", "minLength": 1 }
-      }
-    },
-    "AgentGroup": {
-      "type": "object",
-      "required": ["members", "owner"],
-      "additionalProperties": true,
-      "properties": {
-        "members": { "type": "array", "items": { "type": "string" } },
-        "owner": { "type": "string", "minLength": 1 },
-        "location": { "type": "string" }
-      }
-    },
-    "SdkEntry": {
-      "type": "object",
-      "required": ["path"],
-      "additionalProperties": true,
-      "properties": {
-        "path": { "type": "string", "minLength": 1 },
-        "lang": { "type": "string", "enum": ["bash", "node", "python", "powershell"] },
-        "commands": { "type": "array", "items": { "type": "string" } }
-      }
-    },
-    "NameFreezeEntry": {
-      "type": "object",
-      "required": ["name"],
-      "additionalProperties": true,
-      "properties": {
-        "name": { "type": "string", "minLength": 1 },
-        "type": { "type": "string" },
-        "category": { "type": "string" }
+        "index": { "type": "string" },
+        "visibility_policy": { "type": "string" }
       }
     }
   }

@@ -1,6 +1,6 @@
 # Claude Code Harness — Configuration & Architecture
 
-> 五主线 orchestrator 架构（Bootstrap · GSD PM · UIUX `v2.3` · QA `v3.2` · AppSec `v3.0`），以 hooks + 确定性 gate + spec_hash + evidence bundle + 人工签字治理 agentic 交付。`context loading != enforcement`。
+> 精简形态（2026-08-25 起）：**工具型 skills + 通用 agents + evidence kit + 沟通/执行纪律**。编排主线（GSD / I2R / QA / AppSec / L12 / UIUX 编排层）已全量退场，整体快照在 tag `pre-orchestrator-removal`。`context loading != enforcement`。
 
 ---
 
@@ -161,17 +161,7 @@ node claude-config.js export-profile default --apply
 ---
 ## 📐 Architecture
 
-完整架构展示（5 主线 workflow、能力矩阵"什么测试 / 防什么安全 / 什么攻击"、门禁与证据链、安全边界）见 **[`architecture/`](architecture/)**，从 [`architecture/README.md`](architecture/README.md) 开始。
-
-| 入口 | 内容 |
-|---|---|
-| [`architecture/docs/00-overview.md`](architecture/docs/00-overview.md) | 5 主线、4 层控制面、核心原则 |
-| [`architecture/docs/01-routing.md`](architecture/docs/01-routing.md) | 路由策略、优先级、tie-break、handoff |
-| [`architecture/docs/02-orchestrators/`](architecture/docs/02-orchestrators/) | 每条主线深挖到 agent / hook / SDK 级 |
-| [`architecture/docs/03-capability-matrix.md`](architecture/docs/03-capability-matrix.md) | 测什么 / 防什么 / 攻什么 + 标准 |
-| [`architecture/docs/04-governance-and-evidence.md`](architecture/docs/04-governance-and-evidence.md) | verdict、spec_hash、evidence、dynamic workflow 边界 |
-
-标准底座：OWASP ASVS 5.0 · NIST CSF 2.0 · OWASP Top 10:2025 · WCAG 2.2 · ISO/IEC 25010:2023 · PCI DSS 4.0.1 · MITRE ATT&CK。
+现行形态很薄：`CLAUDE.md`（宪法 + 硬规则）· `SKILLS-INDEX.md`（存活 skill 索引）· `rules/`（通用 + path-scoped 规则）· `agents/`（通用 agent）· evidence kit（`scripts/*-sdk.sh` + `schemas/`）。orchestrator 时代的完整架构文档（五主线 / 能力矩阵 / 门禁与证据链）在 tag `pre-orchestrator-removal` 的 `architecture/` 目录。
 
 ---
 

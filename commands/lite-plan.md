@@ -1,5 +1,5 @@
 ---
-description: General-purpose DURABLE planning — clarify a task of ANY kind (code / docs / research / ops / content), write a self-contained plan to .goals/plans/<slug>.plan.md so you can /clear and resume cold, then render a plan card. Lighter than GSD, general (not code-only) unlike /prp-plan, durable (落盘) unlike /plan. Pairs with /lite-execute.
+description: General-purpose DURABLE planning — clarify a task of ANY kind (code / docs / research / ops / content), write a self-contained plan to .goals/plans/<slug>.plan.md so you can /clear and resume cold, then render a plan card. General (not code-only) unlike /prp-plan, durable (落盘) unlike /plan. Pairs with /lite-execute.
 argument-hint: <task description>
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion
 ---
@@ -17,7 +17,6 @@ survives the context reset — that is the whole point.
 | **Any task, planned durably, executed after `/clear`** (code OR docs / research / ops / content) | **`/lite-plan` → `/clear` → `/lite-execute`** ← this |
 | Quick conversational plan you'll execute immediately (no `/clear`, no artifact) | `/plan` |
 | Single-pass CODING feature needing deep codebase pattern extraction | `/prp-plan` → `/prp-implement` |
-| Multi-phase project needing full PM governance + `.planning/` | GSD (`/gsd-plan-phase` → `/gsd-execute-phase`) |
 
 If the task is a 1–3 line fix, skip planning — just do it.
 

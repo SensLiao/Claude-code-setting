@@ -13,35 +13,24 @@ const H = require('./_helpers');
 const h = new H.Harness('file-existence');
 
 const REQUIRED = [
-  // Docs
-  'docs/CANONICALS.md',
-  'docs/ORCHESTRATOR-MAP.md',
-  'docs/L12-DISCOVERABILITY.md',
-  'docs/HANDOFFS.md',
-
   // Manifests
   'manifests/harness.registry.json',
   'manifests/hook-registry.json',
+  'manifests/skill-overrides.recommended.json',
 
   // Schemas
-  'schemas/gate-decision.schema.yaml',
-  'schemas/handoff.schema.yaml',
-  'schemas/pentest-roe.schema.yaml',
   'schemas/harness-registry.schema.json',
   'schemas/hook-registry.schema.json',
 
   // Tooling
   'tools/hooks/lint.js',
-  'tools/docs-drift/lint.js',
+  'tools/skill-visibility/generate.js',
 
-  // Scripts
+  // Evidence kit
   'scripts/appsec-sdk.sh',
-  'skills/discoverability-orchestrator/scripts/discoverability-sdk.py',
-
-  // AppSec routing test fixtures
-  'tests/appsec-routing/runner.sh',
-  'tests/appsec-routing/expected-routes.json',
-  'tests/appsec-routing/fixtures/refusal-tests.yaml',
+  'scripts/qa-sdk.sh',
+  'orchestrator-runtime/shared/run-ledger.js',
+  'orchestrator-runtime/shared/preview-template.md',
 ];
 
 h.section(`Required files (${REQUIRED.length})`);

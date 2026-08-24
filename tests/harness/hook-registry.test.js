@@ -19,6 +19,15 @@ if (!H.existsSync(LINTER)) {
   process.exit(h.exit());
 }
 
+// The linter reconciles hook-registry.json against a LIVE settings.json. In a
+// bare repo checkout there is no settings.json — that is the deploy target's
+// concern, not repo drift, so skip cleanly instead of erroring.
+const SETTINGS = path.join(H.claudeRoot, 'settings.json');
+if (!H.existsSync(SETTINGS)) {
+  h.ok('no settings.json at root (repo checkout) — live-wiring lint skipped; run in ~/.claude to reconcile');
+  process.exit(h.exit());
+}
+
 h.section('Running tools/hooks/lint.js');
 const out = child_process.spawnSync(
   process.execPath,
