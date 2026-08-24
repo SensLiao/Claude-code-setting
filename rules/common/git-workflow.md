@@ -26,6 +26,29 @@ staged diff，PR 看目标分支 merge-base，发布说明看上一个已发布�
 
 **规则本身用正向措辞写。** 说「产物长什么样」，别列禁词清单——点名禁词等于把它放进模型的当前激活。
 
+## Commit Granularity
+
+**One commit = one unit the user approved, not one file you touched.** The unit is the decision, gate or
+batch that was agreed — a ruling, an approved batch of edits, a verification pass — however many files,
+tables or fetches it took to carry out.
+
+Three consequences, in the order they are usually violated:
+
+1. **Bookkeeping never gets its own commit.** Status stamps, index or ledger rows, regenerated generated
+   files, cross-pointers — these record a change, so they ride in the commit that *makes* it.
+2. **Multiple writes inside one gate collapse into one commit.** A pass that fetched six sources and edited
+   three tables is one commit at the end of the pass, not one per source.
+3. **The durable ledger commits about once per session, not after every work block.** Edit it freely and
+   leave it dirty in between. Whether it rides inside the last content commit or lands as its own commit is a
+   judgement call, **not a rule** (user ruling 2026-08-24) — what matters is that it is not committed after
+   each block. (See the project memory that measured the original incident.)
+
+**The one exception: reversing a conclusion you already committed gets its own commit.** A withdrawal or
+correction of something already in history must be greppable on its own, and burying it inside an unrelated
+change hides it. Correct forward — do not amend history that has been pushed or that others may hold.
+
+If asked how many commits something cost, measure it (`git rev-list --count`), never estimate.
+
 ## Pull Request Workflow
 
 When creating PRs:
