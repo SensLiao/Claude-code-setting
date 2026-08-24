@@ -41,7 +41,8 @@ Three consequences, in the order they are usually violated:
 3. **The durable ledger commits about once per session, not after every work block.** Edit it freely and
    leave it dirty in between. Whether it rides inside the last content commit or lands as its own commit is a
    judgement call, **not a rule** (user ruling 2026-08-24) — what matters is that it is not committed after
-   each block. (See the project memory that measured the original incident.)
+   each block. (Measured origin, 2026-08-09: 4 of 13 commits in one session were ledger-only with zero
+   content, on a branch that reached 73 commits against an expected ~30.)
 
 **The one exception: reversing a conclusion you already committed gets its own commit.** A withdrawal or
 correction of something already in history must be greppable on its own, and burying it inside an unrelated
