@@ -49,6 +49,31 @@ change hides it. Correct forward — do not amend history that has been pushed o
 
 If asked how many commits something cost, measure it (`git rev-list --count`), never estimate.
 
+## Commit Discipline
+
+> Vendored near-verbatim from the guidance Claude Code injects at session level (2026-08-24), so the rule
+> holds regardless of harness version. Composes with §Commit Granularity: approval sets a commit's outer
+> boundary; engineering intent shapes what goes inside it.
+
+Create commits by coherent engineering intent, not by AI turn, file, or editing step.
+
+Before committing:
+
+- follow repository-local conventions;
+- inspect the staged diff;
+- exclude unrelated and pre-existing user changes;
+- run relevant checks and report only checks actually run.
+
+Keep implementation, tests, and directly related documentation together by default.
+Fold incidental fixes into the logical change they complete.
+Separate independently reviewable or revertible changes.
+
+Write concise commit messages that explain the resulting change and, when needed, its reason or
+constraints. Do not copy the diff or include AI reasoning.
+
+Never discard user changes, rewrite shared history, push, force-push, or bypass checks without explicit
+permission. If commit permission is unclear, propose commits rather than creating them.
+
 ## Pull Request Workflow
 
 When creating PRs:
