@@ -1,8 +1,12 @@
 # Normalize all text files to LF inside the repo and on checkout.
-# This keeps install.sh and other bash/node scripts runnable on every machine
+# This keeps claude-config.js and the bash/node scripts runnable on every machine
 # (a CRLF would inject \r and break bash). Windows-only scripts keep CRLF.
 * text=auto eol=lf
 
+# No *.ps1 ships in this repo (see README "One installer, on purpose").
+# If you ever add one: Windows PowerShell 5.1 decodes a BOM-less .ps1 using the
+# system ANSI codepage, so non-ASCII comments (e.g. Chinese) become mojibake and
+# can break parsing outright. Save such a file as UTF-8 *with* BOM, or keep it ASCII.
 *.ps1 text eol=crlf
 *.bat text eol=crlf
 *.cmd text eol=crlf
