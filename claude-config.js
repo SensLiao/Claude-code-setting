@@ -39,8 +39,8 @@ const hooksArg = args.find(a => a.startsWith('--hooks='));
 const HOOKS_FLAG = hooksArg ? hooksArg.split('=')[1] : (args.indexOf('--hooks') >= 0 ? args[args.indexOf('--hooks') + 1] : null);
 const PROFILE_NAME = args.filter(a => !a.startsWith('-'))[1] || 'default';
 
-const SKIP = new Set(['install.ps1', 'install.sh', 'README.md', '.gitignore', '.gitattributes',
-  'settings.example.json', '.git', '.github', '.claude', 'claude-config.js', 'claude-config.ps1', 'wire-manifest.json', 'profiles', '.goals',
+const SKIP = new Set(['README.md', '.gitignore', '.gitattributes',
+  'settings.example.json', '.git', '.github', '.claude', 'claude-config.js', 'wire-manifest.json', 'profiles', '.goals',
   // cross-tool bridge configs (read by Cursor/Codex/Gemini at ~/ or project level, NOT ~/.claude) + this repo's own GSD dev planning — stored in the repo for backup, never deployed into ~/.claude
   '.cursor', '.codex', '.gemini', '.planning',
   // .harness = per-machine run trail (ledger-autolog); generated locally in any repo, never deployed

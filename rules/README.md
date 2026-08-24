@@ -23,7 +23,7 @@ Rules are organized into a **common** layer plus **language-specific** directori
 
 ```
 rules/
-├── common/          # Language-agnostic principles (always install)
+├── common/          # Language-agnostic principles (always injected)
 │   ├── coding-style.md
 │   ├── git-workflow.md
 │   ├── testing.md
@@ -45,43 +45,26 @@ rules/
 
 ## Installation
 
-### Option 1: Install Script (Recommended)
+**There is nothing to install per-language, and no script in this directory.**
+
+`rules/` is deployed wholesale to `~/.claude/rules/` by the repo's single installer,
+`claude-config.js` (see the root [README](../README.md)):
 
 ```bash
-# Install common + one or more language-specific rule sets
-./install.sh typescript
-./install.sh python
-./install.sh golang
-./install.sh web
-./install.sh swift
-./install.sh php
-
-# Install multiple languages at once
-./install.sh typescript python
+node claude-config.js install --apply    # first time — additive
+node claude-config.js update  --apply --no-clean    # later — force-sync
 ```
 
-### Option 2: Manual Installation
+Selective per-language installation used to be necessary and no longer is: the
+`paths:` frontmatter described in [Loading mechanism](#loading-mechanism-important)
+above already scopes every language ruleset at *injection* time. A Python file in
+`rules/python/` costs a TypeScript project **zero** context, because the harness
+never injects it there. Ship them all; let the frontmatter decide.
 
-> **Important:** Copy entire directories — do NOT flatten with `/*`.
-> Common and language-specific directories contain files with the same names.
-> Flattening them into one directory causes language-specific files to overwrite
-> common rules, and breaks the relative `../common/` references used by
-> language-specific files.
-
-```bash
-# Install common rules (required for all projects)
-cp -r rules/common ~/.claude/rules/common
-
-# Install language-specific rules based on your project's tech stack
-cp -r rules/typescript ~/.claude/rules/typescript
-cp -r rules/python ~/.claude/rules/python
-cp -r rules/golang ~/.claude/rules/golang
-cp -r rules/web ~/.claude/rules/web
-cp -r rules/swift ~/.claude/rules/swift
-cp -r rules/php ~/.claude/rules/php
-
-# Attention ! ! ! Configure according to your actual project requirements; the configuration here is for reference only.
-```
+> **If you are copying rules into a project by hand**, copy entire directories —
+> do NOT flatten with `/*`. `common/` and the language directories contain files
+> with the same names; flattening makes language files overwrite common rules and
+> breaks the relative `../common/` references those files rely on.
 
 ## Rules vs Skills
 
