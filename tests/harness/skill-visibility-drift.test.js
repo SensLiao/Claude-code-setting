@@ -127,13 +127,15 @@ if (unguarded.length === 0) {
   );
 }
 
-// ---- 6. visible governance gate stays visible ---------------------------------------------
-if (overrides['pentest-scope-and-roe'] === 'on') {
-  h.ok('pentest-scope-and-roe stays `on` (visible governance gate)');
+// ---- 6. removed governance gate must not resurface ----------------------------------------
+// pentest-scope-and-roe retired with the active-testing line (2026-08-25). If it ever comes
+// back, its visibility policy must be re-decided consciously, not inherited silently.
+if (!('pentest-scope-and-roe' in overrides)) {
+  h.ok('pentest-scope-and-roe absent (active-testing line removed 2026-08-25)');
 } else {
   h.fail(
-    `pentest-scope-and-roe is \`${overrides['pentest-scope-and-roe']}\`, expected \`on\``,
-    'It exists to remind Claude to confirm ROE before active testing (CLAUDE.md §3) — hiding it defeats its purpose.',
+    'pentest-scope-and-roe reappeared in recommended_overrides',
+    'The active-testing line was removed on 2026-08-25; reintroducing it requires a deliberate visibility decision (it was `on` as a visible governance gate).',
   );
 }
 

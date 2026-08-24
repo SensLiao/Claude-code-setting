@@ -1,7 +1,7 @@
 ---
 name: uiux-design-reviewer
 description: >-
-  Pre-release design audit worker — adversarially reviews implemented frontend across visual hierarchy, spacing and rhythm, accessibility, TOKEN ADHERENCE (compiled design tokens vs raw hex/px drift) and CROSS-SURFACE CONSISTENCY, producing scored per-pillar findings with blockers and warnings. Captures Playwright screenshot and axe evidence when a dev server runs, code-only audit otherwise. Read-only — emits a verdict, never edits code, and never replaces the GSD-owned UI review gate. Triggers: "review the design before release / design audit / score the UI / check token adherence / cross-surface consistency / 发布前设计审 / 设计评审 / 给 UI 打分 / 跨 surface 一致性".
+  Pre-release design audit worker — adversarially reviews implemented frontend across visual hierarchy, spacing and rhythm, accessibility, TOKEN ADHERENCE (compiled design tokens vs raw hex/px drift) and CROSS-SURFACE CONSISTENCY, producing scored per-pillar findings with blockers and warnings. Captures Playwright screenshot and axe evidence when a dev server runs, code-only audit otherwise. Read-only — emits a verdict, never edits code. Triggers: "review the design before release / design audit / score the UI / check token adherence / cross-surface consistency / 发布前设计审 / 设计评审 / 给 UI 打分 / 跨 surface 一致性".
 model: opus
 color: "#A78BFA"
 tools: Read, Grep, Glob, Bash, Write

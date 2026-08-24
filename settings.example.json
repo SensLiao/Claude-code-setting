@@ -189,11 +189,8 @@
   "model": "claude-fable-5[1m]",
   "skillOverrides": {
     "anchor-prototype-wave": "user-invocable-only",
-    "authorized-pentest-validation": "user-invocable-only",
     "brutalist-skill": "user-invocable-only",
-    "claude-env-bootstrap": "user-invocable-only",
     "output-skill": "user-invocable-only",
-    "pentest-scope-and-roe": "on",
     "skill-creator": "name-only"
   },
   "hooks": {
@@ -284,36 +281,6 @@
             "timeout": 10
           }
         ]
-      },
-      {
-        "matcher": "Bash|Edit|Write|MultiEdit|Agent|Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-context-monitor.js\"",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-read-injection-scanner.js\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"__CLAUDE_HOME_JSON__/hooks/gsd-phase-boundary.sh\"",
-            "timeout": 5
-          }
-        ]
       }
     ],
     "PostToolUseFailure": [
@@ -345,15 +312,6 @@
           {
             "type": "command",
             "command": "node \"__CLAUDE_HOME_JSON__/hooks/plan-card-reminder.js\""
-          }
-        ]
-      },
-      {
-        "matcher": "Workflow",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"__CLAUDE_HOME_JSON__/hooks/governed-gate-workflow-guard.js\""
           }
         ]
       },
@@ -448,46 +406,6 @@
             "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/run-with-flags.js\" \"pre:mcp-health-check\" \"scripts/hooks/mcp-health-check.js\" \"standard,strict\""
           }
         ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-prompt-guard.js\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-read-guard.js\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-workflow-guard.js\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"__CLAUDE_HOME_JSON__/hooks/gsd-validate-commit.sh\"",
-            "timeout": 5
-          }
-        ]
       }
     ],
     "SessionEnd": [
@@ -510,32 +428,6 @@
           {
             "type": "command",
             "command": "node \"__CLAUDE_HOME_JSON__/scripts/hooks/session-start-bootstrap.js\""
-          }
-        ]
-      },
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/detect-bootstrap-needed.js\"",
-            "timeout": 5
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-check-update.js\""
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"__CLAUDE_HOME_JSON__/hooks/gsd-session-state.sh\""
           }
         ]
       }
@@ -616,10 +508,6 @@
     ]
   },
   "disableSkillShellExecution": true,
-  "statusLine": {
-    "type": "command",
-    "command": "\"C:/Program Files/nodejs/node.exe\" \"__CLAUDE_HOME_JSON__/hooks/gsd-statusline.js\""
-  },
   "enabledPlugins": {
     "bencium-innovative-ux-designer@bencium-marketplace": true,
     "cli-anything@cli-anything": true,
