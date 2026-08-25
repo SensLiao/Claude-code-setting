@@ -138,7 +138,11 @@ function loadRegistrySubsystem(claudeHome, subsystem) {
     && reg.categories.project_installed.subsystems
     && reg.categories.project_installed.subsystems[subsystem];
   if (!sub || !Array.isArray(sub.hooks)) {
-    fail(`hook-registry.json has no project_installed.subsystems.${subsystem}.hooks`);
+    // Post-orchestrator (2026-08-25): the registry intentionally carries no project_installed
+    // section — enforcement hooks retired with the orchestrators. SDK init still scaffolds
+    // config + evidence dirs; having no hooks to install is the expected state, not an error.
+    console.log(`[install-subsystem-hooks] no project hooks registered for '${subsystem}' — nothing to install (post-orchestrator registry)`);
+    process.exit(0);
   }
   return sub;
 }
