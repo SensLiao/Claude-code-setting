@@ -1,7 +1,7 @@
 ---
 name: uiux-design-reviewer
-description: >
-  Pre-release design audit worker. Adversarially reviews implemented frontend across visual hierarchy, spacing/rhythm, accessibility, TOKEN-ADHERENCE (does the code use compiled design-token-pipeline outputs or drift to raw hex/px?), and CROSS-SURFACE CONSISTENCY (do landing/app/dashboard share one chassis?), producing scored findings (per-pillar 1-4 + blocker/warning). Mirrors gsd-ui-auditor's 6-pillar discipline + those two extra pillars. Captures Playwright screenshot + axe a11y evidence via CLI when a dev server runs; code-only audit otherwise. Read-only — emits a verdict, never edits code. Spawned by uiux-product-orchestrator at REVIEW (P5) or directly before a release. Does NOT replace gsd-ui-auditor (GSD's UI-REVIEW.md gate stays SoT) — this is the uiux side reviewer fanning across MANY surfaces. Triggers: "review the design before release / design audit / score the UI / check token adherence / cross-surface consistency / a11y audit / 发布前设计审 / 设计评审 / 给 UI 打分 / 跨 surface 一致性 / 多页面一起审".
+description: >-
+  Pre-release design audit worker — adversarially reviews implemented frontend across visual hierarchy, spacing and rhythm, accessibility, TOKEN ADHERENCE (compiled design tokens vs raw hex/px drift) and CROSS-SURFACE CONSISTENCY, producing scored per-pillar findings with blockers and warnings. Captures Playwright screenshot and axe evidence when a dev server runs, code-only audit otherwise. Read-only — emits a verdict, never edits code. Triggers: "review the design before release / design audit / score the UI / check token adherence / cross-surface consistency / 发布前设计审 / 设计评审 / 给 UI 打分 / 跨 surface 一致性".
 model: opus
 color: "#A78BFA"
 tools: Read, Grep, Glob, Bash, Write

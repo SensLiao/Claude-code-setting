@@ -6,8 +6,8 @@ promoted_date: 2026-05-17
 supersedes: v2.1.0
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash
-description: >
-  Take a visual anchor (chassis tokens + page list) and produce a reviewable hi-fi prototype wave in ONE shot: a master gallery `index.html` (mirroring `ui-lab/v2-anchor-prototypes/`) + N per-surface `<slug>/index.html`. All verification (deterministic validators, LLM grader, cross-AI review, fix-on-fail loop) runs automatically inside the pipeline; no modes, no flags. Stops to ask only when a page's content is ambiguous or a surface escalates after 3 retries. Pairs upstream with `prototyping-ui-directions`, downstream feeds `frontend-design`. Triggers: "用这个 anchor 出一波 prototype / generate the wave from this anchor / 把这些页面照这个 anchor 全生成 / take this chassis and produce N hi-fi mocks".
+description: >-
+  Take a visual anchor (chassis tokens + page list) and produce a reviewable hi-fi prototype wave in ONE shot — a master gallery `index.html` plus one `index.html` per surface. All verification (deterministic validators, LLM grader, cross-AI review, fix-on-fail loop) runs inside the pipeline; no modes, no flags. Stops to ask only when page content is ambiguous or a surface escalates after 3 retries. Pairs upstream with `prototyping-ui-directions`, downstream with frontend build. Triggers: "用这个 anchor 出一波 prototype / generate the wave from this anchor / 把这些页面照这个 anchor 全生成 / take this chassis and produce N hi-fi mocks".
 ---
 
 # Anchor Prototype Wave — v3.0.0

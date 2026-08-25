@@ -28,7 +28,7 @@ paths:
 | critical user journey | E2E |
 | visual / theme / layout change | + visual regression target |
 | deployment / preview change | + smoke |
-| backend / API / auth change | + route to `appsec-security-orchestrator` |
+| backend / API / auth change | + `appsec-reviewer` agent review |
 | dependency upgrade | + regression for affected paths |
 
 ## Test quality rules
@@ -111,5 +111,6 @@ generate baseline in CI Docker; collect trace/video/screenshot on failure.
 
 ## When in doubt
 
-Route to `enterprise-qa-testing` orchestrator. Do not invent ad-hoc test
-strategy for non-trivial changes.
+Pick the layer from the risk table above; for non-trivial changes let
+**tdd-guide** drive the tests and **e2e-runner** own the critical journeys.
+Do not invent ad-hoc test strategy.

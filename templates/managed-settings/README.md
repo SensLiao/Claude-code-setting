@@ -49,9 +49,9 @@ node -e "const s=require(require('os').homedir()+'/.claude/settings.json'); cons
 
 | Hook 类别 | 数量（约） | 关键 hooks |
 |-----------|-----------|-----------|
-| PostToolUse | 11 条 | post-bash-command-log, post-bash-pr-created, quality-gate, design-quality-check, post-edit-accumulator, governance-capture, gsd-context-monitor, gsd-read-injection-scanner, gsd-phase-boundary, observe.sh, mcp-health-check |
-| PreToolUse | 12 条 | governed-gate-workflow-guard, block-no-verify, auto-tmux-dev, pre-bash-tmux-reminder, pre-bash-git-push-reminder, pre-bash-commit-quality, doc-file-warning, suggest-compact, governance-capture, config-protection, gsd-prompt-guard, gsd-read-guard, gsd-workflow-guard, gsd-validate-commit |
-| SessionStart | 4 条 | session-start-bootstrap, detect-bootstrap-needed, gsd-check-update, gsd-session-state |
+| PostToolUse | 8 条 | post-bash-command-log, post-bash-pr-created, quality-gate, design-quality-check, post-edit-accumulator, governance-capture, observe.sh, mcp-health-check |
+| PreToolUse | 9 条 | block-no-verify, auto-tmux-dev, pre-bash-tmux-reminder, pre-bash-git-push-reminder, pre-bash-commit-quality, doc-file-warning, suggest-compact, governance-capture, config-protection |
+| SessionStart | 1 条 | session-start-bootstrap |
 | Stop | 6 条 | stop-format-typecheck, check-console-log, session-end, evaluate-session, cost-tracker, desktop-notify |
 | PreCompact | 1 条 | pre-compact |
 | SessionEnd | 1 条 | session-end-marker |
@@ -67,7 +67,7 @@ node -e "const s=require(require('os').homedir()+'/.claude/settings.json'); cons
 
 启用前必须：
 
-- [ ] **列出所有关键 hooks**（特别是 governance-capture、governed-gate-workflow-guard、gsd-*、quality-gate）
+- [ ] **列出所有关键 hooks**（特别是 governance-capture、quality-gate、config-protection、block-no-verify）
 - [ ] **把关键 hooks 复制到 managed-settings 文件的 `hooks` 字段中**（或移入项目级 `.claude/settings.json`）
 - [ ] **测试验证**：在测试项目中启用 strict.json，运行一次完整 GSD session，确认 hooks 按预期触发
 - [ ] **特别确认以下 safety-critical hooks 已迁移**：

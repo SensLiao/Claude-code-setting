@@ -1,6 +1,6 @@
 # Claude Code Harness — Configuration & Architecture
 
-> 五主线 orchestrator 架构（Bootstrap · GSD PM · UIUX `v2.3` · QA `v3.2` · AppSec `v3.0`），以 hooks + 确定性 gate + spec_hash + evidence bundle + 人工签字治理 agentic 交付。`context loading != enforcement`。
+> 精简形态（2026-08-25 起）：**工具型 skills + 通用 agents + evidence kit + 沟通/执行纪律**。编排主线（GSD / I2R / QA / AppSec / L12 / UIUX 编排层）已全量退场，整体快照在 tag `pre-orchestrator-removal`。`context loading != enforcement`。
 
 ---
 
@@ -59,13 +59,17 @@ mcp-servers  mcp-configs  tools
 
 （注意：**覆盖**作用于全部被部署的文件，**删除**只作用于上面这些目录。）
 
+### skillOverrides 可见性策略（不是可选项）
+
+`install` / `update` 在部署文件的同时都会写入 `settings.json` 的 `skillOverrides` 可见性策略（内部的 `doSkills()`，additive-merge + 自动备份）。只复制 skill 文件而不写 `skillOverrides`，清单就停在平台默认——每个 skill 都来抢描述预算，平台再按"调用最少优先丢"**静默**砍掉一批。本库实测：173 条里 112 条被砍成裸名，其中包括本应自触发的 skill。所以那不是"少装了一样"，而是**装错了**。策略源在 [`manifests/skill-overrides.recommended.json`](manifests/skill-overrides.recommended.json)，漂移由 `tests/harness/skill-visibility-drift.test.js` 守；单独跑：`node claude-config.js skills [--apply]`。
+
 ### 命令全表
 
 | 命令 | 作用 |
 |---|---|
 | `status` | 只读体检：版本 pin、仓库 HEAD、`SAME` / `STALE` / `MISSING` / `ORPHAN` 计数、`settings.json` hook 断链数、profile 漂移 |
-| `install [--apply]` | 增量部署（已存在即跳过）+ 交互式询问 hook 接线 |
-| `update [--apply]` | 强制同步 + 清 orphan + 重打 pin |
+| `install [--apply]` | 增量部署（已存在即跳过）+ 写 skillOverrides + 交互式询问 hook 接线 |
+| `update [--apply]` | 强制同步 + 写 skillOverrides + 清 orphan + 重打 pin |
 | `wire [--apply]` | 把 hook 接进 `settings.json`（幂等、只增不删） |
 | `export-profile [name] [--apply]` | 把当前 hook 接线导出成 `profiles/<name>.json`，之后 `status` 会报漂移 |
 
@@ -155,20 +159,9 @@ node claude-config.js export-profile default --apply
 `claude-config.js` 用 Node 的 `os.homedir()` + `process.platform` 计算路径，JSON 转义 / Windows / POSIX 三种形态分别正确，没有 shell 差异和代码页问题。**请不要再往仓库里加 `.sh` / `.ps1` 安装壳。**
 
 ---
-
 ## 📐 Architecture
 
-完整架构展示（5 主线 workflow、能力矩阵"什么测试 / 防什么安全 / 什么攻击"、门禁与证据链、安全边界）见 **[`architecture/`](architecture/)**，从 [`architecture/README.md`](architecture/README.md) 开始。
-
-| 入口 | 内容 |
-|---|---|
-| [`architecture/docs/00-overview.md`](architecture/docs/00-overview.md) | 5 主线、4 层控制面、核心原则 |
-| [`architecture/docs/01-routing.md`](architecture/docs/01-routing.md) | 路由策略、优先级、tie-break、handoff |
-| [`architecture/docs/02-orchestrators/`](architecture/docs/02-orchestrators/) | 每条主线深挖到 agent / hook / SDK 级 |
-| [`architecture/docs/03-capability-matrix.md`](architecture/docs/03-capability-matrix.md) | 测什么 / 防什么 / 攻什么 + 标准 |
-| [`architecture/docs/04-governance-and-evidence.md`](architecture/docs/04-governance-and-evidence.md) | verdict、spec_hash、evidence、dynamic workflow 边界 |
-
-标准底座：OWASP ASVS 5.0 · NIST CSF 2.0 · OWASP Top 10:2025 · WCAG 2.2 · ISO/IEC 25010:2023 · PCI DSS 4.0.1 · MITRE ATT&CK。
+现行形态很薄：`CLAUDE.md`（宪法 + 硬规则）· `SKILLS-INDEX.md`（存活 skill 索引）· `rules/`（通用 + path-scoped 规则）· `agents/`（通用 agent）· evidence kit（`scripts/*-sdk.sh` + `schemas/`）。orchestrator 时代的完整架构文档（五主线 / 能力矩阵 / 门禁与证据链）在 tag `pre-orchestrator-removal` 的 `architecture/` 目录。
 
 ---
 

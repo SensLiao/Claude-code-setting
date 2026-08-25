@@ -17,7 +17,6 @@ A. 任何**生成型任务**（会产出新文件或修改现有文件的任务�
 B. 任何**重派发**（即使只读）—— 补 §A 漏掉的"只读 fan-out 不算生成型"缺口：
 - 启动 **Workflow**（任何 `Workflow()` 调用）
 - **≥3 个 sub-agent 的 fan-out**（含只读 audit / review / 调研 大 fan-out）
-- 拉起**重 orchestrator / 重 skill**（GSD / UIUX / AppSec / QA 主线编排）
 
 **不触发的情况**：纯回答问题、解释代码、读单个文件、单次搜索、1 个轻量只读 agent。
 

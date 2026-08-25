@@ -1,6 +1,7 @@
 ---
 name: appsec-finding-triager
-description: Normalizes raw SAST / SCA / secret-scan / IaC-scan output into AppSec finding schema v1.0 (v3.0). Dedupes, assigns severity + computed_risk per §10 SLA, redacts secrets through `appsec-sdk redact` before writing. NEVER outputs raw secret material. NEVER fabricates ASVS / CSF mappings — only emit what tool signals support. All findings written via `appsec-sdk finding.add` (canonical path).
+description: >-
+  Normalizes raw SAST / SCA / secret-scan / IaC-scan output into the AppSec finding schema — dedupes, assigns severity and computed risk per SLA, and redacts secrets through `appsec-sdk redact` before writing. NEVER outputs raw secret material; NEVER fabricates ASVS or CSF mappings beyond what tool signals support. Findings are written only via `appsec-sdk finding.add`.
 tools: Read, Write, Bash
 model: opus
 color: red

@@ -1,6 +1,6 @@
 # Agent Orchestration
 
-> Updated 2026-06-02 v4: 移除 frontend-pipeline；L3 风格收敛为 taste/luxury/brutalist-skill；UI/UX 编排统一走 uiux-product-orchestrator。
+> Updated 2026-08-25: orchestrator 全量退场；本文件只覆盖通用 agents 与调度纪律。
 
 ## Available Agents
 
@@ -54,8 +54,4 @@ For complex problems, use split role sub-agents:
 
 ---
 
-> UI/UX 多阶段编排：见 `uiux-product-orchestrator`（auto 主线，SKILL.md §2.0 Entry-Situation Router 做入口分流 + L0-L8 routing-table）。
->
-> **Skill → Agent + Model 映射表** / **Audit 模型升级规则** / **多 agent 协作模式**（UI/UX 特定）已于 2026-07-29 迁入
-> [`skills/uiux-product-orchestrator/references/uiux-routing-table.md`](../../skills/uiux-product-orchestrator/references/uiux-routing-table.md) §Agent + Model 路由 ——
-> 它们只在真跑 UI 时用得上，随 orchestrator 按需加载，不再常驻每个 session。
+> UI/UX 专项 agent：`uiux-design-reviewer`（发布前设计审，read-only 打分）与 `uiux-surface-builder`（锁定 chassis 后多 surface 并行量产）——直接用 Agent tool 派发，model 按 §模型路由。

@@ -1,7 +1,7 @@
 ---
 name: luxury-editorial-site-builder
-description: >
-  Complete workflow for building a high-end editorial brand homepage (furniture, interior design, fashion, luxury goods, atelier). Use whenever the user asks for an "editorial-luxury / 杂志感 / 高端品牌官网 / ESTUDIO ANÓNIMO 风格 / editorial website / 高端家具网站 / luxury hero video website", or any single-page brand site emphasizing large whitespace, restrained motion, light neutral palette, and a 100dvh full-bleed hero image/video. Also trigger for a static brand site needing Hailuo/Veo/Kling AI video, Topaz upscale, multi-video crossfade, or Vercel deploy. Use whenever the request smells like "high-end campaign-style brand homepage with hero video", even without the word "skill".
+description: >-
+  Complete workflow for a high-end editorial brand homepage (furniture, interior design, fashion, luxury goods, atelier) — large whitespace, restrained motion, light neutral palette, 100dvh full-bleed hero image or video. Also covers static brand sites needing Hailuo/Veo/Kling AI video, Topaz upscale, multi-video crossfade or Vercel deploy. Triggers: "editorial-luxury / 杂志感 / 高端品牌官网 / editorial website / 高端家具网站 / luxury hero video website", or any request that smells like a high-end campaign-style brand homepage with a hero video.
 ---
 
 # Luxury Editorial Site Builder
