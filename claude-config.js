@@ -408,8 +408,21 @@ function doSkills() {
       orphans.slice(0, 60).forEach(o => console.log('    - ' + o));
       if (APPLY) {
         let d = 0; for (const o of orphans) { try { fs.unlinkSync(path.join(TARGET, o)); d++; } catch {} }
-        const ds = [...new Set(orphans.map(o => path.dirname(o)))].sort((a, b) => b.length - a.length);
-        for (const dd of ds) { try { const full = path.join(TARGET, dd); if (fs.existsSync(full) && fs.readdirSync(full).length === 0) fs.rmdirSync(full); } catch {} }
+        // Bottom-up empty-dir prune of every managed dir. Pruning only the direct parents of
+        // deleted files leaves husks: a directory whose children were all subdirectories never
+        // held an orphan file itself, so it stayed behind (observed 2026-08-25: get-shit-done/
+        // and skills/uiux-product-orchestrator/ survived as empty skeletons while ORPHAN=0).
+        const pruneEmpty = dir => {
+          let ents; try { ents = fs.readdirSync(dir, { withFileTypes: true }); } catch { return false; }
+          let empty = true;
+          for (const e of ents) {
+            if (e.isDirectory() && pruneEmpty(path.join(dir, e.name))) continue;
+            empty = false;
+          }
+          if (empty) { try { fs.rmdirSync(dir); return true; } catch {} }
+          return false;
+        };
+        for (const m of MANAGED) { const full = path.join(TARGET, m); if (fs.existsSync(full)) pruneEmpty(full); }
         console.log(`  deleted ${d} orphan(s)`);
       } else if (orphans.length) console.log('  (dry run — would delete the above)');
     }
