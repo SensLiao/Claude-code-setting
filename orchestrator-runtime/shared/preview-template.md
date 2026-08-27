@@ -86,31 +86,16 @@ agent list) IN ORDER and emits `{{ascii_flow_diagram}}`:
 6. **gate / decision node** → mark with `◇`; show the ✗→stop / ✓→continue branch.
 7. Long chains: break line + indent for readability; keep arrows.
 
-**Worked example — AppSec `l2-default` (release gate):**
+**Worked example — a multi-file refactor:**
 ```
    Scope ──► Plan
      │
-     ═► Find × 4–8            (parallel, appsec-reviewer)
-         └─► Normalize?       (skip if no_candidates)
-              └─► [Dedup]     (det: fingerprint_cluster)
-                   ═► Verify × clusters   (pipeline, votes low=1 med=1 high=3 crit=3)
-                        └─► Map?          (skip if no_accepted)
-                             └─► ◇ [Gate] (det: appsec_gate_policy)
-                                   │ ✗→ 停下报告 BLOCKED/FAIL
-                                   ▼ ✓
-                                 Synthesize ──► PersistEvidence → .appsec/evidence/<tag>/
-```
-
-**Worked example — QA `release-readiness`:**
-```
-   LayerSelect ──► StaticBaseline ──► [StaticGate] (det)
-     ═► ComponentOrContract × 3–6   (parallel, qa-component-runner)
-     ═► E2E × 1–3                    (pipeline: prepare/sonnet → run-validate/opus)
-         └─► FlakyTriage?            (skip if no_flaky_signal)
-              └─► [FlakyQuarantineCheck] (det)
-                   └─► ◇ [Gate] (det: qa_gate_policy)
-                         ▼ ✓
-                       EvidenceBundle → .qa/evidence/<tag>/
+     ═► Review × 3            (parallel, one per dimension)
+         └─► Dedup?           (skip if no_findings)
+              └─► ◇ [Verify]  (each finding independently refuted or confirmed)
+                    │ ✗→ 停下报告,不改代码
+                    ▼ ✓
+                  Apply ──► Test ──► Commit
 ```
 
 ---

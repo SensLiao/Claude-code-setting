@@ -69,7 +69,7 @@
 
   "_portability_notes": [
     "无机器特定路径 — hooks 应在项目 .claude/ 中定义，不依赖 ~/.claude/hooks/",
-    "接收方应运行对应 sdk init 安装项目级 hooks（appsec-sdk / qa-sdk / uiux-sdk / discoverability-sdk）",
+    "项目级 hooks 由接收方自行在项目 .claude/settings.json 中声明",
     "disableWorkflows 未设置 — 接收方根据需要在项目级设置",
     "allowManagedHooksOnly 未设置 — 不干预接收方的用户全局配置 (verify key name against your Claude Code version)",
     "CLAUDE_CODE_WORKFLOWS 未启用 — Dynamic Workflows 需要接收方明确开启"

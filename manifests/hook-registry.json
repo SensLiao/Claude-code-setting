@@ -21,7 +21,7 @@
     "library_modules": {
       "description": "Shared helper modules; not hooks, not registered in settings.json.",
       "modules": [
-        {"name": "orchestrator-runtime/shared/run-ledger.js", "used_by": "ledger-autolog.js + qa-sdk.sh/appsec-sdk.sh (evidence-kit ledger)"}
+        {"name": "orchestrator-runtime/shared/run-ledger.js", "used_by": "ledger-autolog.js (machine run trail)"}
       ]
     },
 

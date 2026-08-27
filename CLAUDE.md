@@ -1,6 +1,6 @@
 # 全局 Claude 配置
 
-> 精简日期:2026-08-25 — **orchestrator 全量退场**(GSD / I2R / QA / AppSec / L12 / UIUX 编排层 / bootstrap 六线及下游共 ~250 件移除;决策与逐名清单见 `.goals/plans/orchestrator-removal.plan.md`,本地)。留下的是:工具型 skills(人叫或窄触发)+ 通用 agents + evidence kit + 沟通/执行纪律。哲学依据:[docs/OPERATING-PRINCIPLES.md](docs/OPERATING-PRINCIPLES.md) 的 self-sunset 约定——模型判断力上来了,编排脚手架退场。
+> 精简日期:2026-08-25 — **orchestrator 全量退场**(GSD / I2R / QA / AppSec / L12 / UIUX 编排层 / bootstrap 六线及下游共 ~250 件移除;决策与逐名清单见 `.goals/plans/orchestrator-removal.plan.md`,本地)。留下的是:工具型 skills(人叫或窄触发)+ 通用 agents + 沟通/执行纪律。哲学依据:[docs/OPERATING-PRINCIPLES.md](docs/OPERATING-PRINCIPLES.md) 的 self-sunset 约定——模型判断力上来了,编排脚手架退场。
 > 回滚通道:GitHub `SensLiao/Claude-code-setting` 按 commit 粒度;整体回退用 tag `pre-orchestrator-removal`;本地兜底 `~/.claude/backups/`。
 > 存活 skill 索引:[SKILLS-INDEX.md](SKILLS-INDEX.md)。
 
@@ -89,8 +89,7 @@
 | 资产 | 有什么 | 怎么用 |
 |---|---|---|
 | 工具型 skills(~31) | UIUX 簇(风格 / 生成 / 审查 / 组件)· arch-viz · codegraph-cli · codex-dispatch · skill-creator · workflow-creator · meeting-analyzer 等,见 [SKILLS-INDEX.md](SKILLS-INDEX.md) | `/名字` 显式调,或窄触发词自起(单一工具级,不再有编排级 auto-trigger) |
-| 通用 agents(~42) | planner · architect · 各语言 reviewer/build-resolver · tdd-guide · e2e-runner · security-reviewer · evidence kit 五件 · uiux 两件 · mkt 四件(HOME-only) | `Agent` tool 派发,model 必 explicit(§3) |
-| Evidence kit | `scripts/qa-sdk.sh` + `scripts/appsec-sdk.sh` + 顶层 `schemas/` 校验器 + qa/appsec-evidence-validator · appsec-reviewer · appsec-finding-triager · security-remediation-engineer | 见 §4 |
+| 通用 agents(~42) | planner · architect · 各语言 reviewer/build-resolver · tdd-guide · e2e-runner · security-reviewer · uiux 两件 · mkt 四件(HOME-only) | `Agent` tool 派发,model 必 explicit(§3) |
 
 **UIUX 使用注意**:动手做 UI 前先过 `ux-principles`;L3 主风格(taste / luxury / brutalist)**一次只锁一个**;`image-to-code` / `redesign` 是 workflow 型,不当主风格用。
 
@@ -123,17 +122,6 @@ spawn 多个 agent 或发起多个 tool call 前必须先判断依赖关系:**�
 ### 2. Model Routing 强制 explicit
 
 每次 spawn agent 必 explicit 指定 `model`:`opus` 决策层(架构 / 方案选型 / 复杂 debug / 安全审查 / 最终签发)· `sonnet` 执行层(日常主力)· `haiku` 工具层(格式转换 / 抽取 / 分类)。**不 explicit 指定 = 继承 parent。** 按任务复杂度 + 失败代价 + 输出用途判断,不按任务名字。tier 表见 [rules/common/performance.md](rules/common/performance.md)。
-
----
-
-## 4. Evidence kit(落盘证据链,薄入口)
-
-给"要给客户 / 合规方留可审计痕迹"的 release / 安全检查用。**指令层自觉调用,无 hook 强制**(enforcement hooks 已随 orchestrator 退场)。
-
-- **什么时候用**:交付前的 QA 结论、安全 review 结论,凡"事后要能证明真跑过"的,落盘;日常开发自查不用。
-- **怎么用**:测试/扫描输出 → `bash ~/.claude/scripts/qa-sdk.sh evidence.append` / `appsec-sdk.sh finding.add`(finding 走 `appsec-finding-triager` agent 规整 + 自动 redact)→ `gate.check` 机械算 verdict → 要独立复核就派 `qa-evidence-validator` / `appsec-evidence-validator`(只读)。产物落项目 `.qa/evidence/<tag>/` / `.appsec/evidence/<tag>/`。
-- **安全 review 找谁**:代码级防御审查派 `appsec-reviewer`(ASVS 映射)或通用 `security-reviewer`;修复走 `security-remediation-engineer`(每个 finding 配回归测试)。
-- **红线仍在**:本机已无任何主动安全测试工具;**绝不**做 destructive testing / DoS / 未授权扫描——这是行为红线,不因 gate 退场而放宽。secret 扫描输出必须 redact(`gitleaks --redact`)。
 
 ---
 

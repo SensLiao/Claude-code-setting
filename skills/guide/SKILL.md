@@ -15,7 +15,7 @@ file context, or next-step suggestions — this is a static help screen.
 # Claude Code Config — User Guide
 
 自 2026-08-25 起本配置**没有编排主线**(GSD / I2R / QA / AppSec / L12 / UIUX 编排层已全量退场,
-整体快照在 tag `pre-orchestrator-removal`)。现在的形态:**工具型 skill + 通用 agent + evidence kit**,
+整体快照在 tag `pre-orchestrator-removal`)。现在的形态:**工具型 skill + 通用 agent**,
 一切以你显式调用为主。宪法级规则(沟通语言 / 汇报方式 / 预览卡 / 账本 / 硬规则)在 `CLAUDE.md`。
 
 ## 1. 三类资产
@@ -24,7 +24,6 @@ file context, or next-step suggestions — this is a static help screen.
 |---|---|---|
 | 工具型 skills(~31) | UIUX 簇(风格 / 生成 / 审查 / 组件)、arch-viz、codegraph-cli、codex-dispatch、skill-creator、workflow-creator 等 | `/skill名` 显式调;完整清单 `SKILLS-INDEX.md` |
 | 通用 agents(~42) | planner / architect / 各语言 reviewer + build-resolver / tdd-guide / e2e-runner / security-reviewer / uiux 两件 | 描述任务即可被派;model 路由见 `rules/common/performance.md` |
-| Evidence kit | `scripts/qa-sdk.sh` + `scripts/appsec-sdk.sh` + 校验器 + 5 个配套 agent | 要"给客户留可审计痕迹"时用;用法 `CLAUDE.md` §4 |
 
 ## 2. 日常用法
 
@@ -33,7 +32,7 @@ file context, or next-step suggestions — this is a static help screen.
 - **读代码 / 架构**:`arch-viz`(出架构图)、`codegraph-cli`(调用链 / 影响面)。
 - **规划**:轻量跨 session 规划用 `/lite-plan` → `/lite-execute`,进度账本用 `/ledger`,session 收尾用 `/preclear`。
 - **测试**:`tdd-guide` 写测试、`e2e-runner` 跑关键旅程;风险分层表在 `rules/testing-policy.md`。
-- **安全 review**:改到 auth / API / server 路径会触发 path-scoped 规则;派 `appsec-reviewer` agent。
+- **安全 review**:改到 auth / API / server 路径会触发 path-scoped 规则;派 `security-reviewer` agent。
   本机没有任何主动安全测试工具(红线见 `rules/security-appsec.md`)。
 - **跨模型**:`codex-dispatch` skill + `/codex:review`。
 

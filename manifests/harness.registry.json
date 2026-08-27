@@ -2,24 +2,9 @@
   "$schema": "../schemas/harness-registry.schema.json",
   "schema_version": "3.0.0",
   "generated_date": "2026-08-25",
-  "description": "Post-orchestrator control-surface registry. The six primary orchestrators, the L12 downstream gate, every subsystem hook family and the safety-critical name-freeze list were removed on 2026-08-25 (branch remove-orchestrators; full pre-removal registry at tag pre-orchestrator-removal). The harness is now: tool-grade skills + generic agents + the evidence kit + a small always-on hook set.",
+  "description": "Post-orchestrator control-surface registry. The six primary orchestrators, the L12 downstream gate, every subsystem hook family and the safety-critical name-freeze list were removed on 2026-08-25 (branch remove-orchestrators; full pre-removal registry at tag pre-orchestrator-removal). The harness is now: tool-grade skills + generic agents + a small always-on hook set. The evidence kit (qa/appsec SDKs, gate validators and their five agents) was removed on 2026-08-28 — it served the deleted orchestrators and had never produced an evidence directory.",
 
   "primary_orchestrators": [],
-
-  "evidence_kit": {
-    "sdks": ["scripts/qa-sdk.sh", "scripts/appsec-sdk.sh"],
-    "validators_dir": "schemas/",
-    "shared_runtime": "orchestrator-runtime/shared/",
-    "agents": [
-      "qa-evidence-validator",
-      "appsec-evidence-validator",
-      "appsec-reviewer",
-      "appsec-finding-triager",
-      "security-remediation-engineer"
-    ],
-    "evidence_roots": [".qa/evidence/<tag>/", ".appsec/evidence/<tag>/"],
-    "note": "Instruction-layer only: no enforcement hooks remain. Usage contract in CLAUDE.md section 4."
-  },
 
   "hooks": {
     "registry": "hook-registry.json"

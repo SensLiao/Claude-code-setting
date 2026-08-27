@@ -26,9 +26,7 @@ const REQUIRED = [
   'tools/hooks/lint.js',
   'tools/skill-visibility/generate.js',
 
-  // Evidence kit
-  'scripts/appsec-sdk.sh',
-  'scripts/qa-sdk.sh',
+  // Ledger + plan-card runtime
   'orchestrator-runtime/shared/run-ledger.js',
   'orchestrator-runtime/shared/preview-template.md',
 ];

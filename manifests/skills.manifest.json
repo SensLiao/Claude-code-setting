@@ -3,44 +3,6 @@
   "generated_date": "2026-08-25",
   "generated_by": "orchestrator removal (branch remove-orchestrators)",
   "description": "Post-orchestrator skill catalog stub. The orchestrator-era catalog (primary_orchestrators / agent_families / routing_rule / name_freeze) was removed with the orchestrators; see tag pre-orchestrator-removal. This file now carries only the evidence-kit SDK command matrix (consumed by tests/harness/sdk-matrix.test.js) and pointers.",
-  "sdks": {
-    "appsec": {
-      "path": "scripts/appsec-sdk.sh",
-      "lang": "bash",
-      "commands": [
-        "init",
-        "set-active",
-        "evidence.append",
-        "evidence.list",
-        "evidence.validate-presence",
-        "finding.add",
-        "gate.check",
-        "redact",
-        "roe.verify",
-        "csf.coverage",
-        "overlay.activate",
-        "migrate-evidence",
-        "ledger.append",
-        "control.matrix.verify",
-        "tool.registry",
-        "tool.gate",
-        "lifecycle.transition",
-        "exception.sweep"
-      ]
-    },
-    "qa": {
-      "path": "scripts/qa-sdk.sh",
-      "lang": "bash"
-    }
-  },
-  "evidence_roots": {
-    "appsec": {
-      "canonical": ".appsec/evidence/<tag>/",
-      "deprecated_alias": ".planning/security/",
-      "migration_command": "appsec-sdk migrate-evidence"
-    },
-    "qa": ".qa/evidence/<tag>/"
-  },
   "see_also": [
     "../SKILLS-INDEX.md",
     "harness.registry.json",

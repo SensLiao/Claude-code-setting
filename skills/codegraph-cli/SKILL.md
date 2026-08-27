@@ -135,7 +135,7 @@ codegraph uninit [path] --force    # remove .codegraph/ from a project
 2. **Do not run `codegraph install` / `codegraph` interactive installer automatically.** Those write to `~/.claude.json`, `~/.claude/settings.json`, `~/.cursor/`, `~/.codex/config.toml`, etc. — global mutations that belong to the user, not to this skill.
 3. **Do not run `codegraph uninstall` automatically.** Same blast radius, opposite direction.
 4. **Treat `.codegraph/` as a local tool cache.** Do not promote it into harness evidence roots (`.appsec/evidence/<tag>/` / `.qa/evidence/<tag>/` / `evidence/discoverability/<tag>/` / `.planning/`). Do not commit it (CodeGraph honors `.gitignore`; if the user hasn't ignored it yet, suggest they do).
-5. **`codegraph affected` is supporting context, not a QA gate.** QA's release gate lives in `enterprise-qa-testing` / `qa-evidence-validator` and follows the §3 Floor Rules. Use `affected` to *propose* a candidate test set; let QA decide if that set is sufficient.
+5. **`codegraph affected` is supporting context, not a test-selection authority.** Use `affected` to *propose* a candidate test set; confirm against the project's own suite before trusting it as complete.
 6. **Do not double-cite as authoritative.** If CodeGraph and the live source disagree (post-edit, pre-sync), trust the source. Run `codegraph sync` after meaningful edits.
 7. **Never expand the harness's MCP tool surface from inside this skill.** No `mcp__codegraph__*` registration. No `~/.claude/settings.json` permission edits. If the user wants that integration, point them at the official `codegraph install --target=claude` flow — they make that call deliberately, outside this skill.
 

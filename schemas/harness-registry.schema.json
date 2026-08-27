@@ -4,7 +4,7 @@
   "title": "Harness Registry (post-orchestrator, v3)",
   "description": "Shape of manifests/harness.registry.json after the 2026-08-25 orchestrator removal. The v2 orchestrator-era schema (primary_orchestrators / downstream_gates / name_freeze / decision_semantics) lives at tag pre-orchestrator-removal.",
   "type": "object",
-  "required": ["schema_version", "description", "evidence_kit", "hooks", "skills"],
+  "required": ["schema_version", "description", "hooks", "skills"],
   "additionalProperties": true,
   "properties": {
     "schema_version": { "type": "string", "pattern": "^3\\.\\d+\\.\\d+$" },
@@ -15,18 +15,6 @@
       "type": "array",
       "maxItems": 0,
       "description": "Must stay empty. A non-empty list means an orchestrator was reintroduced without redesigning the registry — bump schema_version instead."
-    },
-    "evidence_kit": {
-      "type": "object",
-      "required": ["sdks", "agents", "evidence_roots"],
-      "properties": {
-        "sdks": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-        "validators_dir": { "type": "string" },
-        "shared_runtime": { "type": "string" },
-        "agents": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-        "evidence_roots": { "type": "array", "items": { "type": "string" } },
-        "note": { "type": "string" }
-      }
     },
     "hooks": {
       "type": "object",

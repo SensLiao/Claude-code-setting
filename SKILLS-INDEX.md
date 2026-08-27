@@ -69,7 +69,3 @@
 | `remotion-best-practices` | Remotion 视频最佳实践 |
 | `output-skill` | 输出格式辅助 |
 | `learned`(HOME-only) | /learn 沉淀的本机模式,不入库 |
-
-## Evidence kit(不是 skill,是脚本 + agents)
-
-`scripts/qa-sdk.sh` · `scripts/appsec-sdk.sh` · 顶层 `schemas/` 校验器 · agents:`qa-evidence-validator` / `appsec-evidence-validator` / `appsec-reviewer` / `appsec-finding-triager` / `security-remediation-engineer`。用法见 CLAUDE.md §4。
