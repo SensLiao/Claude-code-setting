@@ -12,6 +12,14 @@ version: 1.0.0
 >
 > **不干什么**：不画 UI（那是 `taste-skill` / `prototyping-ui-directions` / `anchor-prototype-wave` 的活），不做品牌 landing（那是 `luxury-editorial-site-builder` 的活）。本 skill 是 **横切层**——任何 UI skill 跑之前/中/后都可以套一层。
 
+## 使用硬约束
+
+这三条原先住在 CLAUDE.md 的反模式清单里,2026-08-28 迁到它们真正作用的地方:
+
+- **动手做 production UI 之前先过本 skill** —— 不要跳过 pre-design 这一步。
+- **L3 主风格一次只锁一个**:`taste-skill` / `luxury` / `brutalist` 互斥,同时锁多个做出来的是四不像。
+- `image-to-code` / `redesign-existing-projects` 是 **workflow 型**,不当主风格用。
+
 ---
 
 ## 4 个 reference 支柱（写入 skill 缓存 + 必要时 WebFetch 拿冷门内容）
