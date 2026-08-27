@@ -7,7 +7,7 @@
  * Verifies canonical version references across:
  *   - manifests/skills.manifest.json   (appsec-security-orchestrator → 3.0.0)
  *   - manifests/harness.registry.json  (orchestrator v3.0.0; L12 v1.2.0)
- *   - CLAUDE.md                        (AppSec v3.0, ROE 11/13 dual-track, L12 v1.2)
+ *   - CLAUDE.global.md                        (AppSec v3.0, ROE 11/13 dual-track, L12 v1.2)
  *   - SKILLS-INDEX.md                  (AppSec v3.0, ROE 11/13 dual-track)
  *
  * Exit codes per PR-6 spec: 0=PASS, 1=FAIL (drift), 2=ERROR (infra)
@@ -22,7 +22,7 @@ const h = new H.Harness('manifest-versions');
 const FILES = {
   skillsManifest: path.join(H.claudeRoot, 'manifests', 'skills.manifest.json'),
   harnessRegistry: path.join(H.claudeRoot, 'manifests', 'harness.registry.json'),
-  claudeMd: path.join(H.claudeRoot, 'CLAUDE.md'),
+  claudeMd: path.join(H.claudeRoot, 'CLAUDE.global.md'),
   skillsIndex: path.join(H.claudeRoot, 'SKILLS-INDEX.md'),
 };
 for (const [k, p] of Object.entries(FILES)) {
@@ -93,14 +93,14 @@ h.assert(
   regL12 ? `got: ${JSON.stringify(regL12.version)}` : 'entry not found'
 );
 
-// ---------- 3. CLAUDE.md — AppSec v3.0 ----------------------------------
-h.section('CLAUDE.md — AppSec v3.0 reference');
+// ---------- 3. CLAUDE.global.md — AppSec v3.0 ----------------------------------
+h.section('CLAUDE.global.md — AppSec v3.0 reference');
 
 const claudeMdHasV3 = /AppSec\s+v3\.0/i.test(claudeMd);
 h.assert(
   claudeMdHasV3,
-  'CLAUDE.md contains "AppSec v3.0"',
-  claudeMdHasV3 ? null : 'No "AppSec v3.0" found in CLAUDE.md'
+  'CLAUDE.global.md contains "AppSec v3.0"',
+  claudeMdHasV3 ? null : 'No "AppSec v3.0" found in CLAUDE.global.md'
 );
 
 // Disallow stray "AppSec v2.0" outside deprecation context
@@ -114,7 +114,7 @@ const legacyV2Lines = claudeMd.split('\n')
   );
 h.assert(
   legacyV2Lines.length === 0,
-  'CLAUDE.md has no bare "AppSec v2.0" reference outside deprecation context',
+  'CLAUDE.global.md has no bare "AppSec v2.0" reference outside deprecation context',
   legacyV2Lines.length
     ? `legacy lines: ${legacyV2Lines.map(x => `L${x.idx}`).join(', ')}`
     : null
@@ -134,7 +134,7 @@ h.assert(
 h.section('ROE dual-track — 11 user-visible / 13 internal');
 
 for (const [name, body] of [
-  ['CLAUDE.md', claudeMd],
+  ['CLAUDE.global.md', claudeMd],
   ['SKILLS-INDEX.md', skillsIndex],
 ]) {
   const has11 = /11\s*user[- ]?visible/i.test(body);
@@ -157,8 +157,8 @@ h.section('L12 discoverability — v1.2 references');
 const claudeL12 = /v1\.2(\.\d+)?/.test(claudeMd) && /discoverability/i.test(claudeMd);
 h.assert(
   claudeL12,
-  'CLAUDE.md contains v1.2 reference associated with discoverability',
-  claudeL12 ? null : 'no "v1.2" found near discoverability in CLAUDE.md'
+  'CLAUDE.global.md contains v1.2 reference associated with discoverability',
+  claudeL12 ? null : 'no "v1.2" found near discoverability in CLAUDE.global.md'
 );
 
 const regL12HasV12 = regL12 && (regL12.version === '1.2.0' || /1\.2/.test(regL12.version || ''));

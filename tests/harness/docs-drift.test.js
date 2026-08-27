@@ -6,7 +6,7 @@
  *
  * Part 1: delegates to tools/docs-drift/lint.js — propagates its exit code.
  * Part 2 (added 2026-06-10): static drift assertions that pin the post-audit
- *   state of CLAUDE.md / SKILLS-INDEX / ORCHESTRATOR-MAP / skills.manifest.json
+ *   state of CLAUDE.global.md / SKILLS-INDEX / ORCHESTRATOR-MAP / skills.manifest.json
  *   so the cleaned-up references cannot silently regress.
  */
 
@@ -49,11 +49,11 @@ function readClaude(rel) {
   return H.readText(full);
 }
 
-const claudeMd = readClaude('CLAUDE.md');
+const claudeMd = readClaude('CLAUDE.global.md');
 const skillsManifestRaw = readClaude('manifests/skills.manifest.json');
 const orchMap = readClaude('docs/ORCHESTRATOR-MAP.md');
 
-// (a) CLAUDE.md must not carry a LIVE Desktop/architecture path reference or
+// (a) CLAUDE.global.md must not carry a LIVE Desktop/architecture path reference or
 //     the deleted _backup-20260523 backup dir (cleaned up in the 2026-06-10 pass).
 //     A "live path reference" = backtick-wrapped, ~/-prefixed, or pointing at a
 //     concrete file under Desktop/architecture/. Bare prose noting the path was
@@ -66,23 +66,23 @@ if (claudeMd != null) {
   const liveDesktopArchRef = /(?:~\/Desktop\/architecture|Desktop\/architecture\/[A-Za-z0-9._-])/;
   h.assert(
     !liveDesktopArchRef.test(claudeMd),
-    'CLAUDE.md has no live "Desktop/architecture" path reference',
+    'CLAUDE.global.md has no live "Desktop/architecture" path reference',
     'stale absolute Desktop path — should be removed (prose noting it was cleaned up is fine)'
   );
   h.assert(
     !claudeMd.includes('_backup-20260523'),
-    'CLAUDE.md does not reference "_backup-20260523"',
+    'CLAUDE.global.md does not reference "_backup-20260523"',
     'backup dir was cleaned up; current backups live under ~/.claude/backups/'
   );
 }
 
-// (b) CLAUDE.md AppSec hook-scope line must point at the registry SSOT
+// (b) CLAUDE.global.md AppSec hook-scope line must point at the registry SSOT
 //     (instead of hardcoding a per-family hook count).
 if (claudeMd != null) {
   h.assert(
     /AppSec[\s\S]{0,400}hook-registry\.json/i.test(claudeMd)
       || /hook-registry\.json[\s\S]{0,400}AppSec/i.test(claudeMd),
-    'CLAUDE.md AppSec hook-scope text references "hook-registry.json"',
+    'CLAUDE.global.md AppSec hook-scope text references "hook-registry.json"',
     'hook enumeration must point at manifests/hook-registry.json, not a hardcoded count'
   );
 }

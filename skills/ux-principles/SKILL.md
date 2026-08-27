@@ -12,6 +12,14 @@ version: 1.0.0
 >
 > **不干什么**：不画 UI（那是 `taste-skill` / `prototyping-ui-directions` / `anchor-prototype-wave` 的活），不做品牌 landing（那是 `luxury-editorial-site-builder` 的活）。本 skill 是 **横切层**——任何 UI skill 跑之前/中/后都可以套一层。
 
+## 使用硬约束
+
+这三条原先住在 CLAUDE.md 的反模式清单里，2026-08-28 迁到它们真正作用的地方：
+
+- **动手做 production UI 之前先过本 skill** —— 不要跳过 pre-design 这一步（UIUX 主线在 `ux-principles` foundation 之前不拉起 `uiux-product-orchestrator`）。
+- **L3 主风格一次只锁一个**：taste / luxury / brutalist 互斥（taste 含三档变体 Editorial/Double-Bezel/GSAP）。注：UIUX 引擎 EXPLORE 阶段出多风格**候选预览**是锁前采样，不算违规（详 `uiux-product-orchestrator` references/combination-policy.md §6）。
+- **Workflow skill（`redesign` / `image-to-code`）不当 L3 主风格用**。
+
 ---
 
 ## 4 个 reference 支柱（写入 skill 缓存 + 必要时 WebFetch 拿冷门内容）

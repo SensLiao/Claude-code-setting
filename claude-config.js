@@ -40,6 +40,9 @@ const HOOKS_FLAG = hooksArg ? hooksArg.split('=')[1] : (args.indexOf('--hooks') 
 const PROFILE_NAME = args.filter(a => !a.startsWith('-'))[1] || 'default';
 
 const SKIP = new Set(['README.md', '.gitignore', '.gitattributes',
+  // repo-root CLAUDE.md is THIS repo's own maintenance contract — it is the project
+  // instruction file when working inside this repo and must never overwrite the global one.
+  'CLAUDE.md',
   'settings.example.json', '.git', '.github', '.claude', 'claude-config.js', 'wire-manifest.json', 'profiles', '.goals',
   // cross-tool bridge configs (read by Cursor/Codex/Gemini at ~/ or project level, NOT ~/.claude) + this repo's own GSD dev planning — stored in the repo for backup, never deployed into ~/.claude
   '.cursor', '.codex', '.gemini', '.planning',
@@ -49,6 +52,11 @@ const PRESERVE = new Set(['.credentials.json', 'settings.json', 'settings.local.
   'memory', 'projects', 'sessions', 'tasks', 'history.jsonl', 'plugins']);
 const MANAGED = ['agents', 'commands', 'skills', 'hooks', 'scripts', 'rules', 'docs', 'manifests',
   'schemas', 'templates', 'orchestrator-runtime', 'get-shit-done', 'workflows', 'mcp-servers', 'mcp-configs', 'tools'];
+// Deploy-time renames: repo source name -> path under ~/.claude.
+const RENAME = new Map([['CLAUDE.global.md', 'CLAUDE.md']]);
+const RENAME_REV = new Map([...RENAME].map(([src, dst]) => [dst, src]));
+const srcOf = r => RENAME_REV.get(r) || r;
+
 const TEXT = new Set(['.md', '.json', '.js', '.cjs', '.mjs', '.sh', '.ps1', '.py', '.yaml', '.yml', '.toml', '.txt', '.bak']);
 
 // placeholder substitution (OS-aware: posix paths on macOS/Linux, backslash on Windows)
@@ -82,7 +90,7 @@ function repoFiles() {
   return walk(REPO).filter(r => {
     const top = r.split('/')[0];
     return !(SKIP.has(top) || SKIP.has(r) || PRESERVE.has(top));
-  });
+  }).map(r => RENAME.get(r) || r);
 }
 const pinPath = () => path.join(TARGET, '.config-source.json');
 const readPin = () => { try { return JSON.parse(fs.readFileSync(pinPath(), 'utf8')); } catch { return null; } };
@@ -101,7 +109,7 @@ function isUserOwned(r, custom) {
 // exact bytes deployFile would write for repo-relative path r (text files get OS-aware SUBST,
 // so a deployed placeholder file compares equal to source — no false "stale").
 function expectedBytes(r) {
-  const src = path.join(REPO, r);
+  const src = path.join(REPO, srcOf(r));
   if (TEXT.has(path.extname(src).toLowerCase())) {
     let c = fs.readFileSync(src, 'utf8');
     for (const k of Object.keys(SUBST)) if (c.includes(k)) c = c.split(k).join(SUBST[k]);
@@ -131,7 +139,7 @@ function classify() {
 }
 function deployFile(r, force) {
   if (customExcludes().has(r)) return 'protected'; // never overwrite a user-registered custom file, even on --force
-  const src = path.join(REPO, r), dst = path.join(TARGET, r);
+  const src = path.join(REPO, srcOf(r)), dst = path.join(TARGET, r);
   const exists = fs.existsSync(dst);
   if (exists && !force) return 'skip';
   if (!APPLY) return exists ? 'would-update' : 'would-add';
