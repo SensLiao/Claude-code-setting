@@ -27,8 +27,11 @@ The ledger is a **concise record of high-level 事项** — a resume entrypoint,
 The test for every line: *does a fresh session need this to resume correctly?* If not, it
 doesn't belong here.
 
-- **One item ≈ 1–3 lines**: what it is / state (完成 · 进行中 · 卡住) / evidence ref (commit SHA,
-  file path, test name). Detail lives at the ref, not in the ledger.
+- **One item ≈ 1–3 lines, ≤ ~1,000 characters**: what it is / state (完成 · 进行中 · 卡住) / evidence
+  ref (commit SHA, file path, test name). Detail lives at the ref, not in the ledger. Measure in
+  characters, not lines — a single 17 KB line passes any line count.
+- **Write it as a pointer the first time.** Drafting in detail and compressing later guarantees
+  every update starts oversized.
 - **Belongs**: goals, work-block outcomes, 当前指针 / 断点, blockers, key decisions + 不变量,
   kept background processes, pointers to plans / docs.
 - **Does NOT belong (abuse smells)**:
@@ -39,6 +42,8 @@ doesn't belong here.
   - the same fact restated across multiple blocks.
 - When an update genuinely needs that much detail, write it where it belongs and put ONE line +
   a pointer here. `/preclear` Step 2 audits the ledger against this section.
+- **Ratchet**: new or rewritten items meet the cap. An existing oversized item is debt — shrink it
+  when you next touch it, never let it grow; no dedicated cleanup pass.
 
 ## Archive / compaction (when the ledger outgrows itself)
 
@@ -47,7 +52,8 @@ single Read, and old blocks whose headers still say 进行中/待办 mislead fre
 re-investigating closed work. **Trigger check** — propose archiving when either holds (ask the
 user first; never archive silently):
 
-- the file no longer fits in one Read (~25k tokens, roughly >1200 lines), or
+- the file no longer fits in one Read (~25k tokens — judge by `wc -c`, never by line count: one
+  oversized line can hold half the file), or
 - closed / superseded history blocks dominate (> ~2/3 of blocks).
 
 **Procedure** (archive = move, never delete; git history keeps everything regardless):
@@ -56,7 +62,8 @@ user first; never archive silently):
    ideas / conditional to-dos / research queues buried inside them; lift those into a small
    `待办 backlog` section of the main ledger so they don't sink with the history.
 2. Move closed/superseded history blocks **verbatim** into `<root>/.goals/LEDGER-archive.md`
-   (also append-only; add a dated one-line header per archive pass).
+   (also append-only; add a dated one-line header per archive pass). The archive only ever
+   receives moved-in closed blocks — never continue or edit narrative there.
 3. Keep in the main ledger: TL;DR / 当前指针, live blocks, 关键事实 / 不变量 sections, a
    one-line-per-item done/commit index, and a pointer line
    `> 历史块已归档 → .goals/LEDGER-archive.md（YYYY-MM-DD）`.

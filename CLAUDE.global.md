@@ -51,7 +51,7 @@
 **铁律**:任何**中等 / 复杂**任务,执行期维护三层,缺一不可:
 
 1. **实时 ToDo(in-session)** — 一开工就把步骤拆成可勾选清单,**开始一步勾一步**,不一次性补勾。简单档可免。
-2. **持久账本(跨 session)** — 凡跨 session / 多阶段 / >1 工作块的工程,额外落一个**仓库内 markdown 账本**(每项:状态 + 证据/commit + 「当前指针」下一步),**新 session 第一件事读它**。人看的走 `.goals/LEDGER.md`;机器审计由 `ledger-autolog` hook 自动写 `.harness/runs.jsonl`。
+2. **持久账本(跨 session)** — 凡跨 session / 多阶段 / >1 工作块的工程,额外落一个**仓库内 markdown 账本**(每项:状态 + 证据/commit + 「当前指针」下一步),**新 session 第一件事读它**。人看的走 `.goals/LEDGER.md`(路径每仓自定),内容准入与归档规范以 `/ledger` 为准;机器审计由 `ledger-autolog` hook 自动写 `.harness/runs.jsonl`。
 3. **收尾坎** — 声称"完成 / done"**之前**对账本 + ToDo 核一遍:有无未勾步骤 / 未验证产物 / 被 BLOCK 没标的。没核完不许说完成。
 
 **诚实边界**:不承诺物理上永不中断;目标是让中断永远**可见、可续**。
