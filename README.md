@@ -1,18 +1,8 @@
 <div align="right"><a href="README.zh-CN.md">简体中文</a></div>
 
-<p align="center"><img src="docs/hero.png" alt="Claude Code Harness banner" width="100%"></p>
+<p align="center"><img src="docs/hero.png" alt="Claude Code Harness — one cross-platform installer to deploy your Claude Code agents, skills and hooks, safely" width="100%"></p>
 
-<p align="center"><b>One cross-platform installer to deploy your Claude Code agents, skills and hooks — safely.</b></p>
-
-<p align="center">
-<img src="https://img.shields.io/badge/Node.js-18%2B-4ade80?style=flat-square" alt="Node.js 18+">
-<img src="https://img.shields.io/badge/dependencies-zero-4ade80?style=flat-square" alt="Zero dependencies">
-<img src="https://img.shields.io/badge/cross--platform-Win%20%7C%20macOS%20%7C%20Linux-4ade80?style=flat-square" alt="Cross-platform">
-<img src="https://img.shields.io/badge/dry--run-by%20default-4ade80?style=flat-square" alt="Dry-run by default">
-<img src="https://img.shields.io/badge/License-MIT-4ade80?style=flat-square" alt="License: MIT">
-</p>
-
-Claude Code Harness is the source-of-truth repository for a personal `~/.claude` setup — agents, skills, hooks, rules, and commands — deployed to Claude Code's global config directory by a single Node installer. It exists to make a large, evolving agent library reproducible across machines: one read-only health check, one command to deploy, and safe-by-default writes that never touch your credentials or sessions.
+Claude Code Harness is the source-of-truth repository for a personal `~/.claude` setup — agents, skills, hooks, rules, and commands — deployed to Claude Code's global config directory by a single Node installer. It exists to make a large, evolving agent library reproducible across machines: one read-only health check, one command to deploy, and safe-by-default writes that never touch your credentials or sessions. The current library holds 37 agents, 52 commands, 31 skills, and 41 hooks.
 
 ## ✨ Highlights
 
@@ -24,9 +14,14 @@ Claude Code Harness is the source-of-truth repository for a personal `~/.claude`
 - **Strong config protection** — `.credentials.json`, `settings.json`, `memory`, `sessions`, and `projects` are never written or deleted.
 - **Skill-visibility governance** — trims the skill listing to fit a ~1% context budget; on this library, 112 of 173 skill entries would otherwise be silently truncated.
 
-## 🏗 How it works
+## 🏗 Architecture
 
-The repository is the source of truth; the installer mirrors it into your global Claude Code config, then keeps the two in sync without ever clobbering local state. The current library holds **37 agents, 52 commands, 31 skills, and 41 hooks**.
+<p align="center"><img src="docs/architecture.png" alt="Claude Code Harness deployment architecture" width="100%"></p>
+<p align="center"><sub>The repository is the source of truth; <code>claude-config.js</code> mirrors it into <code>~/.claude</code>, dry-run first.</sub></p>
+
+The repository holds the library — agents, skills, hooks, rules, and commands — and the installer mirrors it into your global Claude Code config, then keeps the two in sync without ever clobbering local state. Every path through the installer starts read-only: `status` compares the repo against what is installed, and `install` reports the exact changes it would make until you pass `--apply`. Only `install --apply` and `update` write, the first incrementally and the second by force-overwriting managed files.
+
+The green shield in the diagram marks what is out of bounds in every mode: `.credentials.json`, `settings.json`, `memory`, and `sessions` belong to your machine and are never written or deleted. The blue note covers the two housekeeping behaviours — orphan cleanup, which stays scoped to managed directories so unrelated files survive, and rollback, which is pinned to the repository as the single source of truth.
 
 Everything runs through one script, `claude-config.js`:
 
@@ -57,10 +52,6 @@ node claude-config.js status
 # 2) Deploy (writes only with --apply)
 node claude-config.js install --apply
 ```
-
-## 📌 Project status
-
-The library was deliberately slimmed in August 2026: a heavier orchestration layer was removed, captured in the snapshot tag `pre-orchestrator-removal`.
 
 ## 🙏 Acknowledgements
 

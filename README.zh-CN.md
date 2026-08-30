@@ -1,18 +1,8 @@
 <div align="right"><a href="README.md">English</a></div>
 
-<p align="center"><img src="docs/hero.png" alt="Claude Code Harness banner" width="100%"></p>
+<p align="center"><img src="docs/hero.png" alt="Claude Code Harness —— 一个跨平台安装器，安全地部署你的 Claude Code agents、skills 与 hooks" width="100%"></p>
 
-<p align="center"><b>一个跨平台安装器，安全地部署你的 Claude Code agents、skills 与 hooks。</b></p>
-
-<p align="center">
-<img src="https://img.shields.io/badge/Node.js-18%2B-4ade80?style=flat-square" alt="Node.js 18+">
-<img src="https://img.shields.io/badge/dependencies-zero-4ade80?style=flat-square" alt="Zero dependencies">
-<img src="https://img.shields.io/badge/cross--platform-Win%20%7C%20macOS%20%7C%20Linux-4ade80?style=flat-square" alt="Cross-platform">
-<img src="https://img.shields.io/badge/dry--run-by%20default-4ade80?style=flat-square" alt="Dry-run by default">
-<img src="https://img.shields.io/badge/License-MIT-4ade80?style=flat-square" alt="License: MIT">
-</p>
-
-Claude Code Harness 是一套个人 `~/.claude` 配置（agents、skills、hooks、rules 与 commands）的唯一可信来源仓库，通过单个 Node 安装器部署到 Claude Code 的全局配置目录。它的目标是让一个庞大且持续演进的 agent 库能够在多台机器之间可复现地重建：一条只读的健康检查命令、一条部署命令，以及默认安全、绝不触碰你的凭据与会话的写入方式。
+Claude Code Harness 是一套个人 `~/.claude` 配置（agents、skills、hooks、rules 与 commands）的唯一可信来源仓库，通过单个 Node 安装器部署到 Claude Code 的全局配置目录。它的目标是让一个庞大且持续演进的 agent 库能够在多台机器之间可复现地重建：一条只读的健康检查命令、一条部署命令，以及默认安全、绝不触碰你的凭据与会话的写入方式。当前库包含 37 个 agents、52 个 commands、31 个 skills 与 41 个 hooks。
 
 ## ✨ 亮点特性
 
@@ -24,9 +14,14 @@ Claude Code Harness 是一套个人 `~/.claude` 配置（agents、skills、hooks
 - **强力的配置保护** —— `.credentials.json`、`settings.json`、`memory`、`sessions` 与 `projects` 永远不会被写入或删除。
 - **skill 可见性治理** —— 将 skill 清单裁剪到约 1% 的上下文预算之内；在本库中，若不裁剪，173 条 skill 条目中会有 112 条被静默截断。
 
-## 🏗 工作原理
+## 🏗 架构
 
-仓库是唯一可信来源；安装器将其镜像到你的全局 Claude Code 配置中，并在此后保持两者同步，同时绝不破坏本地状态。当前库包含 **37 个 agents、52 个 commands、31 个 skills 与 41 个 hooks**。
+<p align="center"><img src="docs/architecture.png" alt="Claude Code Harness 部署架构" width="100%"></p>
+<p align="center"><sub>仓库是唯一可信来源；<code>claude-config.js</code> 将其镜像到 <code>~/.claude</code>，且默认先 dry-run。</sub></p>
+
+仓库保存整个库 —— agents、skills、hooks、rules 与 commands —— 安装器将其镜像到你的全局 Claude Code 配置中，并在此后保持两者同步，同时绝不破坏本地状态。安装器的每一条路径都从只读开始：`status` 将仓库与已安装的配置进行比对，而 `install` 在你传入 `--apply` 之前只会报告它将要做出的确切改动。只有 `install --apply` 与 `update` 会真正写入，前者为增量式，后者则强制覆盖受管文件。
+
+图中绿色的盾牌标出了在任何模式下都不可触碰的部分：`.credentials.json`、`settings.json`、`memory` 与 `sessions` 属于你的本机，永远不会被写入或删除。蓝色标注则对应两项治理行为 —— 孤儿文件清理，其范围始终限定在受管目录之内，因而与之无关的文件得以保留；以及回滚，它固定以仓库作为唯一可信来源。
 
 所有操作都通过单个脚本 `claude-config.js` 完成：
 
@@ -57,10 +52,6 @@ node claude-config.js status
 # 2) 部署（仅在 --apply 时写入）
 node claude-config.js install --apply
 ```
-
-## 📌 项目状态
-
-该库于 2026 年 8 月被有意精简：移除了一个较重的编排（orchestration）层，并以快照标签 `pre-orchestrator-removal` 记录了移除前的状态。
 
 ## 🙏 致谢
 
