@@ -200,6 +200,10 @@ npm run test:harness
 
 harness 套件会发现 `tests/harness/` 下的每个 `*.test.js`，各自在独立 Node 进程中运行并汇总结果：全部通过退出 `0`，出现漂移退出 `1`，基础设施错误退出 `2`。`--bail` 在首次失败处停止，`-q` 静默输出。五个套件分别检查：每个规范文件是否存在；智能体与技能的 frontmatter 是否可解析（描述损坏会让技能被静默降级为 name-only）；钩子注册表是否通过 lint；harness 注册表是否符合其 schema；以及技能可见性映射是否漂移出预算。
 
+<p align="center"><img src="docs/harness-tests.png" alt="npm run test:harness 的终端输出：五个套件全部 PASS，总计 441ms" width="100%"></p>
+
+<p align="center"><sub>在干净检出上的真实运行——不需要网络、不需要 API key、也不需要 Claude Code 会话。漂移检查才是重点：<code>skill-visibility-drift</code> 会读取磁盘上全部 31 个技能，断言生成出来的 47 条 override 列表仍然吻合，所以"新增了技能却没做可见性决策"会让构建失败，而不是悄悄发布出去。</sub></p>
+
 ## 📚 文档
 
 - [`docs/OPERATING-PRINCIPLES.md`](docs/OPERATING-PRINCIPLES.md) — 为什么这套 harness 围绕稀缺的"判断力"来组织，以及评审节奏与准入标准

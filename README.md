@@ -200,6 +200,10 @@ npm run test:harness
 
 The harness suite discovers every `*.test.js` under `tests/harness/`, runs each in its own Node process and aggregates: exit `0` when everything passes, `1` on drift, `2` on an infrastructure error. `--bail` stops at the first failure, `-q` quietens the output. The five suites check that every canonical file exists, that agent and skill frontmatter parses (a broken description silently downgrades a skill to name-only), that the hook registry lints, that the harness registry matches its schema, and that the skill-visibility map has not drifted out of budget.
 
+<p align="center"><img src="docs/harness-tests.png" alt="Terminal output of npm run test:harness: five suites, all PASS, 441ms total" width="100%"></p>
+
+<p align="center"><sub>A real run on a clean checkout — no network, no API key, and no Claude Code session required. The drift checks are the point: <code>skill-visibility-drift</code> reads all 31 skills on disk and asserts the generated 47-entry override list still matches, so a skill added without a visibility decision fails the build rather than shipping silently.</sub></p>
+
 ## 📚 Documentation
 
 - [`docs/OPERATING-PRINCIPLES.md`](docs/OPERATING-PRINCIPLES.md) — why the harness is organised around scarce judgement, plus review cadence and admission rubric
