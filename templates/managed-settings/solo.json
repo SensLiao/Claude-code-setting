@@ -50,6 +50,6 @@
     "allowManagedMcpServersOnly は設定しない — 既存 MCP 設定を維持するため (verify key name against your Claude Code version)",
     "allowManagedPermissionRulesOnly は設定しない — solo は user-level allow/deny を活用 (verify key name against your Claude Code version)",
     "strictPluginOnlyCustomization は設定しない — solo では plugin 以外の customization も許可 (verify key name against your Claude Code version)",
-    "disableWorkflows: false がデフォルト — Dynamic Workflows を GOVERNED_GATE 外でのみ使用可能とする (key confirmed from native-capabilities.md)"
+    "disableWorkflows: false がデフォルト — Dynamic Workflows は有効、ただし結論は必ずユーザー承認を経る (key confirmed from native-capabilities.md)"
   ]
 }
