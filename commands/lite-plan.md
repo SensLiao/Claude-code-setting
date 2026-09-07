@@ -102,5 +102,5 @@ reproduces". Whatever proves THIS task is actually finished — do NOT hardcode 
 - The plan file doubles as the durable progress tracker — `/lite-execute` checks off steps in-place.
 - `.goals/` is local-only by convention (gitignored). If you want a plan committed for teammates, move it
   to a tracked path and say so.
-- This is instruction-layer, not a governed gate — no spec_hash, no enforcement hook. The discipline is the
+- This is instruction-layer — there is no enforcement hook behind it. The discipline is the
   loop itself: plan 落盘 → `/clear` → execute reads disk.

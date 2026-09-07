@@ -67,15 +67,15 @@ node -e "const s=require(require('os').homedir()+'/.claude/settings.json'); cons
 
 启用前必须：
 
-- [ ] **列出所有关键 hooks**（特别是 governance-capture、quality-gate、config-protection、block-no-verify）
+- [ ] **列出所有关键 hooks**（当前接线的 5 个：config-protection · block-no-verify · post-edit-format · design-quality-check · ledger-autolog）
 - [ ] **把关键 hooks 复制到 managed-settings 文件的 `hooks` 字段中**（或移入项目级 `.claude/settings.json`）
-- [ ] **测试验证**：在测试项目中启用 strict.json，运行一次完整 GSD session，确认 hooks 按预期触发
+- [ ] **测试验证**：在测试项目中启用 strict.json，跑一次真实 session，确认 hooks 按预期触发（改一个文件 + 收尾一次即可覆盖全部 5 个）
 - [ ] **特别确认以下 safety-critical hooks 已迁移**：
-  - `governed-gate-workflow-guard.js`（PreToolUse[Workflow]）— 拦截 Dynamic Workflow 进入 governed gate
+  - `block-no-verify.js`（PreToolUse[Bash]）— 拦截 --no-verify 绕过 git hooks
   - `config-protection.js`（PreToolUse[Write|Edit]）— 保护 settings.json 不被覆写
-  - `gsd-prompt-guard.js` / `gsd-read-guard.js` / `gsd-workflow-guard.js`（PreToolUse）— GSD 主线守卫
+  - `ledger-autolog.js`（Stop）— 机器账本, 断了就没有跨 session 审计轨迹
 
-**如果跳过这一步直接启用 strict.json：整个 GSD orchestrator 主线的 hook 保障将失效，governed gate 将失去 workflow guard，质量门将不再自动触发。**
+**如果跳过这一步直接启用 strict.json：5 个接线 hook 全部失效 —— settings.json 不再受保护、`--no-verify` 不再被拦、编辑后不再自动格式化、机器账本停止记录。**
 
 ---
 

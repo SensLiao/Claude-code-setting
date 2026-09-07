@@ -52,7 +52,7 @@ Business-first: ① what the task now does / delivers, ② progress (which steps
 
 ## Notes
 - If the plan is fully checked and Acceptance passes, set `status: done` in the plan file and say so.
-- This is execution discipline, not a governed gate — the rigor is: read disk, work the list, verify against
+- This is execution discipline, not an enforced gate — the rigor is: read disk, work the list, verify against
   the plan's own bar, leave a resumable trail.
 - Don't run two `/lite-execute` in the same working tree at once — they clobber each other's edits. To run
   plans in parallel, give each its own `git worktree`.

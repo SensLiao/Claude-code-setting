@@ -22,11 +22,11 @@
     "research_preview": true,
     "plans": ["all paid plans", "Anthropic API", "Amazon Bedrock", "Google Vertex AI", "Microsoft Foundry"],
     "pro_requires_config_enable": true,
-    "governance_use": "exploration | migration | research ONLY — never a release-gate verdict executor"
+    "governance_use": "exploration | migration | research — the conclusion still goes to the user for sign-off"
   },
   "ultracode": {
     "is": "xhigh effort + automatic Dynamic Workflow orchestration (Claude Code setting, not a plain effort level)",
-    "governed_gate_use": "DISABLED for verdict path — scout only (CLAUDE.md §3.7)"
+    "high_stakes_use": "scout only — a self-authored plan is not an approved plan (CLAUDE.global.md §0.6)"
   },
   "effort_levels": ["low", "medium", "high", "xhigh", "max"],
   "effort_default_opus_4_8": "high",
@@ -69,11 +69,11 @@
 ### Dynamic Workflows `[doc-cited]`
 Model writes the workflow JS at request time, fans out dozens–hundreds of subagents. **New in 4.8 (research preview).** Needs Claude Code **2.1.154+**; on all paid plans / Anthropic API / Bedrock / Vertex / Foundry; **Pro must enable in `/config`** (Dynamic workflows row).
 - ✅ Consume for: exploration, codebase-scale audits/migrations, deep research, adversarial cross-checks.
-- ⛔ NEVER for governed gate verdicts — non-deterministic, no `spec_hash`, can't be pre-approved by hash. See **CLAUDE.md §3.7 Governed Gate Mode**. CLI approval weakens under Auto/ultracode/`-p`/SDK — do not rely on it as human sign-off.
+- ⛔ Never treat a workflow's own output as a final verdict — it is non-deterministic, and nobody approved the plan it invented. Render the plan card and get the user's sign-off first (**CLAUDE.global.md §0.6**). CLI approval weakens under Auto/ultracode/`-p`/SDK — do not rely on it as human sign-off.
 - Permission knobs: `CLAUDE_CODE_DISABLE_WORKFLOWS=1` env, or project settings `"disableWorkflows": true`. `[doc-cited]`
 
 ### ultracode `[session-confirmed]`
-`/effort` confirms ultracode = "xhigh + dynamic workflow orchestration". Standing opt-in to author/run workflows by default. **Disabled for governed-gate verdict path** (scout only).
+`/effort` confirms ultracode = "xhigh + dynamic workflow orchestration". Standing opt-in to author/run workflows by default. **Scout only** — its findings still go through the plan card and the user's sign-off.
 
 ### Effort `[session-confirmed via /effort]` / `[doc-cited for level set]`
 Levels: low / medium / high / xhigh / max. Opus 4.8 default **high**; `/effort xhigh` for hardest tasks; `max` only when justified (can over-think). Captured per-spec in `_execution_profile.effort` for audit — **NOT** a native `agent()` parameter as of 2.1.154 (do not pass per-agent).
@@ -85,13 +85,13 @@ Levels: low / medium / high / xhigh / max. Opus 4.8 default **high**; `/effort x
 Opus 4.8/4.7 support **adaptive thinking only**; manual `budget_tokens` is rejected. Old MAX_THINKING_TOKENS / manual-budget logic is dead for these models — `_execution_profile.thinking` records `adaptive` for audit.
 
 ### Prompt caching `[doc-cited]`
-Opus 4.8 min cacheable length **1024 tokens** (down from 4096 on 4.6/4.7). Cache aggressively the STABLE governance substrate (schemas, agent contracts, ASVS/CSF/QA floor rules). Do NOT cache (i.e. keep dynamic in the hash): per-run spec, approval sentinel, ROE, budget cap.
+Opus 4.8 min cacheable length **1024 tokens** (down from 4096 on 4.6/4.7). Cache aggressively the STABLE substrate (rules, schemas, agent contracts). Do NOT cache what changes per run: the task text, the user's approval reply, the budget cap.
 
 ### Mid-conversation system messages `[doc-cited]`
-Append system-level instructions mid-session without breaking the prompt-cache prefix. Available on **Claude API + Claude Platform on AWS**; NOT on Bedrock / Vertex / Foundry. **Explicitly NOT a security boundary** — fine for env/budget/policy refresh in a long-running API harness; must NOT replace hooks / spec_hash approval / redaction / ROE / pentest authorization.
+Append system-level instructions mid-session without breaking the prompt-cache prefix. Available on **Claude API + Claude Platform on AWS**; NOT on Bedrock / Vertex / Foundry. **Explicitly NOT a security boundary** — fine for env/budget/policy refresh in a long-running API harness; must NOT replace hooks or the user's own approval.
 
 ### Model routing / aliases `[session-confirmed + doc-cited]`
-Use unversioned tier aliases (`opus`/`sonnet`/`haiku`, `[1m]` variants) in policy docs — aliases track provider-recommended versions. Current ids: Opus 4.8 `claude-opus-4-8`, Sonnet 4.6 `claude-sonnet-4-6`, Haiku 4.5 `claude-haiku-4-5-20251001`. For an **auditable governed run**, resolve the alias to a concrete id at approval time and record it in `_execution_profile.resolved_model_at_approval` (does NOT change preset `resolved_model`, which stays test-capped per the dual-layer rule).
+Use unversioned tier aliases (`opus`/`sonnet`/`haiku`, `[1m]` variants) in policy docs — aliases track provider-recommended versions. Current ids: Opus 4.8 `claude-opus-4-8`, Sonnet 4.6 `claude-sonnet-4-6`, Haiku 4.5 `claude-haiku-4-5-20251001`. When a run must be reproducible later, record which concrete id the alias resolved to at the time.
 
 ### Workflow tool / Subagents / Agent Teams / Hooks / Memory `[doc-cited, predate 4.8]`
 The底座 the spec-injection meta-runners stand on. Consume; never rebuild fan-out scheduling, subagent lifecycle, run journaling, or same-session resume. `resumeFromRunId` is **same-session only** — cross-session continuity (`previous_results` / `phase_outputs_fingerprinted`) is the harness's own value, keep it.
@@ -105,10 +105,10 @@ Layer 1 — Native substrate (consume, never rebuild):
   Workflow / Dynamic Workflows / Subagents / Agent Teams / Hooks / Memory / model aliases / effort / fast mode
 
 Layer 2 — Thin adapters (wrap, delete as platform absorbs):
-  spec runner, resolved_model injection, native-resume bridge, cache policy, command artifacts, capability detection
+  installer + config sync, hook wiring, cache policy, capability detection
 
-Layer 3 — Governance moat (own, strengthen every release):
-  spec_hash approval, redaction, ROE, ASVS/CSF, QA floor rules, UIUX L3 mutex, evidence schema, release verdict, Governed Gate Mode
+Layer 3 — Discipline we own (instruction-layer, no enforcement code):
+  the plan-card 坎 (§0.6), the durable ledger (§0.7), the reporting style (§0.5), the hard rules and the nine working principles
 ```
 
 > Mechanism belongs to the platform — consume it, never rebuild it. Governance & domain discipline belong to us — own it, strengthen it. The boundary moves toward the platform each release; shed exactly that much, no more.
@@ -117,7 +117,7 @@ Layer 3 — Governance moat (own, strengthen every release):
 
 ## Session-confirmed natives (2026-06-10)
 
-> Tools/capabilities **observed directly available in this session's environment** on 2026-06-10. Each is `[session-confirmed 2026-06-10]`. Names + one-line purpose only — **parameter details are intentionally not transcribed here** (consult the live tool schema / official docs at use time; do not infer args from this list). These confirm the platform now natively covers a large slice of fan-out / scheduling / isolation / messaging that the harness must NOT rebuild (Layer-1 substrate per the three-layer boundary above). Governance moat (Layer 3) is unchanged: none of these may issue a release-gate verdict or replace `spec_hash` approval / redaction / ROE.
+> Tools/capabilities **observed directly available in this session's environment** on 2026-06-10. Each is `[session-confirmed 2026-06-10]`. Names + one-line purpose only — **parameter details are intentionally not transcribed here** (consult the live tool schema / official docs at use time; do not infer args from this list). These confirm the platform now natively covers a large slice of fan-out / scheduling / isolation / messaging that the harness must NOT rebuild (Layer-1 substrate per the three-layer boundary above). Layer 3 is unchanged: none of these stands in for the user's own sign-off.
 
 ### Agent Teams `[session-confirmed 2026-06-10]`
 - `TeamCreate` — create a named multi-agent team.
@@ -161,7 +161,7 @@ Layer 3 — Governance moat (own, strengthen every release):
 ### Plugin CLI `[session-confirmed 2026-06-10]`
 - `claude plugin marketplace add` / `claude plugin install` / `list` / `uninstall` / `update` — manage marketplace plugins from CLI. This is how `codex@openai-codex` (replacement for the deleted `codex-dispatch` skill) is managed.
 
-> **Governance reminder**: Teams / Tasks / Cron / Worktree / Monitor / messaging are all **Layer-1 mechanism** — consume, never rebuild. They do NOT weaken Governed Gate Mode (CLAUDE.md §3.7): a scheduled or backgrounded agent still cannot self-approve a release verdict, exempt redaction, or authorize its own pentest.
+> **Governance reminder**: Teams / Tasks / Cron / Worktree / Monitor / messaging are all **Layer-1 mechanism** — consume, never rebuild. They do NOT weaken the approval discipline: a scheduled or backgrounded agent still cannot approve its own plan on the user's behalf.
 
 ---
 

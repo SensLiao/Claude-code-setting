@@ -144,13 +144,13 @@ for (const [re, label] of [
   }
 }
 
-// --- 7. saved-workflow governance frontmatter (CLAUDE.md §3.7 #6) -------------
+// --- 7. saved-workflow governance frontmatter (workflow-creator skill, Step 5.5) -------------
 // A workflow saved into a workflows/ dir must carry a `@governance` comment block.
 // Searched in raw src (it is a comment, blanked out of the stripped copy). Warn-only.
 if (!/@governance\b/.test(src)) {
   warnings.push('no `@governance` block — any workflow saved to ~/.claude/workflows/ or '
     + '.claude/workflows/ must carry one (reviewed_by / reviewed_at / allowed_scope / '
-    + 'release_gate_allowed: false / destructive_ops_allowed: false) per CLAUDE.md §3.7 #6; '
+    + 'release_gate_allowed: false / destructive_ops_allowed: false) per the workflow-creator skill Step 5.5; '
     + 'release_gate_allowed: true requires human review')
 }
 

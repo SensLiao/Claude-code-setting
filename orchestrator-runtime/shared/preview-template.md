@@ -1,26 +1,21 @@
-# Execution Preview Template — PLAN-PREVIEW CARD (Patch A.3 — 表 + 流程图)
+# Execution Preview Template — PLAN-PREVIEW CARD (表 + 流程图)
 
-> Rendered by the domain Skill (AppSec / QA / UIUX / GSD) — and by any ad-hoc
-> multi-agent / Workflow dispatch — BEFORE execution. It shows, as a **TABLE +
-> dots-and-lines DIAGRAM**: WHAT will run, WHO does it (agent · model · the tools
-> it uses + what each tool does), and the data FLOW.
+> Single source of truth for the card required by `CLAUDE.global.md` §0.6 and
+> `rules/common/task-execution-protocol.md` Step 5. Rendered BEFORE execution by
+> any multi-agent / Workflow / large-generation dispatch. It shows, as a
+> **TABLE + dots-and-lines DIAGRAM**: WHAT will run, WHO does it (agent · model ·
+> the tools it uses + what each tool does), and the data FLOW.
 >
-> Two modes, ONE card:
-> - **workflow-spec mode** → the card IS the hard `spec_hash` approval gate
->   (enforced by `<domain>-preview-gate.js`: sentinel + hash + TTL). The card is
->   the human-readable *render*; the hook is the *enforcement*. They compose.
-> - **prompt-only / ad-hoc mode** (DEFAULT, incl. Windows) → the card is the
->   instruction-layer **坎** (CLAUDE.md §0.6): render → wait for confirm → run.
->   No sentinel, no hash — just the visible plan + a confirmation reply.
->   Hook-backed since 2026-06-15: the GLOBAL `plan-card-reminder.js`
->   (PreToolUse[Agent|Workflow]) deterministically REMINDS (soft, never blocks)
->   when a ≥3 fan-out / Workflow launches without a card this turn; and
->   `report-gate.js` (Stop) HARD-blocks a non-trivial turn that ends with no report.
->   Both register in ~/.claude/settings.json (manifests/hook-registry.json global_live).
+> **Instruction-layer only.** The card is the 坎: render → wait for confirm → run.
+> There is no approval sentinel, no hash gate and no enforcement hook — the
+> orchestrator line that owned those was removed 2026-08-25, and the hash-based
+> remnants 2026-09-07. Two dormant hooks exist on disk but are NOT wired:
+> `plan-card-reminder.js` (would soft-remind on an uncarded fan-out) and
+> `report-gate.js`. Wiring state is `manifests/hook-registry.json`, never memory.
 >
-> **Design (CLAUDE.md §0.5 reporting style)**: business value first (目标 / 能力 /
-> 做完得到 / 成本); agents · tools · flow readable at a glance; `spec_hash`,
-> fingerprints, sentinel paths demoted to `<details>` and shown only on request.
+> **Design (`CLAUDE.global.md` §0.5 reporting style)**: business value first
+> (目标 / 能力 / 做完得到 / 成本); agents · tools · flow readable at a glance;
+> anything technical demoted to `<details>` and shown only on request.
 
 ---
 
@@ -28,15 +23,15 @@
 
 ```
 ╔══════════════════════════════════════════════════════════════════════╗
-║  执行计划预览 · PLAN PREVIEW — {{Domain}} / {{mode_human_name}}
+║  执行计划预览 · PLAN PREVIEW — {{task_name}}
 ╚══════════════════════════════════════════════════════════════════════╝
 
 🎯 目标:          {{goal_one_line}}
-🧩 用到的能力:    {{capabilities_csv}}        ← 例: 风险分类 · 并行 fan-out · 证据落盘 · spec_hash 审批
+🧩 用到的能力:    {{capabilities_csv}}        ← 例: 风险分类 · 并行 fan-out · 落盘产物
 ✅ 做完你会得到:  {{outcome_one_line}}        ← 业务语言, 不是 schema 名
-📦 规模 / 成本:   {{phase_count}} 步 · {{exec_count}} 执行 / {{cached_count}} 缓存 · ~{{tok_low}}k–{{tok_high}}k tokens · ~{{wallclock}} · {{model_mix}}
+📦 规模 / 成本:   {{phase_count}} 步 · {{agent_count}} agent · ~{{tok_low}}k–{{tok_high}}k tokens · ~{{wallclock}} · {{model_mix}}
 🚦 复杂度档:      {{tier}}   (简单 = 跳过本卡 / 中等 = 出表 / 复杂 = 表 + 图 + 成本)
-🤔 为什么这个形状: {{shape_justification}}     ← 检测到什么 / 跳过了什么 / 为何选这个 mode
+🤔 为什么这个形状: {{shape_justification}}     ← 检测到什么 / 跳过了什么 / 为何这么排
 
 ── Agents 调度 ─────────────────────────────────────────────────────────
 | # | 阶段 / Agent            | 模型        | 干什么 (一句话)            | 用的工具 = 作用                       |
@@ -48,24 +43,22 @@
 ── 流程 / 结构图 (dots & lines) ────────────────────────────────────────
 {{ascii_flow_diagram}}
 
-   图例:  ──► 串行   ═►parallel×N   ◇ gate/判定   ⟳ loop   [det] 纯代码无 agent   ? = skip_if 可跳过
+   图例:  ──► 串行   ═►parallel×N   ◇ gate/判定   ⟳ loop   [det] 纯代码无 agent   ? = 可跳过
 
-── 证据 / 产物 ─────────────────────────────────────────────────────────
-{{for each evidence/artifact path}}  - {{path}}
+── 产物 ────────────────────────────────────────────────────────────────
+{{for each artifact path}}  - {{path}}
 {{end}}
-
-🔒 spec_hash {{hash8}} · 审批后 TTL {{ttl}}s        ← 仅 workflow-spec 模式; happy-path 不展开
 ────────────────────────────────────────────────────────────────────────
 确认执行?   回复  OK / 批准 / 跑 / 继续 / 同意 / 好 / 执行
             改:  说哪一步要改        停:  cancel / 取消
-<details><summary>展开技术细节 (spec_hash / fingerprints / sentinel / hooks / refs)</summary>
+<details><summary>展开技术细节 (per-agent refs / hooks / risks)</summary>
 {{technical_appendix — see "Technical appendix" block below}}
 </details>
 ```
 
 **The card has exactly the four things the user asked to always see:**
 1. **A table** (`Agents 调度`) — `# · 阶段/Agent · 模型 · 干什么 · 用的工具=作用`. The
-   **tools column** is mandatory and is the column the old template lacked.
+   **tools column** is mandatory.
 2. **A dots-and-lines diagram** (`流程/结构图`) — the flow/structure, with a legend
    encoding serial / parallel / gate / loop / deterministic / skippable.
 3. **Business-value top lines** (目标 / 能力 / 做完得到 / 成本) per §0.5.
@@ -73,16 +66,15 @@
 
 ---
 
-## ASCII flow diagram — generation rules (Skill-side, from `spec.phases[]`)
+## ASCII flow diagram — generation rules
 
-The Skill walks `spec.phases[]` (or, in prompt-only/ad-hoc mode, its planned
-agent list) IN ORDER and emits `{{ascii_flow_diagram}}`:
+Walk the planned agent list IN ORDER and emit `{{ascii_flow_diagram}}`:
 
 1. **serial single node** → `Name` on a horizontal chain, joined by `──►`.
-2. **fanout node** → `Name × N` (N = resolved width, or `_width_range[0]–[1]` if dynamic), arrow `═►`.
+2. **fanout node** → `Name × N` (N = planned width), arrow `═►`.
 3. **pipeline node** → `Name × M items (P stages)`.
-4. **deterministic node** → `[Name: op_name]` (brackets = code-only, no agent).
-5. **skip_if node** → append `?` and a `(skip if <cond>)` note.
+4. **code-only step** → `[Name: op_name]` (brackets = no agent).
+5. **conditional node** → append `?` and a `(skip if <cond>)` note.
 6. **gate / decision node** → mark with `◇`; show the ✗→stop / ✓→continue branch.
 7. Long chains: break line + indent for readability; keep arrows.
 
@@ -100,51 +92,27 @@ agent list) IN ORDER and emits `{{ascii_flow_diagram}}`:
 
 ---
 
-## Mode-name vocabulary (human-readable)
+## Step-shape vocabulary (human-readable)
 
-| Internal mode | Human-name shown in preview |
-|---|---|
-| `quick-check` | "quick check (dev iteration)" |
-| `focused-review` | "focused review (PR / feature complete)" |
-| `release-gate` | "release gate (full pre-release sweep)" |
-| `incident-response` | "incident response (lifecycle_stage=incident)" |
-| `deep-sweep` | "deep sweep (explicit audit)" |
-| `chassis-lock-check` (UIUX) | "UIUX chassis lock check" |
-| `style-mutex-audit` (UIUX) | "UIUX style mutex audit" |
-| `focused-qa-gate` (QA) | "focused QA gate (PR-to-main)" |
-| `release-readiness` (QA) | "QA release readiness" |
-| `commercial-cert` (QA) | "QA commercial-cert (full)" |
-| `focused-implementation` (GSD) | "GSD focused implementation" |
-| `full-delivery` (GSD) | "GSD full delivery" |
-
----
-
-## Node `type` vocabulary (human-readable)
-
-| Internal type | Human-name shown | Diagram arrow |
+| Shape | Human-name shown | Diagram arrow |
 |---|---|---|
-| `single` | "serial" | `──►` |
-| `fanout` (width N) | "parallel × N" | `═►` |
-| `pipeline` (per-item × stages) | "pipeline × N items × M stages" | `══►` |
-| `deterministic` | "deterministic (no agent — pure code)" | `[name]` |
+| serial | "serial" | `──►` |
+| fanout (width N) | "parallel × N" | `═►` |
+| pipeline (per-item × stages) | "pipeline × N items × M stages" | `══►` |
+| code-only | "deterministic (no agent — pure code)" | `[name]` |
 
 ---
 
-## Model alias vocabulary (human-readable)
+## Model column
 
-| Alias | Human-name shown | Current resolution |
-|---|---|---|
-| `inherit` | "current session model" | session model |
-| `cheap_fast` | "cheap execution model" | haiku (current: Haiku 4.5) |
-| `balanced` | "main model" | sonnet (current: Sonnet 4.6) |
-| `strongest_available` | "strong verifier" | opus (current: Opus 4.8) |
-
-> User sees the alias / human-name, NOT the technical model id. Switching from
-> opus → opus-5 is a single config-line change, not a fleet rewrite.
+Use the three global aliases — `opus` (决策层) / `sonnet` (执行层) / `haiku` (工具层)
+— per `CLAUDE.global.md` §3 and `rules/common/performance.md`. Every spawn must
+name one **explicitly**; the card shows the alias, not a versioned model id, so a
+platform model swap does not invalidate the wording.
 
 ---
 
-## Approval Keywords (CAVEAT 9, whitelist only)
+## Approval Keywords (whitelist only)
 
 Exact match (case-insensitive, trimmed), no fuzzy match:
 
@@ -155,84 +123,19 @@ Any other reply (including `maybe`, `idk`, `..`, `?`, silence) = no approval →
 
 ---
 
-## Sentinel file (after approval — workflow-spec mode only)
-
-```
-<project>/.<domain>/state/preview-approved/<safe-run_id>.json
-```
-
-Contents:
-```json
-{
-  "run_id": "v3.2.1-pre-release",
-  "spec_hash": "sha256:<64-hex canonical, per shared/spec-hash.js>",
-  "preview_hash": "sha256:<64-hex over the rendered card text>",
-  "approved_at": "<ISO8601 from Bash date>",
-  "approval_text": "<exact user reply>",
-  "ttl_seconds": 300
-}
-```
-
-**TTL**: configurable via `.<domain>/config.json.preview_approval_ttl_seconds`;
-hook clamps to `[30, 3600]` defensively.
-
-> `preview_hash` is computed over the **rendered card text** (the block above).
-> Upgrading this template to the card changes the rendered text → `preview_hash`
-> changes, but `spec_hash` (computed over `spec`, not over the render) is
-> **unchanged**, so the hook contract and all existing tests stay valid. The card
-> is a richer *render* of the same gate, not a new gate.
-
----
-
-## Hook validation logic (cross-domain identical — workflow-spec mode)
-
-```
-sentinel exists
-&& sentinel.run_id == tool_input.args.run_id
-&& sentinel.spec_hash == tool_input.args.spec_hash
-&& sentinel.spec_hash == recompute_sha256(stableStringify(args.spec))  ← defends against approved-A-run-B (canonical sha256: per shared/spec-hash.js; appsec also accepts legacy djb2 during transition)
-&& sentinel.approved_at parses as ISO8601
-&& now_ms - approved_at_ms in [0, ttl_seconds*1000]                    ← no future skew, no expiry
-&& spec.allow_dynamic_workflow !== true                                ← Governed Gate Mode (CLAUDE.md §3.7)
-```
-
-Any failure → `exit 2` + stderr explaining which check failed → Workflow tool blocks the launch.
-
----
-
 ## Technical appendix (the `<details>` block — debug preview)
 
 ```
-Orchestrator:        {{orchestrator}}
-Workflow base:       {{workflow_base_path}}
-Spec preset:         {{preset_name}}{{overlay_chain}}
-Spec hash:           {{spec_hash}}                          ← canonical sha256 (8-char display)
-Spec validator:      ✓ ajv (or structural fallback)
+Task:                {{task_name}}
 Target:              {{target}}
-Release tag:         {{release_tag}}
-Run id:              {{run_id}}
-Sentinel path:       {{sentinel_path}}
+Working set:         {{files_or_dirs}}
 
-Capability gates:
-  CLAUDE_CODE_WORKFLOWS:  {{value_or_unset}}
-  DISABLE_TELEMETRY:      {{value_or_unset}}
-  Platform compat:        {{platform_compat}}
-
-Per-node fingerprints:
-{{for each node}}  {{name}}  fp={{fingerprint}}  cached={{is_cached}}  cache_miss_reason={{reason|—}}
+Per-agent refs + ops:
+{{for each agent}}  {{name}}
+    model:      {{model}}
+    tools:      {{tools}}
+    writes:     {{files_it_may_write|—}}   ← 多 agent 不得写同一文件
 {{end}}
-
-Per-node refs + ops:
-{{for each node}}  {{name}}
-    prompt_ref: {{prompt_ref|—}}
-    schema_ref: {{schema_ref|—}}
-    ops_allowed (this node): {{ops|—}}
-    sdk: {{sdk.command|—}} --layer {{sdk.layer|—}}
-{{end}}
-
-Resume source detail: {{resume_source_path|none}}
-                      → {{cached_count}} phases cached
-                      → cache misses: {{cache_misses_list|none}}
 
 Hooks that will fire:
 {{for each hook}}  {{name}}  on {{event}}:{{matcher}}
@@ -253,16 +156,8 @@ Wall-clock estimate: ~{{wallclock_estimate}}
 - **Table + diagram, not walls of text**: the user explicitly asked to see, before
   execution, a table and a dots-and-lines diagram of which agents run, which tools
   each uses, and the flow. The card delivers exactly that; prose is minimized.
-- **Tools column**: the previous template showed Type/Model/Agent/Job but never
-  *which tools each agent uses and what each does* — added as a first-class column.
+- **Tools column**: showing Type/Model/Agent/Job but not *which tools each agent
+  uses and what each does* is the gap this column closes.
 - **User-readable default**: a CFO / PM / owner should read this in 60 seconds and
-  decide approve / modify / reject. Tech detail (spec_hash / fingerprints / gates)
-  lives in `<details>`.
-- **Works in the DEFAULT path**: this card is rendered in prompt-only / ad-hoc mode
-  too (the 坎), not just workflow-spec — closing the gap where the default Windows
-  path showed nothing.
-- **Composes with spec_hash gates**: in workflow-spec mode the card is the render at
-  the existing preview step; `spec_hash` + sentinel + hook are unchanged.
-- **Alias not literal**: future model swaps (opus → opus-5) don't break wording.
-- **Mode-name vocabulary**: every domain converges on the same word-shape so
-  cross-domain experience is uniform.
+  decide approve / modify / reject. Tech detail lives in `<details>`.
+- **Alias not literal**: future model swaps don't break wording.

@@ -19,10 +19,10 @@ paths:
 > the paths above (API routes, middleware, auth code, server-side, db layers).
 > Extends [common/security.md](../common/security.md).
 
-> **Post-orchestrator (2026-08-25)**: the AppSec orchestrator, its enforcement hooks and the entire
-> active-testing line are removed. Defensive review runs through the `appsec-reviewer` agent (or the
-> generic `security-reviewer`); auditable evidence persists via `scripts/appsec-sdk.sh`
-> (evidence.append / finding.add / gate.check) into `.appsec/evidence/<tag>/` when a paper trail is needed.
+> **Post-orchestrator (2026-08-25, evidence kit 2026-08-28)**: the AppSec orchestrator, its enforcement
+> hooks, the entire active-testing line and the evidence SDK are all removed. Defensive review runs
+> through the `security-reviewer` agent. There is no evidence SDK left to call — when a paper trail is
+> needed, write the findings and the commands you actually ran into a dated report in the repo.
 
 # Security and AppSec Rule (path-scoped)
 
@@ -56,8 +56,8 @@ When you modify any path matched by this rule, you must:
 - Run **dependency audit** (`npm audit` / `pip-audit` / `cargo audit`)
 - Run **secret scan** if files staged contain key-shaped strings
   (`gitleaks` with `--redact` — raw secrets never appear in chat / logs / reports)
-- When an audit trail matters (client delivery / compliance), persist findings and
-  command evidence via `appsec-sdk.sh` into `.appsec/evidence/<tag>/`
+- When an audit trail matters (client delivery / compliance), record the findings and
+  the exact commands run in a dated report committed with the change
 
 ## OWASP mapping (required for shipping)
 

@@ -3,17 +3,17 @@
 /**
  * shared/run-ledger.js — append-only run ledger (the harness "black box").
  *
- * WHY: run-fingerprint.js computed the hard 80% (execution_fingerprint, agent/
- * policy hashes) but wrote it to stdout and threw it away; sentinel + gate
- * decision + git context were never joined. Cross-run history was unanswerable.
- * This joins them into ONE append-only row per run.
+ * WHY: a turn's tool / agent / file activity and its git context were never joined,
+ * so cross-run history was unanswerable — "what did that session actually touch?"
+ * could only be answered by re-reading transcripts. This writes ONE append-only
+ * row per substantial turn instead.
  *
  * WHERE: <project>/.harness/runs.jsonl when a project root is found (portable —
  * travels with the repo, handoff-ready). Else ~/.claude/state/run-ledger.jsonl
  * (harness-self runs). One JSON object per line (JSONL).
  *
- * This is NOT a gate. It records; it never decides. (Governed verdicts stay with
- * the deterministic gate.check + spec_hash approval — CLAUDE.md §3.7.)
+ * This is NOT a gate. It records; it never decides — and it fails open, so a
+ * broken ledger can never break a session.
  *
  * CLI:
  *   echo '<json>' | node run-ledger.js append --stdin [--project <root>] [--k=v ...]

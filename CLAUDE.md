@@ -53,6 +53,7 @@ skill 的 name + description 会自动进 context,SKILL.md 正文按需加载;`S
 
 - **2026-08-25**:GSD / I2R / QA / AppSec / L12 / UIUX 编排层 / bootstrap 六线及下游共 ~250 件移除。整体快照在 tag `pre-orchestrator-removal`。
 - **2026-08-28**:QA/AppSec evidence kit 移除(两个 SDK + 10 个 parser + 5 个 agent + 13 个 gate/verdict schema + 3 个专属测试)。它是已删编排器的证据接收器,从未产出过任何证据目录。`orchestrator-runtime/shared/` 下 `run-ledger.js`(ledger hook 用)、`git-context.js`(前者的依赖)、`preview-template.md`(预览卡模板)**保留**。
+- **2026-09-07**:hash 承重残留清零。`orchestrator-runtime/shared/` 只剩上条那 3 个保留件,其余 11 个孤儿全删(`qa-recompute-gate.js` · `qa-aggregate-decision.js` · `spec-hash.js` · `run-fingerprint.js` · `validate-spec.js` · `resolve-capabilities.js` · `orchestrator-spec.v1.json` · `model-policy.md` · `lint-model-policy.js` · `install-subsystem-hooks.js` · `node-types.md`);`preview-template.md` 重写成纯指令层(去掉 workflow-spec 分支 / sentinel / spec_hash 校验);`schemas/run-ledger.schema.json` 与唯一活写入者 `ledger-autolog` 对齐(删 3 个永远为 null 的 hash 字段);`rules/security-appsec.md` 与 `docs/native-capabilities.md` 的死引用改正。**全库不再有任何用文件 sha 当 gate 的机制。**
 
 需要那类流程时按 `CLAUDE.global.md` §0.6 出计划卡现场编排,**不要凭记忆调用已不存在的 skill 或脚本**。
 

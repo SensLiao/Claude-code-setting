@@ -19,9 +19,9 @@ description: >-
 |---|---|
 | ✅ **是** | "什么时候该用 Codex、用哪个命令、带什么纪律" 的决策 playbook |
 | ✅ **是** | 把 NL 意图（"让 codex 修这个" / "cross-review 一下"）路由到正确的 `/codex:*` 命令 |
-| ✅ **是** | harness 专属纪律的单一真相源（切尺度 / wave cross-review / Windows / fallback / 版本号 / governed-gate 边界） |
+| ✅ **是** | harness 专属纪律的单一真相源（切尺度 / wave cross-review / Windows / fallback / 版本号 / 高风险改动边界） |
 | ❌ **不是** | codex CLI 的二次封装 —— **绝不**自己写 `codex exec ...` 命令（那是官方 plugin 的 `codex-companion.mjs` 的活） |
-| ❌ **不是** | release verdict 的来源 —— governed gate 里 Codex review 只是 advisory（见 §9） |
+| ❌ **不是** | "可以发"结论的来源 —— Codex review 只是 advisory（见 §9） |
 | ❌ **不是** | prompt 起草指南 —— 那是官方内置 `gpt-5-4-prompting` skill 的活，需要时引用它 |
 
 执行引擎 = 官方 plugin。本 skill = 上面那层「判断力」。
@@ -48,7 +48,7 @@ node "$CLAUDE_PLUGIN_ROOT/scripts/codex-companion.mjs" review "--wait"   # cwd =
 
 注意：直接调用绕过了 plugin 的 SessionStart/SessionEnd 生命周期 hooks，跑完可能残留 `codex` / `node` broker 进程占住 cwd（实测发生）——用完检查 `codex-companion.mjs status --json` 并清理残留进程。
 
-> **review-gate 必须保持关闭**（`reviewGateEnabled: false`）。**绝不**跑 `/codex:setup --enable-review-gate` —— 官方明示会快速烧穿用量限额，且"自动循环复审"与 governed gate 的人类签字哲学冲突（CLAUDE.md 反模式）。跨模型 review 一律手动触发。
+> **review-gate 必须保持关闭**（`reviewGateEnabled: false`）。**绝不**跑 `/codex:setup --enable-review-gate` —— 官方明示会快速烧穿用量限额，且"自动循环复审"与"由人拍板"冲突（principles #3）。跨模型 review 一律手动触发。
 
 ---
 
@@ -197,12 +197,13 @@ Codex 返回额度错误（rate limit / quota exceeded / 402）→ **立即 fall
 
 ---
 
-## 9. Governed-gate 边界（硬约束）
+## 9. 高风险改动的边界（硬约束）
 
-在 governed gate（appsec/qa release · commercial-cert · pentest · `/gsd-ship` release gate）里：
-- Codex review **只是 advisory / 侦察兵**，产出候选发现，**绝不**产出 release verdict
-- verdict 只能由 deterministic spec-runner + `spec_hash` 人类审批 + evidence bundle 产出（CLAUDE.md §3.7）
-- Codex 的发现必须喂回 spec-runner 走验证/证据/审批，不得直接落地为 gate 结论
+安全 · 权限 · 认证 · 支付 · 数据迁移 · 公共 API · 核心逻辑的改动里：
+- Codex review **只是 advisory / 侦察兵**，产出候选发现，**绝不**自己下"可以发"的结论
+- 结论回主线程：我逐条评估该不该采纳（`CLAUDE.global.md` §2 硬规则 10「不要机械执行 reviewer 意见」），
+  要不要动手由 user 拍板（principles #3「以人类为准」）
+- Codex 的发现必须先复现 / 验证再落地，不得直接当成事实改代码
 - **绝不**开 review-gate stop hook（§1）
 
 ---
@@ -282,4 +283,4 @@ GPT-5.5   整理为实验记录 / report / slides
 - 内部执行者路由：完整规则在本 skill §3；`rules/common/task-execution-protocol.md` §3 只留骨架 + 指针
 - 模型路由 / fallback 选档：`rules/common/performance.md`
 - 跨模型双盲收敛：`santa-loop` skill（Codex 当第二评审员）
-- governed-gate 哲学：`CLAUDE.md` §3.7 + 反模式区
+- 人机分工：`CLAUDE.global.md` §0.6 计划卡坎 + principles #3「以人类为准」

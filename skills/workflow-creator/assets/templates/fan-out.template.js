@@ -6,7 +6,7 @@
  *   reviewed_by:             TODO (human reviewer) — fill before saving to a workflows/ dir
  *   reviewed_at:             TODO (YYYY-MM-DD)
  *   allowed_scope:           exploration            # exploration | migration | research
- *   release_gate_allowed:    false   # leave false; true REQUIRES human review (CLAUDE.md §3.7 #6)
+ *   release_gate_allowed:    false   # leave false; true REQUIRES human review (workflow-creator skill, Step 5.5)
  *   destructive_ops_allowed: false
  */
 export const meta = {

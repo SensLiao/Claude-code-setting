@@ -231,7 +231,7 @@ Fix every error it reports before invoking the workflow.
 
 ---
 
-## Step 5.5 — Saved workflow governance (CLAUDE.md §3.7 #6)
+## Step 5.5 — Saved workflow governance (workflow-creator skill, Step 5.5)
 
 Any workflow file **saved into** `~/.claude/workflows/` or a project's
 `.claude/workflows/` must carry a `@governance` frontmatter comment block as its
@@ -254,10 +254,9 @@ export const meta = { /* … */ }
 
 Rules:
 
-- **`release_gate_allowed` defaults to `false`.** A workflow may be used for an
-  appsec / qa release-readiness / commercial-cert / pentest / `/gsd-ship` **gate
-  verdict** only if it is `true` **and** a human has reviewed it. Do not flip it
-  to `true` on the user's behalf without an explicit human review.
+- **`release_gate_allowed` defaults to `false`.** A workflow may stand behind a
+  ship / no-ship decision only if it is `true` **and** a human has reviewed it.
+  Do not flip it to `true` on the user's behalf without an explicit human review.
 - **`destructive_ops_allowed` defaults to `false`.** Keep it false unless the
   workflow genuinely performs reviewed destructive operations.
 - **`allowed_scope`** is one of `exploration` / `migration` / `research` — the

@@ -60,7 +60,7 @@ B. 任何**重派发**（即使只读）—— 补 §A 漏掉的"只读 fan-out 
 
 优先级：**任务适配度 > 省 token**。判断模糊 → 留主线程（默认安全）。
 
-> **完整 playbook 见 [`codex-dispatch`](../../skills/codex-dispatch/SKILL.md) skill** —— 2026-07-29 起按需加载、不再常驻。内含：何时委派的决策树 · 施工单模板 · 切尺度 caps · wave 强制 cross-review · Windows 注意事项 · 额度 fallback · governed-gate 边界 · 外部模型协作五步循环 + 收到外部 spec 的执行纪律 + spec 书写正反例。
+> **完整 playbook 见 [`codex-dispatch`](../../skills/codex-dispatch/SKILL.md) skill** —— 2026-07-29 起按需加载、不再常驻。内含：何时委派的决策树 · 施工单模板 · 切尺度 caps · wave 强制 cross-review · Windows 注意事项 · 额度 fallback · 高风险改动边界 · 外部模型协作五步循环 + 收到外部 spec 的执行纪律 + spec 书写正反例。
 > 触发词："用 codex / 派给 codex / 跨模型 review / GPT-5.5 / 外部模型 / 外部 spec / 粘贴的方案"。
 
 ### Step 4: Model 路由（仅 Claude subagent 适用）

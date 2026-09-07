@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://claude.local/schemas/hook-registry.schema.json",
   "title": "Hook Registry",
-  "description": "JSON Schema (draft-07) for manifests/hook-registry.json. Rewritten 2026-06-10 to match the live `categories`-wrapped shape (the previous draft described an obsolete top-level global_live/project_installed/library_modules layout). The registry is the single source of truth for hook enumeration, triggers, and per-subsystem install metadata. Per CANONICALS.md D3, subsystem hooks are project-installed-only; only the global_live set fires on every session. Each hook entry carries a `trigger` (a Claude Code hook phase string such as 'SessionStart' / 'Stop' / 'PreToolUse(Skill)' / 'PreToolUse(Bash)', OR an array of such strings for dual-mode hooks) and a `purpose`. The installer that consumes this registry is orchestrator-runtime/shared/install-subsystem-hooks.js.",
+  "description": "JSON Schema (draft-07) for manifests/hook-registry.json. Rewritten 2026-06-10 to match the live `categories`-wrapped shape (the previous draft described an obsolete top-level global_live/project_installed/library_modules layout). The registry is the single source of truth for hook enumeration, triggers, and per-subsystem install metadata. Each hook entry carries a `trigger` (a Claude Code hook phase string such as 'SessionStart' / 'Stop' / 'PreToolUse(Skill)' / 'PreToolUse(Bash)', OR an array of such strings for dual-mode hooks) and a `purpose`.",
   "type": "object",
   "required": [
     "schema_version",

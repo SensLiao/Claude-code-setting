@@ -22,7 +22,7 @@ The highest min-version referenced anywhere in the harness repo:
 
 **Harness floor**: `2.1.154`
 
-No other surface in the repo declares a hard floor below this. If your Claude Code version is below `2.1.154`, Dynamic Workflows (`Workflow` tool) will be unavailable, and the `governed-gate-workflow-guard.js` PreToolUse hook + the `CLAUDE_CODE_WORKFLOWS=1` env knob will have no target.
+No other surface in the repo declares a hard floor below this. If your Claude Code version is below `2.1.154`, Dynamic Workflows (`Workflow` tool) will be unavailable. The `CLAUDE_CODE_WORKFLOWS=1` env knob then has no target.
 
 ---
 
@@ -30,7 +30,7 @@ No other surface in the repo declares a hard floor below this. If your Claude Co
 
 | Surface | Min CC version | Risk if version too old | Source |
 |---------|---------------|------------------------|--------|
-| **Workflow tool** (Static + Dynamic Workflows) | `2.1.154` (Dynamic); static predates 4.8 | `Workflow()` calls fail silently or produce no-op; `governed-gate-workflow-guard.js` never fires; harness cannot run `appsec-orchestrator.js` / `qa-orchestrator.js` | `native-capabilities.md` §Dynamic Workflows + `workflow_tool.predates_4_8` |
+| **Workflow tool** (Static + Dynamic Workflows) | `2.1.154` (Dynamic); static predates 4.8 | `Workflow()` calls fail silently or produce no-op | `native-capabilities.md` §Dynamic Workflows + `workflow_tool.predates_4_8` |
 | **Dynamic Workflows** (model-authored inline `script`) | `2.1.154` | Dynamic Workflow fan-out disabled; `ultracode` / xhigh effort orchestration silently degrades to static workflow only | `native-capabilities.md` machine-readable snapshot |
 | **Agent Teams** (`TeamCreate` / `TeamDelete`) | (unverified — confirm before relying) | Team fan-out fails; `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` env key ignored | `settings.json` env key + `native-capabilities.md` §Agent Teams `[session-confirmed 2026-06-10]` — no hard min version listed |
 | **Tasks** (`TaskCreate` / `TaskUpdate` / `TaskList` / `TaskGet` / `TaskOutput`) | (unverified — confirm before relying) | Background/async agent work unavailable | `native-capabilities.md` §Tasks `[session-confirmed 2026-06-10]` — no hard min version listed |
@@ -38,12 +38,12 @@ No other surface in the repo declares a hard floor below this. If your Claude Co
 | **Worktree isolation** (`EnterWorktree` / `ExitWorktree` / `isolation: "worktree"`) | (unverified — confirm before relying) | Write-conflict-safe parallel agent isolation unavailable; fan-out agents may collide on files | `native-capabilities.md` §Worktree isolation `[session-confirmed 2026-06-10]` |
 | **Monitor / PushNotification / SendUserFile / SendMessage** | (unverified — confirm before relying) | Long-running orchestration ergonomics degrade; agent messaging broken | `native-capabilities.md` §Monitoring & messaging `[session-confirmed 2026-06-10]` |
 | **ToolSearch + deferred-tool mechanism** | (unverified — confirm before relying) | MCP/deferred tool schemas cannot be fetched on demand; large tool catalogs must all load upfront | `native-capabilities.md` §Tool discovery `[session-confirmed 2026-06-10]` |
-| **Global hooks** (PreToolUse / PostToolUse / Stop / SessionStart / SessionEnd / PreCompact) | Predates 2.1.154 (hook system long-established) | All hook-based guards (`governed-gate-workflow-guard.js`, `gsd-prompt-guard.js`, AppSec/QA project hooks, etc.) silently do nothing | `settings.json` hook definitions; no breaking version change flagged in `native-capabilities.md` |
-| **Skills / SKILL.md system** | (unverified — confirm before relying) | Skills stop loading; all orchestrators (GSD / UIUX / AppSec / QA / L12) become unavailable | Not versioned in repo sources; platform internal |
+| **Global hooks** (PreToolUse / PostToolUse / Stop / SessionStart / SessionEnd / PreCompact) | Predates 2.1.154 (hook system long-established) | All five wired hooks (config-protection / block-no-verify / post-edit-format / design-quality-check / ledger-autolog) silently do nothing | `settings.json` hook definitions; no breaking version change flagged in `native-capabilities.md` |
+| **Skills / SKILL.md system** | (unverified — confirm before relying) | Skills stop loading; every tool skill in `skills/` becomes unavailable | Not versioned in repo sources; platform internal |
 | **Plugin system** (`enabledPlugins` / `extraKnownMarketplaces` / `skillOverrides`) | (unverified — confirm before relying) | Third-party plugins (bencium, designer-skills, vercel, interface-design, etc.) may fail to load; `skillOverrides` entries silently ignored | `settings.json` keys; no min-version cited in repo |
-| **`statusLine` settings key** | (unverified — confirm before relying) | Custom statusline (`gsd-statusline.js`) not rendered; CC shows default or blank | `settings.json` key `statusLine`; not versioned in repo |
+| **`statusLine` settings key** | (unverified — confirm before relying) | Custom statusline (`statusline.ps1`) not rendered; CC shows default or blank | `settings.json` key `statusLine`; not versioned in repo |
 | **`effortLevel` settings key** | (unverified — confirm before relying) | xhigh / ultracode effort level ignored; falls back to platform default | `settings.json` key `effortLevel: "xhigh"` |
-| **Subagents (`Agent` tool)** | Predates 2.1.154 | Fan-out orchestration unavailable; all gsd-* / appsec-* / qa-* agents cannot be spawned | `native-capabilities.md` §Workflow tool / Subagents (predates 4.8) |
+| **Subagents (`Agent` tool)** | Predates 2.1.154 | Fan-out orchestration unavailable; no agent in `agents/` can be spawned | `native-capabilities.md` §Workflow tool / Subagents (predates 4.8) |
 | **MCP servers** (`mcpServers` in settings.json) | (unverified — confirm before relying) | Tavily MCP server not available; web search in research skills breaks | `settings.json` key `mcpServers` |
 | **`disableSkillShellExecution` key** | (unverified — confirm before relying) | Key silently ignored; shell execution from skill context may become available unintentionally | `settings.json` key `disableSkillShellExecution: true` |
 | **`skipDangerousModePermissionPrompt` key** | (unverified — confirm before relying) | Key silently ignored; prompts may reappear or behavior undefined | `settings.json` key `skipDangerousModePermissionPrompt: true` |
@@ -79,7 +79,7 @@ These are the version-sensitive settings keys that the harness uses in `~/.claud
 
 | Date | CC version | Surface | What changed | Harness action required |
 |------|-----------|---------|--------------|------------------------|
-| _(template row — no real entry yet)_ | `X.Y.Z` | e.g. `Workflow tool` | e.g. `inline script param renamed` | e.g. `update governed-gate-workflow-guard.js + re-test` |
+| _(template row — no real entry yet)_ | `X.Y.Z` | e.g. `Workflow tool` | e.g. `inline script param renamed` | e.g. `update the affected hook + re-test` |
 
 **How to add a row**: when CC auto-updates and a surface breaks, fill in the date you discovered it, the CC version that introduced the change (run `claude --version` or check the CC release notes), which surface broke, what exactly changed, and what action you took (or need to take) in the harness.
 
